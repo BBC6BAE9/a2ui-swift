@@ -1,0 +1,85 @@
+[
+  {
+    "beginRendering": {
+      "surfaceId": "main",
+      "root": "root"
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["title", "desc", "name_field", "email_field", "divider", "submit_btn"] },
+              "align": "stretch"
+            }
+          }
+        },
+        {
+          "id": "title",
+          "component": { "Text": { "text": { "literalString": "Quick Contact" }, "variant": "h3" } }
+        },
+        {
+          "id": "desc",
+          "component": { "Text": { "text": { "literalString": "Fill the form and tap Send. The resolved action context will appear below." }, "variant": "caption" } }
+        },
+        {
+          "id": "name_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "Name" },
+              "text": { "path": "/name" }
+            }
+          }
+        },
+        {
+          "id": "email_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "Email" },
+              "text": { "path": "/email" }
+            }
+          }
+        },
+        {
+          "id": "divider",
+          "component": { "Divider": {} }
+        },
+        {
+          "id": "submit_label",
+          "component": { "Text": { "text": { "literalString": "Send" } } }
+        },
+        {
+          "id": "submit_btn",
+          "component": {
+            "Button": {
+              "child": "submit_label",
+              "variant": "primary",
+              "action": {
+                "name": "submitContact",
+                "context": [
+                  { "key": "userName", "value": { "path": "/name" } },
+                  { "key": "userEmail", "value": { "path": "/email" } },
+                  { "key": "source", "value": { "literalString": "demo_app" } }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "main",
+      "path": "/",
+      "contents": [
+        { "key": "name", "valueString": "Alice" },
+        { "key": "email", "valueString": "alice@example.com" }
+      ]
+    }
+  }
+]

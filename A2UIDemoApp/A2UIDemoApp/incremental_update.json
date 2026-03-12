@@ -1,0 +1,99 @@
+[
+  {
+    "beginRendering": {
+      "surfaceId": "main",
+      "root": "root"
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["title", "divider", "msg_a"] },
+              "align": "stretch"
+            }
+          }
+        },
+        {
+          "id": "title",
+          "component": { "Text": { "text": { "literalString": "Bulletin Board" }, "variant": "h2" } }
+        },
+        {
+          "id": "divider",
+          "component": { "Divider": {} }
+        },
+        {
+          "id": "msg_a",
+          "component": { "Card": { "child": "msg_a_text" } }
+        },
+        {
+          "id": "msg_a_text",
+          "component": { "Text": { "text": { "literalString": "Message A: Hello everyone!" } } }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["title", "divider", "msg_a", "msg_b", "msg_c"] },
+              "align": "stretch"
+            }
+          }
+        },
+        {
+          "id": "msg_b",
+          "component": { "Card": { "child": "msg_b_text" } }
+        },
+        {
+          "id": "msg_b_text",
+          "component": { "Text": { "text": { "literalString": "Message B: Nice to meet you!" } } }
+        },
+        {
+          "id": "msg_c",
+          "component": { "Card": { "child": "msg_c_text" } }
+        },
+        {
+          "id": "msg_c_text",
+          "component": { "Text": { "text": { "literalString": "Message C: Welcome aboard!" } } }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "msg_a_text",
+          "component": { "Text": { "text": { "literalString": "Message A: [EDITED] Updated content!" } } }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["title", "divider", "msg_a", "msg_c"] },
+              "align": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  }
+]

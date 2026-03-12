@@ -1,0 +1,290 @@
+[
+  {
+    "beginRendering": {
+      "surfaceId": "contact_form",
+      "root": "root"
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "contact_form",
+      "components": [
+        {
+          "id": "root",
+          "component": { "Card": { "child": "form_container" } }
+        },
+        {
+          "id": "form_container",
+          "component": {
+            "Column": {
+              "children": { "explicitList": [
+                "header_row", "name_row", "email_group", "phone_group",
+                "pref_group", "divider_1", "newsletter_checkbox", "submit_button"
+              ] },
+              "justify": "start",
+              "align": "stretch"
+            }
+          }
+        },
+        {
+          "id": "header_row",
+          "component": {
+            "Row": {
+              "children": { "explicitList": ["header_icon", "header_text"] },
+              "align": "center"
+            }
+          }
+        },
+        {
+          "id": "header_icon",
+          "component": { "Icon": { "name": { "literalString": "mail" } } }
+        },
+        {
+          "id": "header_text",
+          "component": { "Text": { "text": { "literalString": "Contact Us" }, "variant": "h2" } }
+        },
+        {
+          "id": "name_row",
+          "component": {
+            "Row": {
+              "children": { "explicitList": ["first_name_group", "last_name_group"] },
+              "justify": "spaceBetween"
+            }
+          }
+        },
+        {
+          "id": "first_name_group",
+          "weight": 1,
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["first_name_label", "first_name_field"] }
+            }
+          }
+        },
+        {
+          "id": "first_name_label",
+          "component": { "Text": { "text": { "literalString": "First Name" }, "variant": "caption" } }
+        },
+        {
+          "id": "first_name_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "First Name" },
+              "value": { "path": "/contact/firstName" },
+              "variant": "shortText"
+            }
+          }
+        },
+        {
+          "id": "last_name_group",
+          "weight": 1,
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["last_name_label", "last_name_field"] }
+            }
+          }
+        },
+        {
+          "id": "last_name_label",
+          "component": { "Text": { "text": { "literalString": "Last Name" }, "variant": "caption" } }
+        },
+        {
+          "id": "last_name_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "Last Name" },
+              "value": { "path": "/contact/lastName" },
+              "variant": "shortText"
+            }
+          }
+        },
+        {
+          "id": "email_group",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["email_label", "email_field"] }
+            }
+          }
+        },
+        {
+          "id": "email_label",
+          "component": { "Text": { "text": { "literalString": "Email Address" }, "variant": "caption" } }
+        },
+        {
+          "id": "email_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "Email" },
+              "value": { "path": "/contact/email" },
+              "variant": "shortText",
+              "checks": [
+                {
+                  "condition": {
+                    "call": "required",
+                    "args": { "value": { "path": "/contact/email" } },
+                    "returnType": "boolean"
+                  },
+                  "message": "Email is required."
+                },
+                {
+                  "condition": {
+                    "call": "email",
+                    "args": { "value": { "path": "/contact/email" } },
+                    "returnType": "boolean"
+                  },
+                  "message": "Please enter a valid email address."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "phone_group",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["phone_label", "phone_field"] }
+            }
+          }
+        },
+        {
+          "id": "phone_label",
+          "component": { "Text": { "text": { "literalString": "Phone Number" }, "variant": "caption" } }
+        },
+        {
+          "id": "phone_field",
+          "component": {
+            "TextField": {
+              "label": { "literalString": "Phone" },
+              "value": { "path": "/contact/phone" },
+              "variant": "shortText",
+              "checks": [
+                {
+                  "condition": {
+                    "call": "regex",
+                    "args": {
+                      "value": { "path": "/contact/phone" },
+                      "pattern": "^\\d{10}$"
+                    },
+                    "returnType": "boolean"
+                  },
+                  "message": "Phone number must be 10 digits."
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pref_group",
+          "component": {
+            "Column": {
+              "children": { "explicitList": ["pref_label", "pref_picker"] }
+            }
+          }
+        },
+        {
+          "id": "pref_label",
+          "component": { "Text": { "text": { "literalString": "Preferred Contact Method" }, "variant": "caption" } }
+        },
+        {
+          "id": "pref_picker",
+          "component": {
+            "ChoicePicker": {
+              "variant": "mutuallyExclusive",
+              "options": [
+                { "label": { "literalString": "Email" }, "value": "email" },
+                { "label": { "literalString": "Phone" }, "value": "phone" },
+                { "label": { "literalString": "SMS" }, "value": "sms" }
+              ],
+              "value": { "path": "/contact/preference" }
+            }
+          }
+        },
+        {
+          "id": "divider_1",
+          "component": { "Divider": {} }
+        },
+        {
+          "id": "newsletter_checkbox",
+          "component": {
+            "CheckBox": {
+              "label": { "literalString": "Subscribe to our newsletter" },
+              "value": { "path": "/contact/subscribe" }
+            }
+          }
+        },
+        {
+          "id": "submit_button_label",
+          "component": { "Text": { "text": { "literalString": "Send Message" } } }
+        },
+        {
+          "id": "submit_button",
+          "component": {
+            "Button": {
+              "child": "submit_button_label",
+              "variant": "primary",
+              "action": {
+                "name": "submitContactForm",
+                "context": [
+                  { "key": "formId", "value": { "literalString": "contact_form" } },
+                  { "key": "isNewsletterSubscribed", "value": { "path": "/contact/subscribe" } }
+                ]
+              },
+              "checks": [
+                {
+                  "condition": {
+                    "call": "and",
+                    "args": {
+                      "values": [
+                        {
+                          "call": "required",
+                          "args": { "value": { "path": "/contact/email" } },
+                          "returnType": "boolean"
+                        },
+                        {
+                          "call": "email",
+                          "args": { "value": { "path": "/contact/email" } },
+                          "returnType": "boolean"
+                        },
+                        {
+                          "call": "regex",
+                          "args": {
+                            "value": { "path": "/contact/phone" },
+                            "pattern": "^\\d{10}$"
+                          },
+                          "returnType": "boolean"
+                        }
+                      ]
+                    },
+                    "returnType": "boolean"
+                  },
+                  "message": "Please fix the form errors before submitting."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "contact_form",
+      "path": "/",
+      "contents": [
+        {
+          "key": "contact",
+          "valueMap": [
+            { "key": "firstName", "valueString": "John" },
+            { "key": "lastName", "valueString": "Doe" },
+            { "key": "email", "valueString": "john.doe@example.com" },
+            { "key": "phone", "valueString": "1234567890" },
+            { "key": "preference", "valueMap": [
+              { "key": "0", "valueString": "email" }
+            ] },
+            { "key": "subscribe", "valueBoolean": true }
+          ]
+        }
+      ]
+    }
+  }
+]
