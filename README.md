@@ -4,6 +4,11 @@ A native SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protoco
 Renders agent-generated JSON into native iOS and macOS interfaces using SwiftUI.
 
 This is a community-maintained renderer for the A2UI specification.
+| iOS | iPadOS | macOS | visionOS | watchOS | tvOS |
+|:---:|:------:|:-----:|:--------:|:-------:|:----:|
+| <img src="https://github.com/user-attachments/assets/b765127a-b97f-4767-a2ef-98f2d8f3f96e" height="280"/> | <img src="https://github.com/user-attachments/assets/902e5e55-f556-4112-b8ec-09ec9f991231" height="280"/> | <img src="https://github.com/user-attachments/assets/1eacae69-f8ba-4285-bb3d-dad1bd8eefb0" height="280"/> | <img src="https://github.com/user-attachments/assets/99e8c253-130c-4b09-a661-9b5aaeff2b5f" height="280"/> | <img src="https://github.com/user-attachments/assets/6bbd46f5-8ff0-4360-9d39-9175444843bf" height="280"/> | <img src="https://github.com/user-attachments/assets/f3e16070-e0e6-4862-a393-c12543816fbe" height="280"/> |
+
+
 
 ## Requirements
 
@@ -137,6 +142,14 @@ agent integration.
 
 Open `samples/client/swiftui/A2UIDemoApp/A2UIDemoApp.xcodeproj` in Xcode and run on a
 simulator or device.
+
+|                             info                             |                          action log                          |                            genui                             |
+| :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="https://github.com/user-attachments/assets/1cefe139-3266-4b57-8f2e-d4d2046b3ae6" height="200"/> | <img src="https://github.com/user-attachments/assets/f65a68a3-78a7-4542-8bf4-868ce0e91ec4" height="200"/> | <img src="https://github.com/user-attachments/assets/3b38f7c5-3b7e-4910-9222-bfa2c7cf236b" height="200"/> |
+
+The demo app (`samples/client/swiftui/`) includes **10 pages** covering both static JSON demos and live agent connections. Each demo page includes an **info inspector** explaining what it demonstrates, and action-triggering pages display a **Resolved Action** log showing the resolved context payload.
+
+genui demo: https://github.com/BBC6BAE9/genui
 
 ## Known Limitations
 
