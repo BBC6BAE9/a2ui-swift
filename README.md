@@ -36,7 +36,7 @@ Add this package to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/BBC6BAE9/a2ui-swiftui", branch: "main"),
+    .package(url: "https://github.com/BBC6BAE9/a2ui-swiftui", from: "0.1.0"),
 ],
 targets: [
     .target(name: "YourApp", dependencies: ["A2UI"]),
