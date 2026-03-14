@@ -17,18 +17,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install git-cliff
+        run: |
+          curl -sSL https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz --strip-components=1 git-cliff-*/git-cliff
+          sudo mv git-cliff /usr/local/bin/
+
       - name: Generate changelog
-        uses: orhun/git-cliff-action@v3
         id: cliff
-        with:
-          config: cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: CHANGELOG.md
+        run: |
+          NOTES=$(git-cliff --latest --strip header --config cliff.toml)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.cliff.outputs.content }}
+          body: ${{ steps.cliff.outputs.notes }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') || startsWith(github.ref_name, 'v0.') }}
