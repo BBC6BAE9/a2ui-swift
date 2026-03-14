@@ -1,13 +1,13 @@
 # A2UI SwiftUI Renderer
 
-**Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
-
-A SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol. Drop in `A2UIRendererView` and your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
-
 ![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
 ![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-87%20passing-brightgreen)
+
+**Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
+
+A SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol. Drop in `A2UIRendererView` and your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
 
 | iOS | iPadOS | macOS | visionOS | watchOS | tvOS |
 |:---:|:------:|:-----:|:--------:|:-------:|:----:|
