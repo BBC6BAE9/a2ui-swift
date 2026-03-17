@@ -34,7 +34,6 @@ A2UIRendererView(manager: manager) { action in
 
 @Links(visualStyle: detailedGrid) {
     - <doc:GettingStarted>
-    - <doc:A2UIDemoApp>
 }
 
 ## Topics
@@ -42,7 +41,6 @@ A2UIRendererView(manager: manager) { action in
 ### Essentials
 
 - <doc:GettingStarted>
-- <doc:A2UIDemoApp>
 - ``A2UIRendererView``
 - ``SurfaceManager``
 
