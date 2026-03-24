@@ -1,4 +1,4 @@
-# A2UI SwiftUI Renderer
+# Generative UI SDK for SwiftUI (genui)
 
 **Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
 
