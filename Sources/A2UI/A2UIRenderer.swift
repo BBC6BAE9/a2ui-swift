@@ -15,24 +15,7 @@
 import SwiftUI
 
 /// The main entry point for rendering A2UI surfaces in SwiftUI.
-///
-/// This view is purely declarative — it observes a `SurfaceManager` and renders
-/// its surfaces. Message processing, stream consumption, and error handling
-/// belong in the app layer.
-///
-/// Usage:
-/// ```swift
-/// // App layer: manage stream + errors
-/// let manager = SurfaceManager()
-/// for try await message in parser.messages(from: bytes) {
-///     try manager.processMessage(message)
-/// }
-///
-/// // View layer: just render
-/// A2UIRendererView(manager: manager, onAction: { action in
-///     Task { try await client.sendAction(action, surfaceId: "main") }
-/// })
-/// ```
+/// Supports both v0.8 and v0.9 protocol versions transparently.
 public struct A2UIRendererView: View {
     private let manager: SurfaceManager
     private let onAction: ((ResolvedAction) -> Void)?
@@ -56,21 +39,37 @@ public struct A2UIRendererView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(manager.orderedSurfaceIds, id: \.self) { surfaceId in
-                        if let vm = manager.surfaces[surfaceId],
-                           let rootNode = vm.componentTree {
-                            ScrollView {
-                                A2UIComponentView(
-                                    node: rootNode, viewModel: vm
-                                )
-                                .padding()
-                            }
-                            .tint(vm.a2uiStyle.primaryColor)
-                            .environment(\.a2uiStyle, vm.a2uiStyle)
+                        if let surface = manager.surfaces[surfaceId] {
+                            renderSurface(surface)
                         }
                     }
                 }
             }
         }
         .environment(\.a2uiActionHandler, onAction)
+    }
+
+    @ViewBuilder
+    private func renderSurface(_ surface: VersionedSurface) -> some View {
+        switch surface {
+        case .v08(let vm):
+            if let rootNode = vm.componentTree {
+                ScrollView {
+                    A2UIComponentView_V08(node: rootNode, viewModel: vm)
+                        .padding()
+                }
+                .tint(vm.a2uiStyle.primaryColor)
+                .environment(\.a2uiStyle, vm.a2uiStyle)
+            }
+        case .v09(let vm):
+            if let rootNode = vm.componentTree {
+                ScrollView {
+                    A2UIComponentView_V09(node: rootNode, viewModel: vm)
+                        .padding()
+                }
+                .tint(vm.a2uiStyle.primaryColor)
+                .environment(\.a2uiStyle, vm.a2uiStyle)
+            }
+        }
     }
 }

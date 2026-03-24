@@ -17,101 +17,101 @@ import XCTest
 
 final class DataBindingTests: XCTestCase {
 
-    private func loadTestJSON(_ filename: String) throws -> [ServerToClientMessage] {
+    private func loadTestJSON(_ filename: String) throws -> [ServerToClientMessage_V08] {
         let url = Bundle.module.url(
             forResource: filename,
             withExtension: "json",
             subdirectory: "TestData"
         )!
         let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+        return try JSONDecoder().decode([ServerToClientMessage_V08].self, from: data)
     }
 
     // MARK: - Path Resolution
 
     func testResolveStringLiteral() throws {
-        let vm = SurfaceViewModel()
-        let value = StringValue(literalString: "Hello")
+        let vm = SurfaceViewModel_V08()
+        let value = StringValue_V08(literalString: "Hello")
         XCTAssertEqual(vm.resolveString(value), "Hello")
     }
 
     func testResolveStringWithLiteralField() throws {
-        let vm = SurfaceViewModel()
-        let value = StringValue(literal: "World")
+        let vm = SurfaceViewModel_V08()
+        let value = StringValue_V08(literal: "World")
         XCTAssertEqual(vm.resolveString(value), "World")
     }
 
     func testBoundValueSeedsDataModelWhenBothPresent() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let strValue = StringValue(path: "userName", literalString: "Alice")
+        let strValue = StringValue_V08(path: "userName", literalString: "Alice")
         XCTAssertEqual(vm.resolveString(strValue), "Alice")
         XCTAssertEqual(vm.getDataByPath("/userName")?.stringValue, "Alice",
                        "literal should be written into dataModel at path")
 
-        let numValue = NumberValue(path: "score", literalNumber: 95)
+        let numValue = NumberValue_V08(path: "score", literalNumber: 95)
         XCTAssertEqual(vm.resolveNumber(numValue), 95)
         XCTAssertEqual(vm.getDataByPath("/score")?.numberValue, 95)
 
-        let boolValue = BooleanValue(path: "active", literalBoolean: true)
+        let boolValue = BooleanValue_V08(path: "active", literalBoolean: true)
         XCTAssertEqual(vm.resolveBoolean(boolValue), true)
         XCTAssertEqual(vm.getDataByPath("/active")?.boolValue, true)
     }
 
     func testBoundValueDoesNotOverwriteExistingData() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
         vm.setData(path: "userName", value: .string("Bob"))
 
-        let strValue = StringValue(path: "userName", literalString: "Alice")
+        let strValue = StringValue_V08(path: "userName", literalString: "Alice")
         XCTAssertEqual(vm.resolveString(strValue), "Bob",
                        "existing data model value should take priority over literal")
 
         vm.setData(path: "score", value: .number(50))
-        let numValue = NumberValue(path: "score", literalNumber: 95)
+        let numValue = NumberValue_V08(path: "score", literalNumber: 95)
         XCTAssertEqual(vm.resolveNumber(numValue), 50)
 
         vm.setData(path: "active", value: .bool(false))
-        let boolValue = BooleanValue(path: "active", literalBoolean: true)
+        let boolValue = BooleanValue_V08(path: "active", literalBoolean: true)
         XCTAssertEqual(vm.resolveBoolean(boolValue), false)
     }
 
     func testResolveStringNestedPath() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["user"] = .dictionary([
             "profile": .dictionary([
                 "displayName": .string("Jane Smith")
             ])
         ])
 
-        let value = StringValue(path: "/user/profile/displayName")
+        let value = StringValue_V08(path: "/user/profile/displayName")
         XCTAssertEqual(vm.resolveString(value), "Jane Smith")
     }
 
     func testResolveNumber() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["count"] = .number(42)
 
-        let literal = NumberValue(literalNumber: 99)
+        let literal = NumberValue_V08(literalNumber: 99)
         XCTAssertEqual(vm.resolveNumber(literal), 99)
 
-        let pathValue = NumberValue(path: "count")
+        let pathValue = NumberValue_V08(path: "count")
         XCTAssertEqual(vm.resolveNumber(pathValue), 42)
     }
 
     func testResolveBoolean() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["isActive"] = .bool(true)
 
-        let literal = BooleanValue(literalBoolean: false)
+        let literal = BooleanValue_V08(literalBoolean: false)
         XCTAssertEqual(vm.resolveBoolean(literal), false)
 
-        let pathValue = BooleanValue(path: "isActive")
+        let pathValue = BooleanValue_V08(path: "isActive")
         XCTAssertEqual(vm.resolveBoolean(pathValue), true)
     }
 
     func testGetDataByPathWithArrayIndex() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["items"] = .array([
             .dictionary(["title": .string("Item A")]),
             .dictionary(["title": .string("Item B")])
@@ -125,7 +125,7 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testResolvePathRelative() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         XCTAssertEqual(vm.resolvePath("name", context: "/"), "/name")
         XCTAssertEqual(vm.resolvePath("name", context: "/user"), "/user/name")
         XCTAssertEqual(vm.resolvePath("/absolute", context: "/user"), "/absolute")
@@ -134,29 +134,29 @@ final class DataBindingTests: XCTestCase {
 
     func testResolveStringFromContactCard() throws {
         let messages = try loadTestJSON("contact_card")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         vm.dataModel["name"] = .string("John Doe")
         vm.dataModel["calendar"] = .string("March 15, 2026")
 
         let userHeading = vm.components["user_heading"]!
-        let textProps = try userHeading.component!.typedProperties(TextProperties.self)
+        let textProps = try userHeading.component!.typedProperties(TextProperties_V08.self)
         XCTAssertEqual(vm.resolveString(textProps.text), "John Doe")
 
         let calendarText = vm.components["calendar_primary_text"]!
-        let calProps = try calendarText.component!.typedProperties(TextProperties.self)
+        let calProps = try calendarText.component!.typedProperties(TextProperties_V08.self)
         XCTAssertEqual(vm.resolveString(calProps.text), "March 15, 2026")
 
         let calendarLabel = vm.components["calendar_secondary_text"]!
-        let labelProps = try calendarLabel.component!.typedProperties(TextProperties.self)
+        let labelProps = try calendarLabel.component!.typedProperties(TextProperties_V08.self)
         XCTAssertEqual(vm.resolveString(labelProps.text), "Calendar")
     }
 
     // MARK: - normalizePath
 
     func testNormalizePath() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
         XCTAssertEqual(vm.normalizePath("name"), "name")
         XCTAssertEqual(vm.normalizePath("/name"), "/name")
@@ -171,7 +171,7 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testGetDataByPathWithNormalization() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["items"] = .array([
             .dictionary(["title": .string("First")]),
             .dictionary(["title": .string("Second")])
@@ -182,7 +182,7 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testResolveStringWithDataContextPath() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["items"] = .dictionary([
             "item1": .dictionary([
                 "name": .string("The Fancy Place"),
@@ -190,13 +190,13 @@ final class DataBindingTests: XCTestCase {
             ])
         ])
 
-        let nameValue = StringValue(path: "name")
+        let nameValue = StringValue_V08(path: "name")
         XCTAssertEqual(
             vm.resolveString(nameValue, dataContextPath: "/items/item1"),
             "The Fancy Place"
         )
 
-        let ratingValue = NumberValue(path: "rating")
+        let ratingValue = NumberValue_V08(path: "rating")
         XCTAssertEqual(
             vm.resolveNumber(ratingValue, dataContextPath: "/items/item1"),
             4.8
@@ -207,13 +207,13 @@ final class DataBindingTests: XCTestCase {
 
     func testTemplateWithDictionaryData() throws {
         let messages = try loadTestJSON("single_column_list")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         XCTAssertEqual(vm.rootComponentId, "root-column")
 
         XCTAssertNil(vm.dataModel["title"])
-        let titleValue = StringValue(path: "title")
+        let titleValue = StringValue_V08(path: "title")
         XCTAssertEqual(vm.resolveString(titleValue), "")
 
         let items = vm.getDataByPath("/items")
@@ -237,7 +237,7 @@ final class DataBindingTests: XCTestCase {
             4.2
         )
 
-        let nameValue = StringValue(path: "name")
+        let nameValue = StringValue_V08(path: "name")
         XCTAssertEqual(
             vm.resolveString(nameValue, dataContextPath: "/items/item1"),
             "The Fancy Place"
@@ -247,7 +247,7 @@ final class DataBindingTests: XCTestCase {
             "Quick Bites"
         )
 
-        let detailValue = StringValue(path: "detail")
+        let detailValue = StringValue_V08(path: "detail")
         XCTAssertEqual(
             vm.resolveString(detailValue, dataContextPath: "/items/item1"),
             "Fine dining experience"
@@ -259,14 +259,14 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testTemplateWithArrayData() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["todos"] = .array([
             .dictionary(["text": .string("Buy milk")]),
             .dictionary(["text": .string("Walk dog")]),
             .dictionary(["text": .string("Code review")])
         ])
 
-        let textValue = StringValue(path: "text")
+        let textValue = StringValue_V08(path: "text")
 
         XCTAssertEqual(
             vm.resolveString(textValue, dataContextPath: "/todos/0"),
@@ -282,15 +282,15 @@ final class DataBindingTests: XCTestCase {
         )
     }
 
-    // MARK: - Action Context Resolution
+    // MARK: - Action_V08 Context Resolution
 
     func testActionContextResolution() throws {
         let messages = try loadTestJSON("single_column_list")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let button = vm.components["template-book-button"]!
-        let buttonProps = try button.component!.typedProperties(ButtonProperties.self)
+        let buttonProps = try button.component!.typedProperties(ButtonProperties_V08.self)
 
         let resolved = vm.resolveAction(
             buttonProps.action,
@@ -314,22 +314,22 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testActionContextResolutionWithLiterals() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let action = Action(
+        let action = Action_V08(
             name: "test_action",
             context: [
-                ActionContextEntry(
+                ActionContextEntry_V08(
                     key: "label",
-                    value: BoundValue(literalString: "hello")
+                    value: BoundValue_V08(literalString: "hello")
                 ),
-                ActionContextEntry(
+                ActionContextEntry_V08(
                     key: "count",
-                    value: BoundValue(literalNumber: 42)
+                    value: BoundValue_V08(literalNumber: 42)
                 ),
-                ActionContextEntry(
+                ActionContextEntry_V08(
                     key: "active",
-                    value: BoundValue(literalBoolean: true)
+                    value: BoundValue_V08(literalBoolean: true)
                 ),
             ]
         )
@@ -346,13 +346,13 @@ final class DataBindingTests: XCTestCase {
 
     func testActionContextResolutionBookingForm() throws {
         let messages = try loadTestJSON("booking_form")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         vm.setData(path: "partySize", value: .string("4"))
 
         let button = vm.components["submit-button"]!
-        let buttonProps = try button.component!.typedProperties(ButtonProperties.self)
+        let buttonProps = try button.component!.typedProperties(ButtonProperties_V08.self)
 
         let resolved = vm.resolveAction(
             buttonProps.action, sourceComponentId: "submit-button"
@@ -369,7 +369,7 @@ final class DataBindingTests: XCTestCase {
     // MARK: - Input Component Write-back
 
     func testInputComponentWriteBack() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["partySize"] = .string("2")
 
         vm.setData(path: "partySize", value: .string("5"))
@@ -383,7 +383,7 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testInputComponentWriteBackWithContext() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["items"] = .dictionary([
             "item1": .dictionary(["qty": .string("1")])
         ])
@@ -401,13 +401,13 @@ final class DataBindingTests: XCTestCase {
     // MARK: - setData (Nested Path Write)
 
     func testSetDataTopLevel() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.setData(path: "/name", value: .string("Alice"))
         XCTAssertEqual(vm.getDataByPath("/name")?.stringValue, "Alice")
     }
 
     func testSetDataNestedPath() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["user"] = .dictionary(["age": .number(30)])
         vm.setData(path: "/user/name", value: .string("Bob"))
         XCTAssertEqual(vm.getDataByPath("/user/name")?.stringValue, "Bob")
@@ -415,13 +415,13 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testSetDataDeepNestedCreatesIntermediates() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.setData(path: "/a/b/c", value: .string("deep"))
         XCTAssertEqual(vm.getDataByPath("/a/b/c")?.stringValue, "deep")
     }
 
     func testSetDataArrayIndex() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["items"] = .array([.string("x"), .string("y")])
         vm.setData(path: "/items/1", value: .string("z"))
         XCTAssertEqual(vm.getDataByPath("/items/1")?.stringValue, "z")
@@ -431,20 +431,20 @@ final class DataBindingTests: XCTestCase {
     // MARK: - Incremental Updates
 
     func testIncrementalSurfaceUpdateOverwrites() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let br = ServerToClientMessage(
-            beginRendering: BeginRenderingMessage(surfaceId: "s1", root: "root"),
+        let br = ServerToClientMessage_V08(
+            beginRendering: BeginRenderingMessage_V08(surfaceId: "s1", root: "root"),
             surfaceUpdate: nil, dataModelUpdate: nil, deleteSurface: nil
         )
         try vm.processMessage(br)
 
-        let textJSON = RawComponentPayload.makeText("Hello")
-        let su1 = ServerToClientMessage(
+        let textJSON = RawComponentPayload_V08.makeText("Hello")
+        let su1 = ServerToClientMessage_V08(
             beginRendering: nil,
-            surfaceUpdate: SurfaceUpdateMessage(surfaceId: "s1", components: [
-                RawComponentInstance(id: "t1", weight: nil, component: textJSON),
-                RawComponentInstance(id: "t2", weight: nil, component: textJSON)
+            surfaceUpdate: SurfaceUpdateMessage_V08(surfaceId: "s1", components: [
+                RawComponentInstance_V08(id: "t1", weight: nil, component: textJSON),
+                RawComponentInstance_V08(id: "t2", weight: nil, component: textJSON)
             ]),
             dataModelUpdate: nil, deleteSurface: nil
         )
@@ -453,12 +453,12 @@ final class DataBindingTests: XCTestCase {
         XCTAssertNotNil(vm.components["t1"])
         XCTAssertNotNil(vm.components["t2"])
 
-        let textJSON2 = RawComponentPayload.makeText("Updated")
-        let su2 = ServerToClientMessage(
+        let textJSON2 = RawComponentPayload_V08.makeText("Updated")
+        let su2 = ServerToClientMessage_V08(
             beginRendering: nil,
-            surfaceUpdate: SurfaceUpdateMessage(surfaceId: "s1", components: [
-                RawComponentInstance(id: "t1", weight: 2.0, component: textJSON2),
-                RawComponentInstance(id: "t3", weight: nil, component: textJSON2)
+            surfaceUpdate: SurfaceUpdateMessage_V08(surfaceId: "s1", components: [
+                RawComponentInstance_V08(id: "t1", weight: 2.0, component: textJSON2),
+                RawComponentInstance_V08(id: "t3", weight: nil, component: textJSON2)
             ]),
             dataModelUpdate: nil, deleteSurface: nil
         )
@@ -471,21 +471,21 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testIncrementalDataModelUpdateMerges() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let br = ServerToClientMessage(
-            beginRendering: BeginRenderingMessage(surfaceId: "s1", root: "root"),
+        let br = ServerToClientMessage_V08(
+            beginRendering: BeginRenderingMessage_V08(surfaceId: "s1", root: "root"),
             surfaceUpdate: nil, dataModelUpdate: nil, deleteSurface: nil
         )
         try vm.processMessage(br)
 
-        let dm1 = ServerToClientMessage(
+        let dm1 = ServerToClientMessage_V08(
             beginRendering: nil, surfaceUpdate: nil,
-            dataModelUpdate: DataModelUpdateMessage(
+            dataModelUpdate: DataModelUpdateMessage_V08(
                 surfaceId: "s1", path: nil,
                 contents: [
-                    ValueMapEntry(key: "name", valueString: "Alice", valueNumber: nil, valueBoolean: nil, valueMap: nil),
-                    ValueMapEntry(key: "age", valueString: nil, valueNumber: 30, valueBoolean: nil, valueMap: nil)
+                    ValueMapEntry_V08(key: "name", valueString: "Alice", valueNumber: nil, valueBoolean: nil, valueMap: nil),
+                    ValueMapEntry_V08(key: "age", valueString: nil, valueNumber: 30, valueBoolean: nil, valueMap: nil)
                 ]
             ),
             deleteSurface: nil
@@ -494,12 +494,12 @@ final class DataBindingTests: XCTestCase {
         XCTAssertEqual(vm.getDataByPath("/name")?.stringValue, "Alice")
         XCTAssertEqual(vm.getDataByPath("/age")?.numberValue, 30)
 
-        let dm2 = ServerToClientMessage(
+        let dm2 = ServerToClientMessage_V08(
             beginRendering: nil, surfaceUpdate: nil,
-            dataModelUpdate: DataModelUpdateMessage(
+            dataModelUpdate: DataModelUpdateMessage_V08(
                 surfaceId: "s1", path: nil,
                 contents: [
-                    ValueMapEntry(key: "name", valueString: "Bob", valueNumber: nil, valueBoolean: nil, valueMap: nil)
+                    ValueMapEntry_V08(key: "name", valueString: "Bob", valueNumber: nil, valueBoolean: nil, valueMap: nil)
                 ]
             ),
             deleteSurface: nil
@@ -510,22 +510,22 @@ final class DataBindingTests: XCTestCase {
     }
 
     func testIncrementalDataModelSubPathMerge() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let br = ServerToClientMessage(
-            beginRendering: BeginRenderingMessage(surfaceId: "s1", root: "root"),
+        let br = ServerToClientMessage_V08(
+            beginRendering: BeginRenderingMessage_V08(surfaceId: "s1", root: "root"),
             surfaceUpdate: nil, dataModelUpdate: nil, deleteSurface: nil
         )
         try vm.processMessage(br)
 
-        let dm1 = ServerToClientMessage(
+        let dm1 = ServerToClientMessage_V08(
             beginRendering: nil, surfaceUpdate: nil,
-            dataModelUpdate: DataModelUpdateMessage(
+            dataModelUpdate: DataModelUpdateMessage_V08(
                 surfaceId: "s1", path: nil,
                 contents: [
-                    ValueMapEntry(key: "user", valueString: nil, valueNumber: nil, valueBoolean: nil, valueMap: [
-                        ValueMapEntry(key: "name", valueString: "Alice", valueNumber: nil, valueBoolean: nil, valueMap: nil),
-                        ValueMapEntry(key: "email", valueString: "alice@test.com", valueNumber: nil, valueBoolean: nil, valueMap: nil)
+                    ValueMapEntry_V08(key: "user", valueString: nil, valueNumber: nil, valueBoolean: nil, valueMap: [
+                        ValueMapEntry_V08(key: "name", valueString: "Alice", valueNumber: nil, valueBoolean: nil, valueMap: nil),
+                        ValueMapEntry_V08(key: "email", valueString: "alice@test.com", valueNumber: nil, valueBoolean: nil, valueMap: nil)
                     ])
                 ]
             ),
@@ -535,12 +535,12 @@ final class DataBindingTests: XCTestCase {
         XCTAssertEqual(vm.getDataByPath("/user/name")?.stringValue, "Alice")
         XCTAssertEqual(vm.getDataByPath("/user/email")?.stringValue, "alice@test.com")
 
-        let dm2 = ServerToClientMessage(
+        let dm2 = ServerToClientMessage_V08(
             beginRendering: nil, surfaceUpdate: nil,
-            dataModelUpdate: DataModelUpdateMessage(
+            dataModelUpdate: DataModelUpdateMessage_V08(
                 surfaceId: "s1", path: "/user",
                 contents: [
-                    ValueMapEntry(key: "email", valueString: "bob@test.com", valueNumber: nil, valueBoolean: nil, valueMap: nil)
+                    ValueMapEntry_V08(key: "email", valueString: "bob@test.com", valueNumber: nil, valueBoolean: nil, valueMap: nil)
                 ]
             ),
             deleteSurface: nil
@@ -552,10 +552,10 @@ final class DataBindingTests: XCTestCase {
     func testIncrementalProcessMessageSequence() throws {
         let messages = try loadTestJSON("contact_card")
 
-        let vmBatch = SurfaceViewModel()
+        let vmBatch = SurfaceViewModel_V08()
         try vmBatch.processMessages(messages)
 
-        let vmIncr = SurfaceViewModel()
+        let vmIncr = SurfaceViewModel_V08()
         for msg in messages {
             try vmIncr.processMessage(msg)
         }

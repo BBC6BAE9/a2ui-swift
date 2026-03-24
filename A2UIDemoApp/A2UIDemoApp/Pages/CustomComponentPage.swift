@@ -8,13 +8,13 @@ struct CustomComponentPage: View {
     {"dataModelUpdate":{"surfaceId":"main","path":"/","contents":[{"key":"name","valueString":"Alice Johnson"},{"key":"bio","valueString":"iOS developer & SwiftUI enthusiast."},{"key":"rating","valueNumber":3}]}}
     """
 
-    private static func makeViewModel() -> SurfaceViewModel {
-        let vm = SurfaceViewModel()
+    private static func makeViewModel() -> SurfaceViewModel_V08 {
+        let vm = SurfaceViewModel_V08()
         let decoder = JSONDecoder()
         for line in jsonl.components(separatedBy: "\n")
         where !line.trimmingCharacters(in: .whitespaces).isEmpty {
             if let data = line.data(using: .utf8),
-               let msg = try? decoder.decode(ServerToClientMessage.self, from: data) {
+               let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) {
                 try? vm.processMessage(msg)
             }
         }
@@ -28,7 +28,7 @@ struct CustomComponentPage: View {
         List {
             if let root = viewModel.componentTree {
                 Section("A2UI Components") {
-                    A2UIComponentView(node: root, viewModel: viewModel)
+                    A2UIComponentView_V08(node: root, viewModel: viewModel)
                 }
             }
 
@@ -67,7 +67,7 @@ struct CustomComponentPage: View {
 /// A fully native SwiftUI view that reads and writes the A2UI data model.
 /// Drag the slider above or tap a star — both update the same `/rating` path.
 private struct StarRatingView: View {
-    var viewModel: SurfaceViewModel
+    var viewModel: SurfaceViewModel_V08
     let path: String
 
     private var rating: Int {

@@ -7,8 +7,8 @@ private let logger = Logger(subsystem: "com.a2ui.demo", category: "RizzchartChar
 
 /// Swift Charts implementation of the Rizzcharts doughnut/pie chart with drill-down.
 struct RizzchartChartView: View {
-    let node: ComponentNode
-    let viewModel: SurfaceViewModel
+    let node: ComponentNode_V08
+    let viewModel: SurfaceViewModel_V08
 
     @State private var selectedCategory: String?
 

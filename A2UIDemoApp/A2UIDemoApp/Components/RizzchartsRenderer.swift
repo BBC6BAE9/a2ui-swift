@@ -8,9 +8,9 @@ private let rendererLogger = Logger(subsystem: "com.a2ui.demo", category: "Rizzc
 /// Dispatches Canvas, Chart, and GoogleMap to their SwiftUI implementations.
 func rizzchartsRenderer(
     typeName: String,
-    node: ComponentNode,
-    children: [ComponentNode],
-    viewModel: SurfaceViewModel
+    node: ComponentNode_V08,
+    children: [ComponentNode_V08],
+    viewModel: SurfaceViewModel_V08
 ) -> AnyView? {
     rendererLogger.info("rizzchartsRenderer called: typeName=\(typeName) nodeId=\(node.id) children=\(children.count)")
     switch typeName {
@@ -19,7 +19,7 @@ func rizzchartsRenderer(
         return AnyView(
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(children) { child in
-                    A2UIComponentView(node: child, viewModel: viewModel)
+                    A2UIComponentView_V08(node: child, viewModel: viewModel)
                 }
             }
         )

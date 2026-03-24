@@ -142,7 +142,7 @@ struct LiveAgentPage: View {
     
     @ViewBuilder
     private func demoCard(for item: DemoItem) -> some View {
-        let vm = manager.surfaces[item.id]
+        let vm = manager.surfaces[item.id]?.asV08
         let rootNode = vm?.componentTree
         
         VStack(alignment: .leading, spacing: 12) {
@@ -157,7 +157,7 @@ struct LiveAgentPage: View {
             Divider()
             
             if let rootNode, let vm {
-                A2UIComponentView(node: rootNode, viewModel: vm)
+                A2UIComponentView_V08(node: rootNode, viewModel: vm)
                     .tint(vm.a2uiStyle.primaryColor)
                     .environment(\.a2uiStyle, vm.a2uiStyle)
                     .environment(\.a2uiActionHandler) { action in
@@ -197,10 +197,10 @@ struct LiveAgentPage: View {
                 
                 Text("This page connects to the Component Gallery Agent — a deterministic (non-AI) A2UI server that returns hardcoded JSON for all 18 standard components.")
                 
-                if let vm = manager.surfaces["response-surface"],
+                if let vm = manager.surfaces["response-surface"]?.asV08,
                    let rootNode = vm.componentTree {
                     Section("Agent Response") {
-                        A2UIComponentView(node: rootNode, viewModel: vm)
+                        A2UIComponentView_V08(node: rootNode, viewModel: vm)
                             .tint(vm.a2uiStyle.primaryColor)
                             .environment(\.a2uiStyle, vm.a2uiStyle)
                     }
@@ -336,8 +336,8 @@ struct LiveAgentPage: View {
     
     // MARK: - Log Value (mirrors Lit demo's #logValue)
     
-    private func logDataValue(vm: SurfaceViewModel, path: String, item: DemoItem) {
-        let value = vm.resolveString(StringValue(path: path))
+    private func logDataValue(vm: SurfaceViewModel_V08, path: String, item: DemoItem) {
+        let value = vm.resolveString(StringValue_V08(path: path))
         logAction(
             ResolvedAction(name: "shell_log_value", sourceComponentId: "log-btn", context: [
                 "path": .string(path),

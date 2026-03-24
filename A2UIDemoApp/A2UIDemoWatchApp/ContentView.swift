@@ -50,7 +50,7 @@ struct SampleView: View {
         }
         do {
             let data = try Data(contentsOf: url)
-            let messages = try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+            let messages = try JSONDecoder().decode([ServerToClientMessage_V08].self, from: data)
             try manager.processMessages(messages)
             loaded = true
         } catch {

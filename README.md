@@ -6,7 +6,7 @@ The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) pr
 
 ![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
 ![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
-![A2UI](https://img.shields.io/badge/A2UI-v0.8%20compliant-purple)
+![A2UI](https://img.shields.io/badge/A2UI-v0.8%20%2B%20v0.9-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-87%20passing-brightgreen)
 
@@ -106,7 +106,7 @@ All 18 standard A2UI components are implemented and platform-adaptive. Each uses
 |----------|-----------|
 | Display  | Text, Image, Icon, Video, AudioPlayer, Divider |
 | Layout   | Row, Column, List, Card, Tabs, Modal |
-| Input    | Button, TextField, CheckBox, DateTimeInput, Slider, MultipleChoice |
+| Input    | Button, TextField, CheckBox, DateTimeInput, Slider, MultipleChoice / ChoicePicker |
 
 <details>
 <summary>Full component → SwiftUI mapping</summary>
@@ -153,15 +153,18 @@ The demo app includes a **Rizzcharts** example with custom `Chart` (Swift Charts
 
 ```
 Sources/A2UI/
-├── Models/           Codable data models (Messages, Components, Primitives)
-├── Processing/       SurfaceManager (state) + JSONLStreamParser (streaming)
-├── Views/            A2UIComponentView (recursive renderer)
+├── Shared/           Version-independent code (AnyCodable, ResolvedAction, UIState, DataStoreUtils)
+├── V08/              v0.8 protocol (Models, Processing, Views — all types suffixed _V08)
+├── V09/              v0.9 protocol (Models, Processing, Views — all types suffixed _V09)
+├── Processing/       SurfaceManager (version dispatch) + JSONLStreamParser (auto-detect)
+├── Views/Helpers/    Shared SwiftUI helpers (SVG, accessibility, weight modifiers)
 ├── Styling/          A2UIStyle + SwiftUI Environment integration
 ├── Networking/       A2AClient (JSON-RPC over HTTP + SSE streaming)
-└── A2UIRenderer.swift   Public API entry point
+├── ProtocolVersion.swift   Version detection + VersionedMessage enum
+└── A2UIRenderer.swift      Public API entry point
 ```
 
-The public API is a single view — `A2UIRendererView` — with three initializers covering static, streamed, and externally-managed surfaces. All state lives in `SurfaceManager`, keeping the view layer pure. Every platform-specific decision is documented in [`COMPONENT_DECISIONS.md`](Sources/A2UI/Views/Components/COMPONENT_DECISIONS.md).
+The public API is a single view — `A2UIRendererView` — that renders both v0.8 and v0.9 surfaces transparently. All state lives in `SurfaceManager`, which auto-detects protocol version and routes messages to the correct versioned handler. v0.8 and v0.9 are file-level separated (aligned with the official web_core architecture), with shared utilities extracted to `Shared/`.
 
 ## Demo App
 
@@ -177,13 +180,25 @@ The app includes **10 demo pages** — static JSON demos (no agent required) and
 
 ## Spec Compliance
 
-This renderer targets **A2UI v0.8**, implementing the full protocol surface:
+This renderer supports **both A2UI v0.8 and v0.9** protocols simultaneously, with automatic version detection.
 
-- **Protocol messages:** `beginRendering`, `surfaceUpdate`, `dataModelUpdate`, `deleteSurface` (+ v0.9 `createSurface` / `updateComponents` forward-compat)
+### v0.8
+- **Protocol messages:** `beginRendering`, `surfaceUpdate`, `dataModelUpdate`, `deleteSurface`
 - **Data binding:** Path-based resolution (`/items/0/name`), bracket/dot normalization, template rendering, literal seeding
-- **Action system:** Full action context resolution — path-bound values resolved from the data model at dispatch time
+- **Action system:** Full action context resolution with `[{key, value}]` context format
+- **Styling:** `beginRendering.styles` parsed into `A2UIStyle`
+
+### v0.9
+- **Protocol messages:** `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`
+- **Flat component format:** `{"component": "Text", "text": "hello"}` (no nested wrapper)
+- **Data binding:** JSON Pointer paths (RFC 6901), `DynamicString` / `DynamicNumber` / `DynamicBoolean` / `DynamicStringList` with literal, path, and function call support
+- **Action system:** Event-based `{event: {name, context}}` with `Record<string, DynamicValue>` context, or client-side `{functionCall: {...}}`
+- **Validation:** `checks` array with `CheckRule` (condition + message) for input components
+- **Styling:** `createSurface.theme` structured JSON object
+
+### Shared
 - **Catalog functions:** `formatString`, `formatNumber`, `formatCurrency`, `formatDate`, `pluralize`, `openUrl`, `required`, `email`, `regex`, `length`, `numeric`, `and`, `or`, `not`
-- **Styling:** `beginRendering.styles` parsed into `A2UIStyle`, overridable per-component via SwiftUI Environment
+- **Version detection:** Fast byte-scan — no overhead per message. Falls back to message-key detection if `"version"` field is absent
 
 ## Testing
 
