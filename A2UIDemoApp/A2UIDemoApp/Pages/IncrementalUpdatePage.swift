@@ -2,8 +2,8 @@ import SwiftUI
 import A2UI
 
 struct IncrementalUpdatePage: View {
-    @State private var viewModel = SurfaceViewModel()
-    @State private var allMessages: [ServerToClientMessage] = []
+    @State private var viewModel = SurfaceViewModel_V08()
+    @State private var allMessages: [ServerToClientMessage_V08] = []
     @State private var currentStep = 0
     @State private var errorText: String?
     @State private var showingInspector = false
@@ -31,7 +31,7 @@ struct IncrementalUpdatePage: View {
             
             if let root = viewModel.componentTree {
                 Section("Rendered") {
-                    A2UIComponentView(node: root, viewModel: viewModel)
+                    A2UIComponentView_V08(node: root, viewModel: viewModel)
                 }
             }
             
@@ -84,7 +84,7 @@ struct IncrementalUpdatePage: View {
         }
         do {
             let data = try Data(contentsOf: url)
-            allMessages = try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+            allMessages = try JSONDecoder().decode([ServerToClientMessage_V08].self, from: data)
         } catch {
             errorText = error.localizedDescription
         }
@@ -101,7 +101,7 @@ struct IncrementalUpdatePage: View {
     }
     
     private func resetAll() {
-        viewModel = SurfaceViewModel()
+        viewModel = SurfaceViewModel_V08()
         currentStep = 0
     }
 }

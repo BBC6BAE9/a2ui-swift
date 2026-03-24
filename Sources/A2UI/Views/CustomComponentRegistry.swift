@@ -18,15 +18,15 @@ import SwiftUI
 ///
 /// - Parameters:
 ///   - typeName: The custom component type string (e.g. "Canvas", "Chart", "GoogleMap").
-///   - node: The resolved `ComponentNode` for this component.
+///   - node: The resolved `ComponentNode_V08` for this component.
 ///   - children: Pre-resolved child nodes.
-///   - viewModel: The `SurfaceViewModel` for data binding.
+///   - viewModel: The `SurfaceViewModel_V08` for data binding.
 /// - Returns: An `AnyView` if the type is handled, or `nil` to fall back to default rendering.
 public typealias CustomComponentRenderer = @Sendable (
     _ typeName: String,
-    _ node: ComponentNode,
-    _ children: [ComponentNode],
-    _ viewModel: SurfaceViewModel
+    _ node: ComponentNode_V08,
+    _ children: [ComponentNode_V08],
+    _ viewModel: SurfaceViewModel_V08
 ) -> AnyView?
 
 // MARK: - Environment Key

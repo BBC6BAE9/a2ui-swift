@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		F1143E702F51B7000037701E /* A2UI in Frameworks */ = {isa = PBXBuildFile; productRef = F1143E6F2F51B7000037701E /* A2UI */; };
 		F1638D0B2F628F40004D5BC4 /* A2UI in Frameworks */ = {isa = PBXBuildFile; productRef = F1638D0A2F628F40004D5BC4 /* A2UI */; };
+		F1CE8B002F72BB080060C78C /* A2UI in Frameworks */ = {isa = PBXBuildFile; productRef = F1CE8AFF2F72BB080060C78C /* A2UI */; };
 		F1FAD2222F4DA74600BE5C9D /* A2UI in Frameworks */ = {isa = PBXBuildFile; productRef = F1FAD1B12F4DA70000BE5C9D /* A2UI */; };
 /* End PBXBuildFile section */
 
@@ -43,6 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1CE8B002F72BB080060C78C /* A2UI in Frameworks */,
 				F1FAD2222F4DA74600BE5C9D /* A2UI in Frameworks */,
 				F1638D0B2F628F40004D5BC4 /* A2UI in Frameworks */,
 			);
@@ -114,6 +116,7 @@
 			packageProductDependencies = (
 				F1FAD1B12F4DA70000BE5C9D /* A2UI */,
 				F1638D0A2F628F40004D5BC4 /* A2UI */,
+				F1CE8AFF2F72BB080060C78C /* A2UI */,
 			);
 			productName = A2UIDemoApp;
 			productReference = F1FAD1872F4DA60400BE5C9D /* A2UIDemoApp.app */;
@@ -147,7 +150,7 @@
 			mainGroup = F1FAD17E2F4DA60400BE5C9D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F1638D092F628F40004D5BC4 /* XCLocalSwiftPackageReference "../../a2ui-renderer-swiftui" */,
+				F1CE8AFE2F72BB080060C78C /* XCLocalSwiftPackageReference "../../a2ui-swiftui" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1FAD1882F4DA60400BE5C9D /* Products */;
@@ -511,9 +514,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F1638D092F628F40004D5BC4 /* XCLocalSwiftPackageReference "../../a2ui-renderer-swiftui" */ = {
+		F1CE8AFE2F72BB080060C78C /* XCLocalSwiftPackageReference "../../a2ui-swiftui" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../a2ui-renderer-swiftui";
+			relativePath = "../../a2ui-swiftui";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -523,6 +526,10 @@
 			productName = A2UI;
 		};
 		F1638D0A2F628F40004D5BC4 /* A2UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UI;
+		};
+		F1CE8AFF2F72BB080060C78C /* A2UI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = A2UI;
 		};

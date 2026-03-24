@@ -10,13 +10,13 @@ struct StyleOverridePage: View {
     {"surfaceUpdate":{"surfaceId":"main","components":[{"id":"root","component":{"Card":{"child":"col"}}},{"id":"col","component":{"Column":{"children":{"explicitList":["title","body","row_icon","btn"]}}}},{"id":"title","component":{"Text":{"text":{"literalString":"Welcome"},"usageHint":"h2"}}},{"id":"body","component":{"Text":{"text":{"literalString":"Toggle the switch to see how style modifiers restyle A2UI components without changing the server JSON."}}}},{"id":"row_icon","component":{"Row":{"children":{"explicitList":["ic","ic_label"]},"align":"center"}}},{"id":"ic","component":{"Icon":{"name":{"literalString":"home"}}}},{"id":"ic_label","component":{"Text":{"text":{"literalString":"Home"},"usageHint":"caption"}}},{"id":"btn","component":{"Button":{"child":"btn_t","primary":true,"action":{"name":"tap"}}}},{"id":"btn_t","component":{"Text":{"text":{"literalString":"Primary Button"}}}}]}}
     """
 
-    private static func makeViewModel() -> SurfaceViewModel {
-        let vm = SurfaceViewModel()
+    private static func makeViewModel() -> SurfaceViewModel_V08 {
+        let vm = SurfaceViewModel_V08()
         let decoder = JSONDecoder()
         for line in jsonl.components(separatedBy: "\n")
         where !line.trimmingCharacters(in: .whitespaces).isEmpty {
             if let data = line.data(using: .utf8),
-               let msg = try? decoder.decode(ServerToClientMessage.self, from: data) {
+               let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) {
                 try? vm.processMessage(msg)
             }
         }
@@ -34,14 +34,14 @@ struct StyleOverridePage: View {
             if let root = viewModel.componentTree {
                 Section("Preview") {
                     if useCustom {
-                        A2UIComponentView(node: root, viewModel: viewModel)
+                        A2UIComponentView_V08(node: root, viewModel: viewModel)
                             .a2uiTextStyle(for: .h2, font: .system(.title, design: .rounded), weight: .black, color: .indigo)
                             .a2uiTextStyle(for: .caption, color: .purple)
                             .a2uiButtonStyle(for: .primary, backgroundColor: .indigo, cornerRadius: 20)
                             .a2uiCardStyle(cornerRadius: 20, shadowRadius: 8, backgroundColor: .indigo.opacity(0.05))
                             .a2uiIcon(.home, systemName: "house.fill")
                     } else {
-                        A2UIComponentView(node: root, viewModel: viewModel)
+                        A2UIComponentView_V08(node: root, viewModel: viewModel)
                     }
                 }
             }

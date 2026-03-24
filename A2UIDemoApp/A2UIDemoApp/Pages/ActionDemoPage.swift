@@ -7,7 +7,7 @@ struct ActionDemoPage: View {
     let subtitle: String
     let info: String
     
-    @State private var viewModel = SurfaceViewModel()
+    @State private var viewModel = SurfaceViewModel_V08()
     @State private var loaded = false
     @State private var errorText: String?
     @State private var lastAction: ResolvedAction?
@@ -22,7 +22,7 @@ struct ActionDemoPage: View {
             } else {
                 if let root = viewModel.componentTree {
                     Section("Form") {
-                        A2UIComponentView(node: root, viewModel: viewModel)
+                        A2UIComponentView_V08(node: root, viewModel: viewModel)
                     }
                 }
                 
@@ -86,7 +86,7 @@ struct ActionDemoPage: View {
         }
         do {
             let data = try Data(contentsOf: url)
-            let messages = try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+            let messages = try JSONDecoder().decode([ServerToClientMessage_V08].self, from: data)
             for msg in messages { try viewModel.processMessage(msg) }
             loaded = true
         } catch {

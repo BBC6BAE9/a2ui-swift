@@ -445,10 +445,10 @@ public final class A2AClient: Sendable {
         )
     }
 
-    /// Decode A2UI `ServerToClientMessage` objects from response parts.
-    private func decodeA2UIMessages(from parts: [[String: Any]]) throws -> [ServerToClientMessage] {
+    /// Decode A2UI `ServerToClientMessage_V08` objects from response parts.
+    private func decodeA2UIMessages(from parts: [[String: Any]]) throws -> [ServerToClientMessage_V08] {
         let decoder = JSONDecoder()
-        var messages: [ServerToClientMessage] = []
+        var messages: [ServerToClientMessage_V08] = []
 
         for part in parts {
             guard let kind = part["kind"] as? String, kind == "data",
@@ -464,11 +464,11 @@ public final class A2AClient: Sendable {
             if let arr = payload as? [[String: Any]] {
                 for item in arr {
                     let itemData = try JSONSerialization.data(withJSONObject: item)
-                    let msg = try decoder.decode(ServerToClientMessage.self, from: itemData)
+                    let msg = try decoder.decode(ServerToClientMessage_V08.self, from: itemData)
                     messages.append(msg)
                 }
             } else {
-                let msg = try decoder.decode(ServerToClientMessage.self, from: payloadData)
+                let msg = try decoder.decode(ServerToClientMessage_V08.self, from: payloadData)
                 messages.append(msg)
             }
         }
@@ -506,7 +506,7 @@ public final class A2AClient: Sendable {
 
 /// Result returned by all `send*` methods, including A2UI messages and task metadata.
 public struct SendResult: Sendable {
-    public let messages: [ServerToClientMessage]
+    public let messages: [ServerToClientMessage_V08]
     public let taskState: A2ATaskState
     public let taskId: String?
     public let contextId: String?

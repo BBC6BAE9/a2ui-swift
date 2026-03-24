@@ -37,8 +37,8 @@ func a2uiVerticalAlignment(_ align: String?) -> VerticalAlignment {
 // MARK: - Binding Helpers
 
 func a2uiStringBinding(
-    for value: StringValue?,
-    viewModel: SurfaceViewModel,
+    for value: StringValue_V08?,
+    viewModel: SurfaceViewModel_V08,
     dataContextPath: String
 ) -> Binding<String> {
     let fallback = value?.literalValue ?? ""
@@ -60,8 +60,8 @@ func a2uiStringBinding(
 }
 
 func a2uiBoolBinding(
-    for value: BooleanValue,
-    viewModel: SurfaceViewModel,
+    for value: BooleanValue_V08,
+    viewModel: SurfaceViewModel_V08,
     dataContextPath: String
 ) -> Binding<Bool> {
     let fallback = value.literalValue ?? false
@@ -83,9 +83,9 @@ func a2uiBoolBinding(
 }
 
 func a2uiDoubleBinding(
-    for value: NumberValue,
+    for value: NumberValue_V08,
     fallback: Double = 0,
-    viewModel: SurfaceViewModel,
+    viewModel: SurfaceViewModel_V08,
     dataContextPath: String
 ) -> Binding<Double> {
     let effectiveFallback = value.literalValue ?? fallback
@@ -107,8 +107,8 @@ func a2uiDoubleBinding(
 }
 
 func a2uiDateBinding(
-    for value: StringValue,
-    viewModel: SurfaceViewModel,
+    for value: StringValue_V08,
+    viewModel: SurfaceViewModel_V08,
     dataContextPath: String
 ) -> Binding<Date> {
     let formatter = ISO8601DateFormatter()
@@ -140,11 +140,11 @@ func a2uiDateBinding(
 /// `stretchWidth`/`stretchHeight` apply cross-axis stretch per CSS `align-items: stretch`.
 @ViewBuilder
 func a2uiDistributedContent(
-    _ children: [ComponentNode],
+    _ children: [ComponentNode_V08],
     justify: String?,
     stretchWidth: Bool,
     stretchHeight: Bool,
-    viewModel: SurfaceViewModel
+    viewModel: SurfaceViewModel_V08
 ) -> some View {
     switch justify {
     case "spaceBetween":
@@ -190,12 +190,12 @@ func a2uiDistributedContent(
 
 @ViewBuilder
 func a2uiChildView(
-    _ child: ComponentNode,
+    _ child: ComponentNode_V08,
     stretchWidth: Bool,
     stretchHeight: Bool,
-    viewModel: SurfaceViewModel
+    viewModel: SurfaceViewModel_V08
 ) -> some View {
-    A2UIComponentView(node: child, viewModel: viewModel)
+    A2UIComponentView_V08(node: child, viewModel: viewModel)
         .frame(
             maxWidth: stretchWidth ? .infinity : nil,
             maxHeight: stretchHeight ? .infinity : nil,

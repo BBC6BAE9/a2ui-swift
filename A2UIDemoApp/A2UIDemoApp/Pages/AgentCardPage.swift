@@ -176,9 +176,9 @@ struct AgentCardPage: View {
             // Surfaces
             LazyVStack(spacing: 0) {
                 ForEach(manager.orderedSurfaceIds, id: \.self) { surfaceId in
-                    if let vm = manager.surfaces[surfaceId],
+                    if let vm = manager.surfaces[surfaceId]?.asV08,
                        let rootNode = vm.componentTree {
-                        A2UIComponentView(node: rootNode, viewModel: vm)
+                        A2UIComponentView_V08(node: rootNode, viewModel: vm)
                             .tint(vm.a2uiStyle.primaryColor)
                             .environment(\.a2uiStyle, vm.a2uiStyle)
                             .environment(\.a2uiActionHandler) { action in

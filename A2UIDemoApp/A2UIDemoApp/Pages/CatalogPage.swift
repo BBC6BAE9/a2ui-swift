@@ -75,7 +75,7 @@ struct CatalogPage: View {
 
             VStack {
                 if let vm = entry.viewModel, let root = vm.componentTree {
-                    A2UIComponentView(node: root, viewModel: vm)
+                    A2UIComponentView_V08(node: root, viewModel: vm)
                         // TODO: rizzchartsRenderer disabled — causes infinite re-render during scroll.
                         // .environment(\.a2uiCustomComponentRenderer, rizzchartsRenderer)
                         .padding()
@@ -135,7 +135,7 @@ struct CatalogDetailPage: View {
     private var renderedView: some View {
         ScrollView {
             if let vm = entry.viewModel, let root = vm.componentTree {
-                A2UIComponentView(node: root, viewModel: vm)
+                A2UIComponentView_V08(node: root, viewModel: vm)
                     // TODO: rizzchartsRenderer disabled — causes infinite re-render during scroll.
                     // .environment(\.a2uiCustomComponentRenderer, rizzchartsRenderer)
                     .padding()
@@ -174,7 +174,7 @@ struct CatalogEntry: Identifiable {
     let name: String
     let icon: String
     let jsonl: String
-    let viewModel: SurfaceViewModel?
+    let viewModel: SurfaceViewModel_V08?
 
     var id: String { name }
 
@@ -202,12 +202,12 @@ struct CatalogEntry: Identifiable {
         self.icon = icon
         self.jsonl = jsonl
 
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         let decoder = JSONDecoder()
         var ok = true
         for line in jsonl.components(separatedBy: "\n") where !line.trimmingCharacters(in: .whitespaces).isEmpty {
             if let data = line.data(using: .utf8),
-               let msg = try? decoder.decode(ServerToClientMessage.self, from: data) {
+               let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) {
                 try? vm.processMessage(msg)
             } else {
                 ok = false

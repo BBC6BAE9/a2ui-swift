@@ -145,9 +145,9 @@ struct AgentChatPage: View {
                 
                 if let manager = msg.surfaceManager {
                     ForEach(manager.orderedSurfaceIds, id: \.self) { surfaceId in
-                        if let vm = manager.surfaces[surfaceId],
+                        if let vm = manager.surfaces[surfaceId]?.asV08,
                            let rootNode = vm.componentTree {
-                            A2UIComponentView(node: rootNode, viewModel: vm)
+                            A2UIComponentView_V08(node: rootNode, viewModel: vm)
                                 .tint(vm.a2uiStyle.primaryColor)
                                 .environment(\.a2uiStyle, vm.a2uiStyle)
                                 .environment(\.a2uiActionHandler) { action in
@@ -439,14 +439,13 @@ struct AgentChatPage: View {
         }
         // Log surface/data model state
         for surfaceId in mgr.orderedSurfaceIds {
-            if let vm = mgr.surfaces[surfaceId] {
+            if let vm = mgr.surfaces[surfaceId]?.asV08 {
                 let hasTree = vm.componentTree != nil
                 let nodeType = vm.componentTree.map { "\($0.type)" } ?? "nil"
                 let childCount = vm.componentTree?.children.count ?? 0
                 logger.info("[A2UI] Surface[\(surfaceId)] tree=\(hasTree) rootType=\(nodeType) children=\(childCount)")
                 logEntry(.incoming, summary: "Surface[\(surfaceId)]",
                          detail: "tree=\(hasTree) rootType=\(nodeType) children=\(childCount)")
-                // Log data model keys
                 let dataKeys = vm.dataStoreKeys
                 if !dataKeys.isEmpty {
                     let keysStr = dataKeys.joined(separator: ", ")

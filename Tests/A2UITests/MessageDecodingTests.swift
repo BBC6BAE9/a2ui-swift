@@ -17,45 +17,45 @@ import XCTest
 
 // MARK: - Test Helpers
 
-extension RawComponentPayload {
+extension RawComponentPayload_V08 {
     /// Create a simple Text component payload for testing.
-    static func makeText(_ literal: String) -> RawComponentPayload {
+    static func makeText(_ literal: String) -> RawComponentPayload_V08 {
         let json: [String: Any] = [
             "Text": ["text": ["literalString": literal]]
         ]
         let data = try! JSONSerialization.data(withJSONObject: json)
-        return try! JSONDecoder().decode(RawComponentPayload.self, from: data)
+        return try! JSONDecoder().decode(RawComponentPayload_V08.self, from: data)
     }
 }
 
 final class MessageDecodingTests: XCTestCase {
 
-    private func loadTestJSON(_ filename: String) throws -> [ServerToClientMessage] {
+    private func loadTestJSON(_ filename: String) throws -> [ServerToClientMessage_V08] {
         let url = Bundle.module.url(
             forResource: filename,
             withExtension: "json",
             subdirectory: "TestData"
         )!
         let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+        return try JSONDecoder().decode([ServerToClientMessage_V08].self, from: data)
     }
 
     // MARK: - Component Type Parsing
 
     func testComponentTypeParsing() throws {
         let messages = try loadTestJSON("contact_card")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let mainCard = vm.components["main_card"]!
         XCTAssertEqual(mainCard.component?.componentType, .Card)
-        let cardProps = try mainCard.component?.typedProperties(CardProperties.self)
+        let cardProps = try mainCard.component?.typedProperties(CardProperties_V08.self)
         XCTAssertNotNil(cardProps)
         XCTAssertEqual(cardProps?.child, "main_column")
 
         let userHeading = vm.components["user_heading"]!
         XCTAssertEqual(userHeading.component?.componentType, .Text)
-        let textProps = try userHeading.component?.typedProperties(TextProperties.self)
+        let textProps = try userHeading.component?.typedProperties(TextProperties_V08.self)
         XCTAssertNotNil(textProps)
         XCTAssertEqual(textProps?.usageHint, "h2")
         XCTAssertNotNil(textProps?.text.path)
@@ -63,7 +63,7 @@ final class MessageDecodingTests: XCTestCase {
 
         let button1 = vm.components["button_1"]!
         XCTAssertEqual(button1.component?.componentType, .Button)
-        let buttonProps = try button1.component?.typedProperties(ButtonProperties.self)
+        let buttonProps = try button1.component?.typedProperties(ButtonProperties_V08.self)
         XCTAssertNotNil(buttonProps)
         XCTAssertEqual(buttonProps?.child, "button_1_text")
         XCTAssertEqual(buttonProps?.action.name, "follow_contact")
@@ -71,20 +71,20 @@ final class MessageDecodingTests: XCTestCase {
 
         let mainColumn = vm.components["main_column"]!
         XCTAssertEqual(mainColumn.component?.componentType, .Column)
-        let columnProps = try mainColumn.component?.typedProperties(ColumnProperties.self)
+        let columnProps = try mainColumn.component?.typedProperties(ColumnProperties_V08.self)
         XCTAssertNotNil(columnProps)
         XCTAssertEqual(columnProps?.children.explicitList?.count, 6)
         XCTAssertEqual(columnProps?.alignment, "stretch")
 
         let infoRow1 = vm.components["info_row_1"]!
         XCTAssertEqual(infoRow1.component?.componentType, .Row)
-        let rowProps = try infoRow1.component?.typedProperties(RowProperties.self)
+        let rowProps = try infoRow1.component?.typedProperties(RowProperties_V08.self)
         XCTAssertNotNil(rowProps)
         XCTAssertEqual(rowProps?.distribution, "start")
 
         let profileImage = vm.components["profile_image"]!
         XCTAssertEqual(profileImage.component?.componentType, .Image)
-        let imageProps = try profileImage.component?.typedProperties(ImageProperties.self)
+        let imageProps = try profileImage.component?.typedProperties(ImageProperties_V08.self)
         XCTAssertNotNil(imageProps)
         XCTAssertEqual(imageProps?.usageHint, "avatar")
         XCTAssertEqual(imageProps?.fit, "cover")
@@ -92,12 +92,12 @@ final class MessageDecodingTests: XCTestCase {
 
     func testListComponentParsing() throws {
         let messages = try loadTestJSON("single_column_list")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let itemList = vm.components["item-list"]!
         XCTAssertEqual(itemList.component?.componentType, .List)
-        let listProps = try itemList.component?.typedProperties(ListProperties.self)
+        let listProps = try itemList.component?.typedProperties(ListProperties_V08.self)
         XCTAssertNotNil(listProps)
         XCTAssertEqual(listProps?.direction, "vertical")
         XCTAssertNotNil(listProps?.children.template)
@@ -112,7 +112,7 @@ final class MessageDecodingTests: XCTestCase {
             ])
         ]
         let data = try! JSONEncoder().encode(json)
-        let props = try! JSONDecoder().decode(VideoProperties.self, from: data)
+        let props = try! JSONDecoder().decode(VideoProperties_V08.self, from: data)
         XCTAssertEqual(props.url.literalString, "https://example.com/video.mp4")
     }
 
@@ -126,7 +126,7 @@ final class MessageDecodingTests: XCTestCase {
             ])
         ]
         let data = try! JSONEncoder().encode(json)
-        let props = try! JSONDecoder().decode(AudioPlayerProperties.self, from: data)
+        let props = try! JSONDecoder().decode(AudioPlayerProperties_V08.self, from: data)
         XCTAssertEqual(props.url.path, "/audio/url")
         XCTAssertEqual(props.description?.literalString, "Background music")
     }
@@ -145,7 +145,7 @@ final class MessageDecodingTests: XCTestCase {
             ])
         ]
         let data = try! JSONEncoder().encode(json)
-        let props = try! JSONDecoder().decode(TabsProperties.self, from: data)
+        let props = try! JSONDecoder().decode(TabsProperties_V08.self, from: data)
         XCTAssertEqual(props.tabItems.count, 2)
         XCTAssertEqual(props.tabItems[0].title.literalString, "Tab A")
         XCTAssertEqual(props.tabItems[0].child, "child_a")
@@ -159,7 +159,7 @@ final class MessageDecodingTests: XCTestCase {
             "contentChild": .string("modal_content")
         ]
         let data = try! JSONEncoder().encode(json)
-        let props = try! JSONDecoder().decode(ModalProperties.self, from: data)
+        let props = try! JSONDecoder().decode(ModalProperties_V08.self, from: data)
         XCTAssertEqual(props.entryPointChild, "open_btn")
         XCTAssertEqual(props.contentChild, "modal_content")
     }
@@ -187,7 +187,7 @@ final class MessageDecodingTests: XCTestCase {
             "filterable": .bool(true)
         ]
         let data = try! JSONEncoder().encode(json)
-        let props = try! JSONDecoder().decode(MultipleChoiceProperties.self, from: data)
+        let props = try! JSONDecoder().decode(MultipleChoiceProperties_V08.self, from: data)
         XCTAssertEqual(props.selections?.path, "/selectedFruits")
         XCTAssertNil(props.selections?.literalArray)
         XCTAssertEqual(props.options?.count, 3)
@@ -198,10 +198,10 @@ final class MessageDecodingTests: XCTestCase {
     }
 
     func testMultipleChoiceWriteBack() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.dataModel["selectedFruits"] = .array([.string("apple")])
 
-        let selections = StringListValue(
+        let selections = StringListValue_V08(
             path: "/selectedFruits", literalArray: nil
         )
         var current = vm.resolveStringArray(selections)
@@ -215,7 +215,7 @@ final class MessageDecodingTests: XCTestCase {
         current = vm.resolveStringArray(selections)
         XCTAssertEqual(current, ["cherry"])
 
-        let literalSelections = StringListValue(
+        let literalSelections = StringListValue_V08(
             path: nil, literalArray: ["x", "y"]
         )
         XCTAssertEqual(vm.resolveStringArray(literalSelections), ["x", "y"])
@@ -223,13 +223,13 @@ final class MessageDecodingTests: XCTestCase {
 
     func testTextFieldPropertiesParsing() throws {
         let messages = try loadTestJSON("booking_form")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let partySizeField = vm.components["party-size-field"]!
         XCTAssertEqual(partySizeField.component?.componentType, .TextField)
 
-        let props = try partySizeField.component!.typedProperties(TextFieldProperties.self)
+        let props = try partySizeField.component!.typedProperties(TextFieldProperties_V08.self)
         XCTAssertNotNil(props)
         XCTAssertEqual(props.label.literalValue, "Party Size")
         XCTAssertEqual(props.text?.path, "partySize")
@@ -237,25 +237,25 @@ final class MessageDecodingTests: XCTestCase {
 
     func testDateTimeInputPropertiesParsing() throws {
         let messages = try loadTestJSON("booking_form")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let dtField = vm.components["datetime-field"]!
         XCTAssertEqual(dtField.component?.componentType, .DateTimeInput)
 
-        let props = try dtField.component!.typedProperties(DateTimeInputProperties.self)
+        let props = try dtField.component!.typedProperties(DateTimeInputProperties_V08.self)
         XCTAssertNotNil(props)
         XCTAssertEqual(props.value.path, "reservationTime")
         XCTAssertEqual(props.enableDate, true)
         XCTAssertEqual(props.enableTime, true)
     }
 
-    // MARK: - SurfaceViewModel
+    // MARK: - SurfaceViewModel_V08
 
     func testSurfaceViewModelProcessMessages() throws {
         let messages = try loadTestJSON("contact_card")
 
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         XCTAssertEqual(vm.rootComponentId, "main_card")
@@ -274,16 +274,16 @@ final class MessageDecodingTests: XCTestCase {
     func testSurfaceViewModelDeleteSurface() throws {
         let messages = try loadTestJSON("contact_card")
 
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         XCTAssertEqual(vm.components.count, 36)
 
-        let deleteMsg = ServerToClientMessage(
+        let deleteMsg = ServerToClientMessage_V08(
             beginRendering: nil,
             surfaceUpdate: nil,
             dataModelUpdate: nil,
-            deleteSurface: DeleteSurfaceMessage(surfaceId: "contact-card")
+            deleteSurface: DeleteSurfaceMessage_V08(surfaceId: "contact-card")
         )
         try vm.processMessages([deleteMsg])
 
@@ -293,10 +293,10 @@ final class MessageDecodingTests: XCTestCase {
     }
 
     func testProcessMessageSingle() throws {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
 
-        let br = ServerToClientMessage(
-            beginRendering: BeginRenderingMessage(
+        let br = ServerToClientMessage_V08(
+            beginRendering: BeginRenderingMessage_V08(
                 surfaceId: "s1", root: "root1", styles: ["primaryColor": "#123456"]
             ),
             surfaceUpdate: nil,
@@ -311,7 +311,7 @@ final class MessageDecodingTests: XCTestCase {
 
     func testWeightProperty() throws {
         let messages = try loadTestJSON("contact_card")
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         try vm.processMessages(messages)
 
         let withWeight = vm.components.values.filter { $0.weight != nil }
@@ -323,16 +323,16 @@ final class MessageDecodingTests: XCTestCase {
     // MARK: - Error Reporting
 
     func testUnknownComponentAccepted() {
-        let vm = SurfaceViewModel()
+        let vm = SurfaceViewModel_V08()
         vm.surfaceId = "test-surface"
 
         let unknownJSON: [String: AnyCodable] = ["FancyWidget": .dictionary(["label": .string("hi")])]
-        let instance = RawComponentInstance(
+        let instance = RawComponentInstance_V08(
             id: "widget_1",
-            component: RawComponentPayload(typeName: "FancyWidget", properties: unknownJSON)
+            component: RawComponentPayload_V08(typeName: "FancyWidget", properties: unknownJSON)
         )
-        let message = ServerToClientMessage(
-            surfaceUpdate: SurfaceUpdateMessage(
+        let message = ServerToClientMessage_V08(
+            surfaceUpdate: SurfaceUpdateMessage_V08(
                 surfaceId: "test-surface",
                 components: [instance]
             )
@@ -370,7 +370,7 @@ final class MessageDecodingTests: XCTestCase {
         XCTAssertEqual(manager.surfaces.count, 2,
                        "multi_surface.json should create 2 independent surfaces")
 
-        let contactCard = manager.surfaces["contact-card"]
+        let contactCard = manager.surfaces["contact-card"]?.asV08
         XCTAssertNotNil(contactCard)
         XCTAssertNotNil(contactCard?.rootComponentId)
         XCTAssertGreaterThan(contactCard?.components.count ?? 0, 20)
@@ -390,7 +390,7 @@ final class MessageDecodingTests: XCTestCase {
             cont.finish()
         }
         let parser = JSONLStreamParser()
-        var messages: [ServerToClientMessage] = []
+        var messages: [ServerToClientMessage_V08] = []
         for try await msg in parser.messages(from: stream) {
             messages.append(msg)
         }
@@ -409,7 +409,7 @@ final class MessageDecodingTests: XCTestCase {
             cont.finish()
         }
         let parser = JSONLStreamParser()
-        var messages: [ServerToClientMessage] = []
+        var messages: [ServerToClientMessage_V08] = []
         for try await msg in parser.messages(from: stream) {
             messages.append(msg)
         }
@@ -426,7 +426,7 @@ final class MessageDecodingTests: XCTestCase {
             cont.finish()
         }
         let parser = JSONLStreamParser()
-        var messages: [ServerToClientMessage] = []
+        var messages: [ServerToClientMessage_V08] = []
         for try await msg in parser.messages(fromLines: stream) {
             messages.append(msg)
         }
@@ -447,7 +447,7 @@ final class MessageDecodingTests: XCTestCase {
             cont.finish()
         }
         let parser = JSONLStreamParser()
-        var messages: [ServerToClientMessage] = []
+        var messages: [ServerToClientMessage_V08] = []
         for try await msg in parser.messages(fromLines: stream) {
             messages.append(msg)
         }

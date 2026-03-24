@@ -14,7 +14,7 @@
 
 import SwiftUI
 
-/// Constructs a `SurfaceViewModel` and its root `ComponentNode` from a JSONL
+/// Constructs a `SurfaceViewModel_V08` and its root `ComponentNode_V08` from a JSONL
 /// string (the same format used by the CatalogPage in the demo app).
 ///
 /// Returns `nil` if parsing fails. Use in `#Preview` blocks:
@@ -22,17 +22,17 @@ import SwiftUI
 /// ```swift
 /// #Preview("Text - Headings") {
 ///     if let (vm, root) = previewViewModel(jsonl: "...") {
-///         A2UIText(node: root, viewModel: vm)
+///         A2UIText_V08(node: root, viewModel: vm)
 ///     }
 /// }
 /// ```
-func previewViewModel(jsonl: String) -> (SurfaceViewModel, ComponentNode)? {
-    let vm = SurfaceViewModel()
+func previewViewModel(jsonl: String) -> (SurfaceViewModel_V08, ComponentNode_V08)? {
+    let vm = SurfaceViewModel_V08()
     let decoder = JSONDecoder()
     for line in jsonl.components(separatedBy: "\n")
     where !line.trimmingCharacters(in: .whitespaces).isEmpty {
         guard let data = line.data(using: .utf8),
-              let msg = try? decoder.decode(ServerToClientMessage.self, from: data) else {
+              let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) else {
             return nil
         }
         try? vm.processMessage(msg)

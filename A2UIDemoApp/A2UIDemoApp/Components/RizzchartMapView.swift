@@ -4,8 +4,8 @@ import A2UI
 
 /// MapKit implementation of the Rizzcharts GoogleMap component.
 struct RizzchartMapView: View {
-    let node: ComponentNode
-    let viewModel: SurfaceViewModel
+    let node: ComponentNode_V08
+    let viewModel: SurfaceViewModel_V08
 
     private var centerCoord: CLLocationCoordinate2D {
         guard let centerProp = node.payload.properties["center"],

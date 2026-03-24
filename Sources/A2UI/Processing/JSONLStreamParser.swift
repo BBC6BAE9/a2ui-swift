@@ -14,46 +14,34 @@
 
 import Foundation
 
-/// Parses JSONL (JSON Lines) data where each line is a separate
-/// `ServerToClientMessage` JSON object.
-///
-/// Agents send A2UI messages as a JSONL stream — one JSON object per line.
-/// This parser handles both synchronous (string-based) and asynchronous
-/// (URL/byte stream) scenarios.
+/// Parses JSONL (JSON Lines) data where each line is an A2UI message.
+/// Supports both v0.8 and v0.9 protocol versions with auto-detection.
 public final class JSONLStreamParser {
 
     private let decoder = JSONDecoder()
 
     public init() {}
 
-    // MARK: - Synchronous Parsing
+    // MARK: - Version-Aware Parsing
 
-    /// Parse a single JSONL line into a message. Returns `nil` for blank lines
-    /// or lines that fail to decode.
-    public func parseLine(_ line: String) -> ServerToClientMessage? {
+    /// Parse a single JSONL line into a versioned message.
+    public func parseVersionedLine(_ line: String) -> VersionedMessage? {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               let data = trimmed.data(using: .utf8) else { return nil }
-        return try? decoder.decode(ServerToClientMessage.self, from: data)
+        return decodeVersioned(data)
     }
 
-    /// Parse a multi-line JSONL string into an array of messages.
-    public func parseLines(_ text: String) -> [ServerToClientMessage] {
-        text.components(separatedBy: .newlines).compactMap(parseLine)
+    /// Parse a multi-line JSONL string into versioned messages.
+    public func parseVersionedLines(_ text: String) -> [VersionedMessage] {
+        text.components(separatedBy: .newlines).compactMap(parseVersionedLine)
     }
 
-    // MARK: - Async Stream (for URLSession / file streams)
-
-    /// Parse an `AsyncSequence` of bytes (e.g. from `URLSession.bytes(for:)`)
-    /// and yield messages as they arrive.
-    ///
-    /// Transport errors (network failures, connection resets, etc.) are propagated
-    /// to the caller via the throwing stream, matching how web renderers surface
-    /// errors to the application layer for handling (snackbar, fallback, etc.).
+    /// Parse a byte stream into versioned messages.
     @available(iOS 15.0, macOS 12.0, *)
-    public func messages<S: AsyncSequence>(
+    public func versionedMessages<S: AsyncSequence>(
         from bytes: S
-    ) -> AsyncThrowingStream<ServerToClientMessage, Error> where S.Element == UInt8 {
+    ) -> AsyncThrowingStream<VersionedMessage, Error> where S.Element == UInt8 {
         AsyncThrowingStream { continuation in
             Task {
                 var buffer = Data()
@@ -61,8 +49,89 @@ public final class JSONLStreamParser {
                     for try await byte in bytes {
                         if byte == UInt8(ascii: "\n") {
                             if !buffer.isEmpty,
-                               let msg = try? decoder.decode(
-                                ServerToClientMessage.self, from: buffer
+                               let msg = self.decodeVersioned(buffer) {
+                                continuation.yield(msg)
+                            }
+                            buffer.removeAll(keepingCapacity: true)
+                        } else {
+                            buffer.append(byte)
+                        }
+                    }
+                    if !buffer.isEmpty,
+                       let msg = self.decodeVersioned(buffer) {
+                        continuation.yield(msg)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Parse a line stream into versioned messages.
+    @available(iOS 15.0, macOS 12.0, *)
+    public func versionedMessages<S: AsyncSequence>(
+        fromLines lines: S
+    ) -> AsyncThrowingStream<VersionedMessage, Error> where S.Element == String {
+        AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    for try await line in lines {
+                        if let msg = self.parseVersionedLine(line) {
+                            continuation.yield(msg)
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Decode raw data into a versioned message.
+    private func decodeVersioned(_ data: Data) -> VersionedMessage? {
+        let version = A2UIProtocolVersion.detect(from: data)
+        switch version {
+        case .v08:
+            guard let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) else { return nil }
+            return .v08(msg)
+        case .v09:
+            guard let msg = try? decoder.decode(ServerToClientMessage_V09.self, from: data) else { return nil }
+            return .v09(msg)
+        }
+    }
+
+    // MARK: - v0.8 Backward Compatibility
+
+    /// Parse a single JSONL line (v0.8 only, backward compatible).
+    public func parseLine(_ line: String) -> ServerToClientMessage_V08? {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let data = trimmed.data(using: .utf8) else { return nil }
+        return try? decoder.decode(ServerToClientMessage_V08.self, from: data)
+    }
+
+    /// Parse a multi-line JSONL string (v0.8 only, backward compatible).
+    public func parseLines(_ text: String) -> [ServerToClientMessage_V08] {
+        text.components(separatedBy: .newlines).compactMap(parseLine)
+    }
+
+    /// Parse byte stream (v0.8 only, backward compatible).
+    @available(iOS 15.0, macOS 12.0, *)
+    public func messages<S: AsyncSequence>(
+        from bytes: S
+    ) -> AsyncThrowingStream<ServerToClientMessage_V08, Error> where S.Element == UInt8 {
+        AsyncThrowingStream { continuation in
+            Task {
+                var buffer = Data()
+                do {
+                    for try await byte in bytes {
+                        if byte == UInt8(ascii: "\n") {
+                            if !buffer.isEmpty,
+                               let msg = try? self.decoder.decode(
+                                ServerToClientMessage_V08.self, from: buffer
                                ) {
                                 continuation.yield(msg)
                             }
@@ -71,10 +140,9 @@ public final class JSONLStreamParser {
                             buffer.append(byte)
                         }
                     }
-                    // Handle last line without trailing newline
                     if !buffer.isEmpty,
-                       let msg = try? decoder.decode(
-                        ServerToClientMessage.self, from: buffer
+                       let msg = try? self.decoder.decode(
+                        ServerToClientMessage_V08.self, from: buffer
                        ) {
                         continuation.yield(msg)
                     }
@@ -86,20 +154,16 @@ public final class JSONLStreamParser {
         }
     }
 
-    /// Parse an `AsyncLineSequence` (e.g. from `URL.lines` or
-    /// `URLSession.bytes(for:).lines`).
-    ///
-    /// Transport errors are propagated to the caller, consistent with how
-    /// web renderers handle stream errors at the application layer.
+    /// Parse line stream (v0.8 only, backward compatible).
     @available(iOS 15.0, macOS 12.0, *)
     public func messages<S: AsyncSequence>(
         fromLines lines: S
-    ) -> AsyncThrowingStream<ServerToClientMessage, Error> where S.Element == String {
+    ) -> AsyncThrowingStream<ServerToClientMessage_V08, Error> where S.Element == String {
         AsyncThrowingStream { continuation in
             Task {
                 do {
                     for try await line in lines {
-                        if let msg = parseLine(line) {
+                        if let msg = self.parseLine(line) {
                             continuation.yield(msg)
                         }
                     }

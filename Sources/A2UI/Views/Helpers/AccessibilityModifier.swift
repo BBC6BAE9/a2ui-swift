@@ -16,8 +16,8 @@ import SwiftUI
 
 /// Applies accessibility attributes from the A2UI spec to SwiftUI views.
 struct AccessibilityModifier: ViewModifier {
-    let accessibility: A2UIAccessibility?
-    var viewModel: SurfaceViewModel
+    let accessibility: A2UIAccessibility_V08?
+    var viewModel: SurfaceViewModel_V08
     var dataContextPath: String
 
     func body(content: Content) -> some View {

@@ -48,9 +48,9 @@ struct RizzchartsPage: View {
     private func surfaceContent(manager: SurfaceManager) -> some View {
         LazyVStack(spacing: 0) {
             ForEach(manager.orderedSurfaceIds, id: \.self) { surfaceId in
-                if let vm = manager.surfaces[surfaceId],
+                if let vm = manager.surfaces[surfaceId]?.asV08,
                    let rootNode = vm.componentTree {
-                    A2UIComponentView(node: rootNode, viewModel: vm)
+                    A2UIComponentView_V08(node: rootNode, viewModel: vm)
                         .tint(vm.a2uiStyle.primaryColor)
                         .environment(\.a2uiStyle, vm.a2uiStyle)
                         .environment(\.a2uiCustomComponentRenderer, rizzchartsRenderer)
@@ -77,7 +77,7 @@ struct RizzchartsPage: View {
         for line in text.components(separatedBy: "\n")
         where !line.trimmingCharacters(in: .whitespaces).isEmpty {
             if let lineData = line.data(using: .utf8),
-               let msg = try? decoder.decode(ServerToClientMessage.self, from: lineData) {
+               let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: lineData) {
                 try? manager.processMessage(msg)
             }
         }
