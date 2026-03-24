@@ -18,7 +18,7 @@ import Foundation
 public enum ComponentType: Hashable {
     case Text, Image, Icon, Video, AudioPlayer
     case Row, Column, List, Card, Tabs, Divider, Modal
-    case Button, CheckBox, TextField, DateTimeInput, MultipleChoice, Slider
+    case Button, CheckBox, TextField, DateTimeInput, MultipleChoice, Slider, ProgressBar
     case custom(String)
 
     /// Map from raw type name string to `ComponentType`.
@@ -42,6 +42,7 @@ public enum ComponentType: Hashable {
         case "DateTimeInput": return .DateTimeInput
         case "MultipleChoice": return .MultipleChoice
         case "Slider": return .Slider
+        case "ProgressBar": return .ProgressBar
         default: return .custom(typeName)
         }
     }
@@ -198,6 +199,17 @@ public struct DateTimeInputProperties: Codable {
     public var value: StringValue
     public var enableDate: Bool?
     public var enableTime: Bool?
+    public var label: StringValue?
+}
+
+public struct ProgressBarProperties: Codable {
+    /// Current progress value. When nil, renders an indeterminate spinner.
+    public var value: NumberValue?
+    /// Minimum value. Defaults to 0.
+    public var minValue: Double?
+    /// Maximum value. Defaults to 100.
+    public var maxValue: Double?
+    /// Optional label shown above the bar.
     public var label: StringValue?
 }
 

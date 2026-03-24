@@ -533,6 +533,82 @@ final class MessageDecodingTests: XCTestCase {
         }
     }
 
+    // MARK: - ProgressBar
+
+    func testProgressBarDeterminate() throws {
+        let json: [String: AnyCodable] = [
+            "label": .dictionary(["literalString": .string("Uploading")]),
+            "value": .dictionary(["path": .string("/progress")]),
+            "minValue": .number(0),
+            "maxValue": .number(100)
+        ]
+        let data = try JSONEncoder().encode(json)
+        let props = try JSONDecoder().decode(ProgressBarProperties.self, from: data)
+        XCTAssertNotNil(props.value)
+        XCTAssertEqual(props.value?.path, "/progress")
+        XCTAssertEqual(props.label?.literalString, "Uploading")
+        XCTAssertEqual(props.minValue, 0)
+        XCTAssertEqual(props.maxValue, 100)
+    }
+
+    func testProgressBarIndeterminate() throws {
+        let json: [String: AnyCodable] = [
+            "label": .dictionary(["literalString": .string("Loading...")])
+        ]
+        let data = try JSONEncoder().encode(json)
+        let props = try JSONDecoder().decode(ProgressBarProperties.self, from: data)
+        XCTAssertNil(props.value, "Absent value should decode as nil → indeterminate mode")
+        XCTAssertEqual(props.label?.literalString, "Loading...")
+    }
+
+    func testProgressBarMissingOptionals() throws {
+        let json: [String: AnyCodable] = [
+            "value": .dictionary(["path": .string("/p")])
+        ]
+        let data = try JSONEncoder().encode(json)
+        let props = try JSONDecoder().decode(ProgressBarProperties.self, from: data)
+        XCTAssertNotNil(props.value)
+        XCTAssertNil(props.label)
+        XCTAssertNil(props.minValue)
+        XCTAssertNil(props.maxValue)
+    }
+
+    func testProgressBarLiteralValue() throws {
+        let json: [String: AnyCodable] = [
+            "value": .dictionary(["literalNumber": .number(42)]),
+            "minValue": .number(0),
+            "maxValue": .number(200)
+        ]
+        let data = try JSONEncoder().encode(json)
+        let props = try JSONDecoder().decode(ProgressBarProperties.self, from: data)
+        XCTAssertNotNil(props.value)
+        XCTAssertEqual(props.value?.literalValue, 42)
+        XCTAssertEqual(props.maxValue, 200)
+    }
+
+    func testProgressBarComponentTypeRouting() throws {
+        let jsonl = """
+        {"beginRendering":{"surfaceId":"s","root":"pb"}}
+        {"surfaceUpdate":{"surfaceId":"s","components":[{"id":"pb","component":{"ProgressBar":{"value":{"path":"/p"},"minValue":0,"maxValue":100}}}]}}
+        {"dataModelUpdate":{"surfaceId":"s","path":"/","contents":[{"key":"p","valueNumber":50}]}}
+        """
+        let vm = SurfaceViewModel()
+        let decoder = JSONDecoder()
+        for line in jsonl.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let data = trimmed.data(using: .utf8) else { continue }
+            let msg = try decoder.decode(ServerToClientMessage.self, from: data)
+            try vm.processMessage(msg)
+        }
+        let comp = vm.components["pb"]
+        XCTAssertNotNil(comp)
+        XCTAssertEqual(comp?.component?.componentType, .ProgressBar)
+        let props = try comp?.component?.typedProperties(ProgressBarProperties.self)
+        XCTAssertNotNil(props)
+        XCTAssertEqual(props?.minValue, 0)
+        XCTAssertEqual(props?.maxValue, 100)
+    }
+
     func testAllSamplesBatchVsIncrementalEquivalence() throws {
         let files = [
             "contact_card", "booking_form", "single_column_list", "confirmation",

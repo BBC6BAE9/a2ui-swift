@@ -64,5 +64,17 @@ Entry point renders as-is; interaction handled by the Button inside it. Content 
 ## Video
 `AVPlayerViewController` in `ScrollView` + `LazyVStack` causes severe scroll jank. Solution: singleton `SharedPlayerController` — one `AVPlayerViewController` (iOS/tvOS/visionOS) or `AVPlayerView` (macOS) shared across all Video components. Inactive videos show a poster (async first-frame thumbnail + play button). Tapping activates the singleton; only one Video plays at a time. Thumbnails loaded via `Task.detached` (survives LazyVStack recycling), cached on `VideoUIState`. watchOS: static placeholder.
 
+## ProgressBar
+
+Maps to `SwiftUI.ProgressView`. Determinate when `value` (`NumberValue?`) is
+present — renders `ProgressView(value:total:)` normalised to `[minValue, maxValue]`
+(defaults 0–100). Indeterminate (spinner) when `value` is absent or nil.
+Read-only — never writes to the data model. Agents drive live updates by
+streaming `dataModelUpdate` messages targeting the bound path; `@Observable`
+ensures the view re-renders only when the specific key changes.
+`ProgressView` is available on all five platforms so no `#if os(...)` fallbacks
+are needed. All styling (tint, label font/color) flows through
+`A2UIStyle.progressBarStyle` — zero hardcoded values.
+
 ## AudioPlayer
 Custom audio player UI with progress bar, matching `<audio controls>` functionality. Uses `AVPlayer` with time observation for progress tracking. Playback state (`isPlaying`, `currentTime`, `duration`) stored in `AudioPlayerUIState` for persistence across tree rebuilds. watchOS: AVKit unavailable, placeholder only.

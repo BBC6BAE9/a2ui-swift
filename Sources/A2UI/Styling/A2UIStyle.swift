@@ -74,6 +74,9 @@ public struct A2UIStyle: Equatable, Sendable {
     /// Appearance overrides for the AudioPlayer component.
     public var audioPlayerStyle: AudioPlayerComponentStyle
 
+    /// Appearance overrides for the ProgressBar component.
+    public var progressBarStyle: ProgressBarComponentStyle
+
     public init(
         primaryColor: Color = .accentColor,
         fontFamily: String? = nil,
@@ -90,7 +93,8 @@ public struct A2UIStyle: Equatable, Sendable {
         tabsStyle: TabsComponentStyle = .init(),
         modalStyle: ModalComponentStyle = .init(),
         videoStyle: VideoComponentStyle = .init(),
-        audioPlayerStyle: AudioPlayerComponentStyle = .init()
+        audioPlayerStyle: AudioPlayerComponentStyle = .init(),
+        progressBarStyle: ProgressBarComponentStyle = .init()
     ) {
         self.primaryColor = primaryColor
         self.fontFamily = fontFamily
@@ -108,6 +112,7 @@ public struct A2UIStyle: Equatable, Sendable {
         self.modalStyle = modalStyle
         self.videoStyle = videoStyle
         self.audioPlayerStyle = audioPlayerStyle
+        self.progressBarStyle = progressBarStyle
     }
 
     /// Build from the raw `[String: String]` dictionary provided by `beginRendering`.
@@ -132,6 +137,7 @@ public struct A2UIStyle: Equatable, Sendable {
         self.modalStyle = .init()
         self.videoStyle = .init()
         self.audioPlayerStyle = .init()
+        self.progressBarStyle = .init()
     }
 
     /// The seven text variants defined by the A2UI protocol.
@@ -566,6 +572,28 @@ public struct A2UIStyle: Equatable, Sendable {
             && lhs.labelColor == rhs.labelColor
             && lhs.valueFont == rhs.valueFont
             && lhs.valueColor == rhs.valueColor
+        }
+    }
+
+    // MARK: - ProgressBar Styling
+
+    /// Appearance overrides for the ProgressBar component.
+    public struct ProgressBarComponentStyle: Equatable, Sendable {
+        /// Tint color for the progress bar fill. Nil → system accent color.
+        public var tintColor: Color?
+        /// Font for the optional label shown above the bar.
+        public var labelFont: Font?
+        /// Color for the label text. Nil → system primary.
+        public var labelColor: Color?
+
+        public init(
+            tintColor: Color? = nil,
+            labelFont: Font? = nil,
+            labelColor: Color? = nil
+        ) {
+            self.tintColor = tintColor
+            self.labelFont = labelFont
+            self.labelColor = labelColor
         }
     }
 

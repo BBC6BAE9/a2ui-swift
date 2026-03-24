@@ -83,6 +83,8 @@ public struct A2UIComponentView: View {
             A2UIModal(node: node, viewModel: viewModel)
         case .MultipleChoice:
             A2UIMultipleChoice(node: node, viewModel: viewModel)
+        case .ProgressBar:
+            A2UIProgressBar(node: node, viewModel: viewModel)
         case .custom:
             A2UICustom(node: node, viewModel: viewModel)
         }
