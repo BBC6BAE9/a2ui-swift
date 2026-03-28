@@ -60,5 +60,26 @@ let package = Package(
             name: "v_09",
             path: "Sources/v_09"
         ),
+        .testTarget(
+            name: "A2ATests",
+            dependencies: ["A2A"],
+            path: "Tests/A2ATests"
+        ),
+        .testTarget(
+            name: "PrimitivesTests",
+            dependencies: ["Primitives"],
+            path: "Tests/PrimitivesTests"
+        ),
+        .testTarget(
+            name: "v_08Tests",
+            dependencies: ["v_08"],
+            path: "Tests/v_08Tests",
+            resources: [.copy("TestData")]
+        ),
+        .testTarget(
+            name: "v_09Tests",
+            dependencies: ["v_09"],
+            path: "Tests/v_09Tests"
+        ),
     ]
 )

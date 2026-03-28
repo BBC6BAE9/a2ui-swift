@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import XCTest
-@testable import A2UI
+@testable import v_08
 
 /// Unit tests for MultipleChoice pure logic (Rule 6: key logic must have test coverage).
 ///

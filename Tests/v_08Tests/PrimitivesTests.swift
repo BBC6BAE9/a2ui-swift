@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import XCTest
-@testable import A2UI
+@testable import v_08
 
 final class PrimitivesTests: XCTestCase {
 
