@@ -14,22 +14,19 @@
 
 import Foundation
 
-/// Parses JSONL (JSON Lines) data where each line is an A2UI message.
-/// Supports both v0.8 and v0.9 protocol versions with auto-detection.
+/// Parses JSONL (JSON Lines) data where each line is an A2UI v0.8 message.
 public final class JSONLStreamParser {
 
     private let decoder = JSONDecoder()
 
     public init() {}
 
-    // MARK: - Version-Aware Parsing
+    // MARK: - Versioned Parsing
 
     /// Parse a single JSONL line into a versioned message.
     public func parseVersionedLine(_ line: String) -> VersionedMessage? {
-        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              let data = trimmed.data(using: .utf8) else { return nil }
-        return decodeVersioned(data)
+        guard let msg = parseLine(line) else { return nil }
+        return .v08(msg)
     }
 
     /// Parse a multi-line JSONL string into versioned messages.
@@ -49,8 +46,10 @@ public final class JSONLStreamParser {
                     for try await byte in bytes {
                         if byte == UInt8(ascii: "\n") {
                             if !buffer.isEmpty,
-                               let msg = self.decodeVersioned(buffer) {
-                                continuation.yield(msg)
+                               let msg = try? self.decoder.decode(
+                                ServerToClientMessage_V08.self, from: buffer
+                               ) {
+                                continuation.yield(.v08(msg))
                             }
                             buffer.removeAll(keepingCapacity: true)
                         } else {
@@ -58,8 +57,10 @@ public final class JSONLStreamParser {
                         }
                     }
                     if !buffer.isEmpty,
-                       let msg = self.decodeVersioned(buffer) {
-                        continuation.yield(msg)
+                       let msg = try? self.decoder.decode(
+                        ServerToClientMessage_V08.self, from: buffer
+                       ) {
+                        continuation.yield(.v08(msg))
                     }
                     continuation.finish()
                 } catch {
@@ -90,22 +91,9 @@ public final class JSONLStreamParser {
         }
     }
 
-    /// Decode raw data into a versioned message.
-    private func decodeVersioned(_ data: Data) -> VersionedMessage? {
-        let version = A2UIProtocolVersion.detect(from: data)
-        switch version {
-        case .v08:
-            guard let msg = try? decoder.decode(ServerToClientMessage_V08.self, from: data) else { return nil }
-            return .v08(msg)
-        case .v09:
-            guard let msg = try? decoder.decode(ServerToClientMessage_V09.self, from: data) else { return nil }
-            return .v09(msg)
-        }
-    }
+    // MARK: - Direct Parsing
 
-    // MARK: - v0.8 Backward Compatibility
-
-    /// Parse a single JSONL line (v0.8 only, backward compatible).
+    /// Parse a single JSONL line.
     public func parseLine(_ line: String) -> ServerToClientMessage_V08? {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
@@ -113,12 +101,12 @@ public final class JSONLStreamParser {
         return try? decoder.decode(ServerToClientMessage_V08.self, from: data)
     }
 
-    /// Parse a multi-line JSONL string (v0.8 only, backward compatible).
+    /// Parse a multi-line JSONL string.
     public func parseLines(_ text: String) -> [ServerToClientMessage_V08] {
         text.components(separatedBy: .newlines).compactMap(parseLine)
     }
 
-    /// Parse byte stream (v0.8 only, backward compatible).
+    /// Parse byte stream.
     @available(iOS 15.0, macOS 12.0, *)
     public func messages<S: AsyncSequence>(
         from bytes: S
@@ -154,7 +142,7 @@ public final class JSONLStreamParser {
         }
     }
 
-    /// Parse line stream (v0.8 only, backward compatible).
+    /// Parse line stream.
     @available(iOS 15.0, macOS 12.0, *)
     public func messages<S: AsyncSequence>(
         fromLines lines: S

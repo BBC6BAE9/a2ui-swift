@@ -15,7 +15,6 @@
 import SwiftUI
 
 /// The main entry point for rendering A2UI surfaces in SwiftUI.
-/// Supports both v0.8 and v0.9 protocol versions transparently.
 public struct A2UIRendererView: View {
     private let manager: SurfaceManager
     private let onAction: ((ResolvedAction) -> Void)?
@@ -56,15 +55,6 @@ public struct A2UIRendererView: View {
             if let rootNode = vm.componentTree {
                 ScrollView {
                     A2UIComponentView_V08(node: rootNode, viewModel: vm)
-                        .padding()
-                }
-                .tint(vm.a2uiStyle.primaryColor)
-                .environment(\.a2uiStyle, vm.a2uiStyle)
-            }
-        case .v09(let vm):
-            if let rootNode = vm.componentTree {
-                ScrollView {
-                    A2UIComponentView_V09(node: rootNode, viewModel: vm)
                         .padding()
                 }
                 .tint(vm.a2uiStyle.primaryColor)

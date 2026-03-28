@@ -17,7 +17,6 @@ import Foundation
 // MARK: - ResolvedAction
 
 /// An action whose context paths have been resolved to actual values.
-/// Shared across protocol versions — both v0.8 and v0.9 produce this type.
 public struct ResolvedAction: Sendable {
     public let name: String
     public let sourceComponentId: String

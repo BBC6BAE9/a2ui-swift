@@ -14,7 +14,7 @@
 
 import Foundation
 
-/// Shared pure-algorithm helpers used by both `DataStore_V08` and `DataStore_V09`.
+/// Shared pure-algorithm helpers used by `DataStore_V08`.
 /// These operate only on `AnyCodable` and have no version-specific dependencies.
 enum DataStoreUtils {
 

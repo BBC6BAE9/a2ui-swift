@@ -1,14 +1,14 @@
 # Generative UI SDK for SwiftUI (genui)
+![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
+![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
+![A2UI](https://img.shields.io/badge/A2UI-v0.8-purple)
+![A2UI](https://img.shields.io/badge/A2UI-v0.9-purple)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Tests](https://img.shields.io/badge/Tests-87%20passing-brightgreen)
 
 **Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
 
 The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/). Your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
-
-![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
-![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
-![A2UI](https://img.shields.io/badge/A2UI-v0.8%20%2B%20v0.9-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-87%20passing-brightgreen)
 
 | iOS | iPadOS | macOS | visionOS | watchOS | tvOS |
 |:---:|:------:|:-----:|:--------:|:-------:|:----:|
@@ -54,8 +54,8 @@ targets: [
     .target(name: "YourApp", dependencies: [
         "A2A",        // A2A protocol client
         "Primitives", // Shared primitive types
-        "v_08",       // v0.8 + v0.9 renderer (legacy API)
-        "v_09",       // v0.9 renderer (new standalone API)
+        "v_08",       // v0.8 renderer
+        "v_09",       // v0.9 renderer (standalone API)
     ]),
 ]
 ```
@@ -70,8 +70,8 @@ The package is organized into four independent library products:
 |--------|---------|
 | **A2A** | A2A protocol client — agent card, task lifecycle, JSON-RPC, HTTP & SSE transports |
 | **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
-| **v_08** | Legacy renderer supporting both v0.8 and v0.9 protocols via `A2UIRendererView` with auto version detection |
-| **v_09** | New standalone v0.9 renderer via `A2UISurfaceView` with catalog system, expression parser, and transport abstraction |
+| **v_08** | v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
+| **v_09** | v0.9 renderer via `A2UISurfaceView` with catalog system, expression parser, and transport abstraction |
 
 ## Quick Start
 
@@ -94,7 +94,7 @@ A2UISurfaceView(viewModel: vm) { action in
 }
 ```
 
-### v0.8 / v0.9 — `A2UIRendererView` (legacy, auto-detect)
+### v0.8 — `A2UIRendererView`
 
 ```swift
 import v_08
@@ -167,10 +167,9 @@ Sources/
 │   ├── Core/             Agent card, task, message, part, event types
 │   └── Client/           A2AClient, HTTP & SSE transports, SSE parser
 ├── Primitives/           Shared primitive types (ChatMessage, Part, JSONValue, ToolDefinition)
-├── v_08/                 Legacy renderer (v0.8 + v0.9 auto-detect)
+├── v_08/                 v0.8 renderer
 │   ├── Shared/           AnyCodable, ResolvedAction, UIState, DataStoreUtils
-│   ├── V08/              v0.8 Models, Processing, Views (suffixed _V08)
-│   ├── V09/              v0.9 Models, Processing, Views (suffixed _V09)
+│   ├── V08/              Models, Processing, Views (suffixed _V08)
 │   ├── Processing/       SurfaceManager + JSONLStreamParser
 │   ├── Views/Helpers/    SVG, accessibility, weight modifiers
 │   ├── Styling/          A2UIStyle + Environment integration
@@ -194,7 +193,7 @@ Sources/
     └── travel_app/       Full travel app sample with AI client integration
 ```
 
-The **v_09** module introduces a new architecture with a catalog system, expression parser, and transport abstraction layer — aligned with the official A2UI web renderer design. The **v_08** module retains the original `A2UIRendererView` API with `SurfaceManager` for backward compatibility.
+The **v_09** module introduces a new architecture with a catalog system, expression parser, and transport abstraction layer — aligned with the official A2UI web renderer design. The **v_08** module provides the `A2UIRendererView` API with `SurfaceManager` for v0.8 protocol rendering.
 
 ## Sample Apps
 
@@ -216,25 +215,20 @@ A full-featured travel app sample demonstrating the v0.9 renderer with AI client
 
 ## Spec Compliance
 
-This renderer supports **both A2UI v0.8 and v0.9** protocols simultaneously, with automatic version detection.
-
-### v0.8
+### v0.8 (`v_08` module)
 - **Protocol messages:** `beginRendering`, `surfaceUpdate`, `dataModelUpdate`, `deleteSurface`
 - **Data binding:** Path-based resolution (`/items/0/name`), bracket/dot normalization, template rendering, literal seeding
 - **Action system:** Full action context resolution with `[{key, value}]` context format
 - **Styling:** `beginRendering.styles` parsed into `A2UIStyle`
 
-### v0.9
+### v0.9 (`v_09` module)
 - **Protocol messages:** `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`
 - **Flat component format:** `{"component": "Text", "text": "hello"}` (no nested wrapper)
 - **Data binding:** JSON Pointer paths (RFC 6901), `DynamicString` / `DynamicNumber` / `DynamicBoolean` / `DynamicStringList` with literal, path, and function call support
 - **Action system:** Event-based `{event: {name, context}}` with `Record<string, DynamicValue>` context, or client-side `{functionCall: {...}}`
 - **Validation:** `checks` array with `CheckRule` (condition + message) for input components
 - **Styling:** `createSurface.theme` structured JSON object
-
-### Shared
 - **Catalog functions:** `formatString`, `formatNumber`, `formatCurrency`, `formatDate`, `pluralize`, `openUrl`, `required`, `email`, `regex`, `length`, `numeric`, `and`, `or`, `not`
-- **Version detection:** Fast byte-scan — no overhead per message. Falls back to message-key detection if `"version"` field is absent
 
 ## Testing
 
