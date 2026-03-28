@@ -2,7 +2,7 @@
 
 **Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
 
-The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/). Drop in `A2UIRendererView` and your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
+The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/). Your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
 
 ![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
 ![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
@@ -19,7 +19,7 @@ The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) pr
 [A2UI](https://github.com/google/A2UI) is an open protocol that lets AI agents generate rich, interactive user interfaces through a declarative JSON format — not executable code. An agent describes *what* to render; the renderer decides *how* using native platform controls.
 
 ```
-Agent → JSON payload → A2UIRendererView → Native SwiftUI UI
+Agent → JSON payload → A2UISurfaceView / A2UIRendererView → Native SwiftUI UI
 ```
 
 Because the format is declarative and component-constrained, agents can only request pre-approved UI components from a trusted catalog — making A2UI secure by design. The same JSON payload renders appropriately across web, Flutter, React, and all Apple platforms via this renderer.
@@ -51,40 +51,53 @@ dependencies: [
     .package(url: "https://github.com/BBC6BAE9/a2ui-swiftui", from: "0.1.0"),
 ],
 targets: [
-    .target(name: "YourApp", dependencies: ["A2UI"]),
+    .target(name: "YourApp", dependencies: [
+        "A2A",        // A2A protocol client
+        "Primitives", // Shared primitive types
+        "v_08",       // v0.8 + v0.9 renderer (legacy API)
+        "v_09",       // v0.9 renderer (new standalone API)
+    ]),
 ]
 ```
 
 **In Xcode:** File → Add Package Dependencies → paste the repository URL.
 
+## Modules
+
+The package is organized into four independent library products:
+
+| Module | Purpose |
+|--------|---------|
+| **A2A** | A2A protocol client — agent card, task lifecycle, JSON-RPC, HTTP & SSE transports |
+| **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
+| **v_08** | Legacy renderer supporting both v0.8 and v0.9 protocols via `A2UIRendererView` with auto version detection |
+| **v_09** | New standalone v0.9 renderer via `A2UISurfaceView` with catalog system, expression parser, and transport abstraction |
+
 ## Quick Start
 
-### Static JSON
+### v0.9 — `A2UISurfaceView` (recommended)
 
 ```swift
-import A2UI
+import v_09
 
-// Decode A2UI messages from a JSON payload
-let messages = try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+@State var vm = SurfaceViewModel(catalog: basicCatalog)
 
-A2UIRendererView(messages: messages)
-```
+// Process messages from your agent transport:
+try vm.processMessages(messages)
 
-### Live Agent Streaming
+// Render:
+A2UISurfaceView(viewModel: vm)
 
-```swift
-import A2UI
-
-// Connect directly to a streaming A2A agent
-A2UIRendererView(stream: messageStream) { action in
-    print("User triggered: \(action.name)")
+// With action handler:
+A2UISurfaceView(viewModel: vm) { action in
+    print("Action: \(action.name)")
 }
 ```
 
-### JSONL over URLSession
+### v0.8 / v0.9 — `A2UIRendererView` (legacy, auto-detect)
 
 ```swift
-import A2UI
+import v_08
 
 let parser = JSONLStreamParser()
 let manager = SurfaceManager()
@@ -94,7 +107,6 @@ for try await message in parser.messages(from: bytes) {
     try manager.processMessage(message)
 }
 
-// View only observes — no stream logic in the view layer
 A2UIRendererView(manager: manager)
 ```
 
@@ -147,36 +159,60 @@ A2UIRendererView(messages: messages)
     }
 ```
 
-The demo app includes a **Rizzcharts** example with custom `Chart` (Swift Charts) and `GoogleMap` (MapKit) components registered via `CustomComponentRegistry`.
-
 ## Architecture
 
 ```
-Sources/A2UI/
-├── Shared/           Version-independent code (AnyCodable, ResolvedAction, UIState, DataStoreUtils)
-├── V08/              v0.8 protocol (Models, Processing, Views — all types suffixed _V08)
-├── V09/              v0.9 protocol (Models, Processing, Views — all types suffixed _V09)
-├── Processing/       SurfaceManager (version dispatch) + JSONLStreamParser (auto-detect)
-├── Views/Helpers/    Shared SwiftUI helpers (SVG, accessibility, weight modifiers)
-├── Styling/          A2UIStyle + SwiftUI Environment integration
-├── Networking/       A2AClient (JSON-RPC over HTTP + SSE streaming)
-├── ProtocolVersion.swift   Version detection + VersionedMessage enum
-└── A2UIRenderer.swift      Public API entry point
+Sources/
+├── A2A/                  A2A protocol client library
+│   ├── Core/             Agent card, task, message, part, event types
+│   └── Client/           A2AClient, HTTP & SSE transports, SSE parser
+├── Primitives/           Shared primitive types (ChatMessage, Part, JSONValue, ToolDefinition)
+├── v_08/                 Legacy renderer (v0.8 + v0.9 auto-detect)
+│   ├── Shared/           AnyCodable, ResolvedAction, UIState, DataStoreUtils
+│   ├── V08/              v0.8 Models, Processing, Views (suffixed _V08)
+│   ├── V09/              v0.9 Models, Processing, Views (suffixed _V09)
+│   ├── Processing/       SurfaceManager + JSONLStreamParser
+│   ├── Views/Helpers/    SVG, accessibility, weight modifiers
+│   ├── Styling/          A2UIStyle + Environment integration
+│   ├── Networking/       A2AClient (JSON-RPC over HTTP + SSE)
+│   └── A2UIRenderer.swift  Public API — A2UIRendererView
+├── v_09/                 New standalone v0.9 renderer
+│   └── A2UIV09/
+│       ├── Core/
+│       │   ├── Schema/       ServerToClient / ClientToServer messages, component types
+│       │   ├── State/        SurfaceModel, DataModel, ComponentModel, UIState
+│       │   ├── Rendering/    SurfaceViewModel, ComponentNode, ComponentContext
+│       │   ├── Processing/   MessageProcessor
+│       │   ├── BasicCatalog/ Built-in catalog, expression parser, functions
+│       │   ├── Catalog/      FunctionInvoker, catalog type system
+│       │   ├── Styling/      A2UIStyle + Environment
+│       │   ├── Views/        A2UISurfaceView, A2UIComponentView, per-component views
+│       │   └── Helpers/      SVG, alignment, weight modifiers
+│       └── Transport/        A2UITransport, stream parser, JSON block parser
+└── samples/
+    ├── sample_0.8/       Demo app for v0.8 renderer (Xcode project)
+    └── travel_app/       Full travel app sample with AI client integration
 ```
 
-The public API is a single view — `A2UIRendererView` — that renders both v0.8 and v0.9 surfaces transparently. All state lives in `SurfaceManager`, which auto-detects protocol version and routes messages to the correct versioned handler. v0.8 and v0.9 are file-level separated (aligned with the official web_core architecture), with shared utilities extracted to `Shared/`.
+The **v_09** module introduces a new architecture with a catalog system, expression parser, and transport abstraction layer — aligned with the official A2UI web renderer design. The **v_08** module retains the original `A2UIRendererView` API with `SurfaceManager` for backward compatibility.
 
-## Demo App
+## Sample Apps
 
-Open `A2UIDemoApp/A2UIDemoApp.xcodeproj` in Xcode and run on a simulator or device.
+### sample_0.8
 
-The app includes **10 demo pages** — static JSON demos (no agent required) and live A2A agent connections. Each page has an **info inspector** explaining what it demonstrates; action-triggering pages display a **Resolved Action log** showing the full context payload.
+The original demo app for the v0.8 renderer. Open `samples/sample_0.8/A2UIDemoApp.xcodeproj` in Xcode.
+
+Includes static JSON demos (no agent required) and live A2A agent connections. Each page has an **info inspector** explaining what it demonstrates; action-triggering pages display a **Resolved Action log** showing the full context payload.
 
 |                             info                             |                          action log                          |                            genui                             |
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="https://github.com/user-attachments/assets/1cefe139-3266-4b57-8f2e-d4d2046b3ae6" height="200"/> | <img src="https://github.com/user-attachments/assets/f65a68a3-78a7-4542-8bf4-868ce0e91ec4" height="200"/> | <img src="https://github.com/user-attachments/assets/3b38f7c5-3b7e-4910-9222-bfa2c7cf236b" height="200"/> |
 
 > Live agent demo: [BBC6BAE9/genui](https://github.com/BBC6BAE9/genui)
+
+### travel_app
+
+A full-featured travel app sample demonstrating the v0.9 renderer with AI client integration, custom catalog components, and real generative AI interactions.
 
 ## Spec Compliance
 
