@@ -27,20 +27,38 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "A2UI",
-            targets: ["A2UI"]
+            name: "A2A",
+            targets: ["A2A"]
+        ),
+        .library(
+            name: "Primitives",
+            targets: ["Primitives"]
+        ),
+        .library(
+            name: "v_08",
+            targets: ["v_08"]
+        ),
+        .library(
+            name: "v_09",
+            targets: ["v_09"]
         ),
     ],
     targets: [
         .target(
-            name: "A2UI",
-            path: "Sources/A2UI"
+            name: "A2A",
+            path: "Sources/A2A"
         ),
-        .testTarget(
-            name: "A2UITests",
-            dependencies: ["A2UI"],
-            path: "Tests/A2UITests",
-            resources: [.copy("TestData")]
+        .target(
+            name: "Primitives",
+            path: "Sources/Primitives"
+        ),
+        .target(
+            name: "v_08",
+            path: "Sources/v_08"
+        ),
+        .target(
+            name: "v_09",
+            path: "Sources/v_09"
         ),
     ]
 )
