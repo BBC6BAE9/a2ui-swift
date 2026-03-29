@@ -27,7 +27,7 @@ struct A2UIColumn: View {
             let dc = DataContext(surface: surface, path: node.dataContextPath)
             // Web-core default: align="stretch" (column.ts:28)
             let crossStretch = props.align == nil || props.align == .stretch
-            VStack(alignment: a2uiHorizontalAlignment(props.align?.rawValue), spacing: 0) {
+            VStack(alignment: a2uiHorizontalAlignment(props.align?.rawValue), spacing: 8) {
                 a2uiDistributedContent(
                     node.children, justify: props.justify,
                     stretchWidth: crossStretch, stretchHeight: false,

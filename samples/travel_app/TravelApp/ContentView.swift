@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import SwiftUI
+import v_09
 
 /// The root content view with a navigation-based layout.
 /// Provides navigation to the AI chat planner and widget catalog.
