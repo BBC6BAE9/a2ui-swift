@@ -192,7 +192,7 @@ final class SharedPlayerController {
     let playerViewController: AVPlayerViewController = {
         let vc = AVPlayerViewController()
         vc.entersFullScreenWhenPlaybackBegins = false
-        #if os(iOS) && os(tvOS)
+        #if os(iOS) || os(tvOS)
         if #available(iOS 16.0, tvOS 16.0, visionOS 1.0, *) {
             vc.allowsVideoFrameAnalysis = false
         }
