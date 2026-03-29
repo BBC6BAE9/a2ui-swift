@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F11A75012F78387C00527023 /* A2A in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75002F78387C00527023 /* A2A */; };
-		F11A75032F78387C00527023 /* Primitives in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75022F78387C00527023 /* Primitives */; };
-		F11A75052F78387C00527023 /* v_09 in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75042F78387C00527023 /* v_09 */; };
-		F1TE5T012F87000000000001 /* GenAIPrimitives in Frameworks */ = {isa = PBXBuildFile; productRef = F1TE5T012F87000000000010 /* GenAIPrimitives */; };
-		F1TE5T012F87000000000003 /* A2UIV_09 in Frameworks */ = {isa = PBXBuildFile; productRef = F1TE5T012F87000000000012 /* A2UIV_09 */; };
+		F131A2512F78D26E007CCC16 /* A2A in Frameworks */ = {isa = PBXBuildFile; productRef = F131A2502F78D26E007CCC16 /* A2A */; };
+		F131A2532F78D26E007CCC16 /* Primitives in Frameworks */ = {isa = PBXBuildFile; productRef = F131A2522F78D26E007CCC16 /* Primitives */; };
+		F131A2552F78D26E007CCC16 /* v_09 in Frameworks */ = {isa = PBXBuildFile; productRef = F131A2542F78D26E007CCC16 /* v_09 */; };
+		F1TE5T012F87000000000003 /* v_09 in Frameworks */ = {isa = PBXBuildFile; productRef = F1TE5T012F87000000000012 /* v_09 */; };
+		F1TE5T012F87000000000004 /* Primitives in Frameworks */ = {isa = PBXBuildFile; productRef = F1TE5T012F87000000000013 /* Primitives */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,9 +47,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F11A75012F78387C00527023 /* A2A in Frameworks */,
-				F11A75032F78387C00527023 /* Primitives in Frameworks */,
-				F11A75052F78387C00527023 /* v_09 in Frameworks */,
+				F131A2512F78D26E007CCC16 /* A2A in Frameworks */,
+				F131A2532F78D26E007CCC16 /* Primitives in Frameworks */,
+				F131A2552F78D26E007CCC16 /* v_09 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,8 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1TE5T012F87000000000003 /* A2UIV_09 in Frameworks */,
-				F1TE5T012F87000000000001 /* GenAIPrimitives in Frameworks */,
+				F1TE5T012F87000000000003 /* v_09 in Frameworks */,
+				F1TE5T012F87000000000004 /* Primitives in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,11 +103,9 @@
 			);
 			name = TravelApp;
 			packageProductDependencies = (
-				F11A747E2F78365700527023 /* A2UIV_09 */,
-				F11A74802F78365700527023 /* GenAIPrimitives */,
-				F11A75002F78387C00527023 /* A2A */,
-				F11A75022F78387C00527023 /* Primitives */,
-				F11A75042F78387C00527023 /* v_09 */,
+				F131A2502F78D26E007CCC16 /* A2A */,
+				F131A2522F78D26E007CCC16 /* Primitives */,
+				F131A2542F78D26E007CCC16 /* v_09 */,
 			);
 			productName = GenUI;
 			productReference = F1AE97C92F5EA2ED00610B17 /* TravelApp.app */;
@@ -131,8 +129,8 @@
 			);
 			name = TravelAppTests;
 			packageProductDependencies = (
-				F1TE5T012F87000000000012 /* A2UIV_09 */,
-				F1TE5T012F87000000000010 /* GenAIPrimitives */,
+				F1TE5T012F87000000000012 /* v_09 */,
+				F1TE5T012F87000000000013 /* Primitives */,
 			);
 			productName = GenUITests;
 			productReference = F1TE5T032F87000000000001 /* TravelAppTests.xctest */;
@@ -167,7 +165,7 @@
 			mainGroup = F1AE97C02F5EA2ED00610B17;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F11A74FF2F78387C00527023 /* XCLocalSwiftPackageReference "../../../a2ui-swiftui" */,
+				F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../../../a2ui-swiftuifinal" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1AE97CA2F5EA2ED00610B17 /* Products */;
@@ -514,40 +512,32 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F11A74FF2F78387C00527023 /* XCLocalSwiftPackageReference "../../../a2ui-swiftui" */ = {
+		F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../../../a2ui-swiftuifinal" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../a2ui-swiftui";
+			relativePath = "../../../a2ui-swiftuifinal";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F11A747E2F78365700527023 /* A2UIV_09 */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = A2UIV_09;
-		};
-		F11A74802F78365700527023 /* GenAIPrimitives */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = GenAIPrimitives;
-		};
-		F11A75002F78387C00527023 /* A2A */ = {
+		F131A2502F78D26E007CCC16 /* A2A */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = A2A;
 		};
-		F11A75022F78387C00527023 /* Primitives */ = {
+		F131A2522F78D26E007CCC16 /* Primitives */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Primitives;
 		};
-		F11A75042F78387C00527023 /* v_09 */ = {
+		F131A2542F78D26E007CCC16 /* v_09 */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = v_09;
 		};
-		F1TE5T012F87000000000010 /* GenAIPrimitives */ = {
+		F1TE5T012F87000000000012 /* v_09 */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = GenAIPrimitives;
+			productName = v_09;
 		};
-		F1TE5T012F87000000000012 /* A2UIV_09 */ = {
+		F1TE5T012F87000000000013 /* Primitives */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = A2UIV_09;
+			productName = Primitives;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

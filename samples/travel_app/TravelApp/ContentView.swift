@@ -43,7 +43,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem() {
                     Button {
                         showSettings = true
                     } label: {
