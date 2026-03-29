@@ -165,7 +165,7 @@
 			mainGroup = F1AE97C02F5EA2ED00610B17;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../../../a2ui-swiftuifinal" */,
+				F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1AE97CA2F5EA2ED00610B17 /* Products */;
@@ -512,9 +512,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../../../a2ui-swiftuifinal" */ = {
+		F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../a2ui-swiftuifinal";
+			relativePath = "../..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
