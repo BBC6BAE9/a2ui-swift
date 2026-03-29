@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F1143E702F51B7000037701E /* v_08 in Frameworks */ = {isa = PBXBuildFile; productRef = F1143E6F2F51B7000037701E /* v_08 */; };
+		F1143E702F51B7000037701E /* A2UI in Frameworks */ = {isa = PBXBuildFile; productRef = F1143E6F2F51B7000037701E /* A2UI */; };
 		F11A75472F78399900527023 /* v_08 in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75462F78399900527023 /* v_08 */; };
 /* End PBXBuildFile section */
 
@@ -34,7 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1143E702F51B7000037701E /* v_08 in Frameworks */,
+				F1143E702F51B7000037701E /* A2UI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,7 +87,7 @@
 			);
 			name = "A2UIDemoWatchApp Watch App";
 			packageProductDependencies = (
-				F1143E6F2F51B7000037701E /* v_08 */,
+				F1143E6F2F51B7000037701E /* A2UI */,
 			);
 			productName = "A2UIDemoWatchApp Watch App";
 			productReference = F1143E392F51B6CD0037701E /* A2UIDemoWatchApp Watch App.app */;
@@ -110,6 +110,9 @@
 			);
 			name = A2UIDemoApp;
 			packageProductDependencies = (
+				F1FAD1B12F4DA70000BE5C9D /* A2UI */,
+				F1638D0A2F628F40004D5BC4 /* A2UI */,
+				F1CE8AFF2F72BB080060C78C /* A2UI */,
 				F11A75462F78399900527023 /* v_08 */,
 			);
 			productName = A2UIDemoApp;
@@ -144,7 +147,7 @@
 			mainGroup = F1FAD17E2F4DA60400BE5C9D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../.." */,
+				F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../../../a2ui-swiftui" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1FAD1882F4DA60400BE5C9D /* Products */;
@@ -508,20 +511,32 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../.." */ = {
+		F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../../../a2ui-swiftui" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../..";
+			relativePath = "../../../a2ui-swiftui";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F1143E6F2F51B7000037701E /* v_08 */ = {
+		F1143E6F2F51B7000037701E /* A2UI */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = v_08;
+			productName = A2UI;
 		};
 		F11A75462F78399900527023 /* v_08 */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = v_08;
+		};
+		F1638D0A2F628F40004D5BC4 /* A2UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UI;
+		};
+		F1CE8AFF2F72BB080060C78C /* A2UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UI;
+		};
+		F1FAD1B12F4DA70000BE5C9D /* A2UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
