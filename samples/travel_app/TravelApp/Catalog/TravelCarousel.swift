@@ -29,16 +29,16 @@ struct TravelCarouselView: View {
     var onItemTapped: ((TravelCarouselItem) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if let title = data.title {
                 Text(title)
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(spacing: 16) {
                     ForEach(data.items) { item in
                         TravelCarouselItemView(item: item)
                             .onTapGesture {
@@ -46,7 +46,7 @@ struct TravelCarouselView: View {
                             }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
             }
         }
     }
@@ -90,16 +90,16 @@ struct A2UITravelCarouselView: View {
     var body: some View {
         let title = A2UIHelpers.resolveString(props["title"], surface: surface, dataContextPath: node.dataContextPath)
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if let title {
                 Text(title)
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(spacing: 16) {
                     ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                         carouselItemView(item: item)
                             .onTapGesture {
@@ -119,7 +119,7 @@ struct A2UITravelCarouselView: View {
                             }
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
             }
         }
     }

@@ -369,6 +369,7 @@ private struct CatalogSurfaceView: View {
     var body: some View {
         if let rootNode = viewModel.componentTree {
             A2UIComponentView(node: rootNode, surface: viewModel.surface)
+                .a2uiLeafMargin(0)
                 .a2uiCustomComponentsV09(travelCustomRenderer)
                 .a2uiImageResolver { urlString in
                     let name = a2uiExtractAssetName(from: urlString)

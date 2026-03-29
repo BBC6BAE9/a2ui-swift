@@ -191,7 +191,7 @@ class GoogleSchemaAdapter {
             }
         }
 
-        var result: [String: Any] = [
+        let result: [String: Any] = [
             "type": "ARRAY",
             "items": adaptedItems,
             "description": schema["description"] as? String ?? "",
