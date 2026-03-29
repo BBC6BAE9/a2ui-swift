@@ -192,9 +192,11 @@ final class SharedPlayerController {
     let playerViewController: AVPlayerViewController = {
         let vc = AVPlayerViewController()
         vc.entersFullScreenWhenPlaybackBegins = false
+        #if os(iOS) && os(tvOS)
         if #available(iOS 16.0, tvOS 16.0, visionOS 1.0, *) {
             vc.allowsVideoFrameAnalysis = false
         }
+        #endif
         return vc
     }()
     #endif
@@ -317,6 +319,7 @@ struct VideoNodeView: View {
     }
 
     private func loadThumbnailIfNeeded() async {
+        #if !os(visionOS)
         guard let uiState, !uiState.thumbnailLoaded else { return }
         uiState.thumbnailLoaded = true
 
@@ -349,6 +352,7 @@ struct VideoNodeView: View {
                 #endif
             }
         }
+        #endif
     }
 }
 
