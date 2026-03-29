@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import Foundation
-import v_09
+import A2UISwiftCore
 
 /// Builds A2UI protocol messages (`A2uiMessage`) from mock travel data.
 /// Uses v0.9 message format: `createSurface` + `updateComponents`.

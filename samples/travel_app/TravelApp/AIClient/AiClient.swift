@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import v_09
+import A2UISwiftCore
 import Primitives
 
 /// An abstract protocol for AI clients.

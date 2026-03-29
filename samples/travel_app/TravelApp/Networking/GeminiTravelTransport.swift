@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import Foundation
-import v_09
+import A2UISwiftCore
 import Primitives
 /// Transport that calls the Google Gemini REST API directly,
 /// aligning with the Flutter `GoogleGenerativeAiClient` implementation.

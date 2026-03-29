@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 import Primitives
 /// The conversation list view showing messages and dynamic A2UI surfaces.
 ///

@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import Foundation
-import v_09
+import A2UISwiftCore
 
 /// Abstraction over agent communication.
 protocol TravelTransport: AnyObject {
