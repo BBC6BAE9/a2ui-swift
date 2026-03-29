@@ -304,7 +304,6 @@ struct TravelPlannerView: View {
                     viewModel.sendMessage(text)
                     inputText = ""
                 }
-                .background(Color(.systemBackground).blur(radius: 5).ignoresSafeArea())
             }
             .onChange(of: viewModel.scrollTrigger) {
                 withAnimation {
