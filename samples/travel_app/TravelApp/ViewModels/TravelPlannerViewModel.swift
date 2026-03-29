@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 import Primitives
 /// The main view model managing the travel planning conversation.
 /// Uses the A2UI SDK to process server messages and render dynamic surfaces.

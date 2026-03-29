@@ -39,8 +39,12 @@ let package = Package(
             targets: ["v_08"]
         ),
         .library(
-            name: "v_09",
-            targets: ["v_09"]
+            name: "A2UISwiftCore",
+            targets: ["A2UISwiftCore"]
+        ),
+        .library(
+            name: "A2UISwiftUI",
+            targets: ["A2UISwiftUI"]
         ),
     ],
     targets: [
@@ -57,8 +61,13 @@ let package = Package(
             path: "Sources/v_08"
         ),
         .target(
-            name: "v_09",
-            path: "Sources/v_09"
+            name: "A2UISwiftCore",
+            path: "Sources/A2UISwiftCore"
+        ),
+        .target(
+            name: "A2UISwiftUI",
+            dependencies: ["A2UISwiftCore"],
+            path: "Sources/A2UISwiftUI"
         ),
         .testTarget(
             name: "A2ATests",
@@ -77,9 +86,14 @@ let package = Package(
             resources: [.copy("TestData")]
         ),
         .testTarget(
-            name: "v_09Tests",
-            dependencies: ["v_09"],
-            path: "Tests/v_09Tests"
+            name: "A2UISwiftCoreTests",
+            dependencies: ["A2UISwiftCore"],
+            path: "Tests/A2UISwiftCoreTests"
+        ),
+        .testTarget(
+            name: "A2UISwiftUITests",
+            dependencies: ["A2UISwiftCore", "A2UISwiftUI"],
+            path: "Tests/A2UISwiftUITests"
         ),
     ]
 )

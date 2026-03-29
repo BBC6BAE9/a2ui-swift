@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 
 /// The root content view with a navigation-based layout.
 /// Provides navigation to the AI chat planner and widget catalog.

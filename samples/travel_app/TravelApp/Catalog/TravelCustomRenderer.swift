@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 
 /// Custom component renderer that maps A2UI component types to travel app views.
 let travelCustomRenderer: CustomComponentRenderer = { typeName, node, children, surface in

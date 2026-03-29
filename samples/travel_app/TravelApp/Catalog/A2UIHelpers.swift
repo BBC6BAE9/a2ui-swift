@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 
 /// Helper functions for reading properties from A2UI `ComponentNode`.
 enum A2UIHelpers {

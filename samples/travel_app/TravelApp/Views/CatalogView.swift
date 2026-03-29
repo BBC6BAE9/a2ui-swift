@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 import SwiftUI
-import v_09
+import A2UISwiftCore
+import A2UISwiftUI
 
 /// A debug catalog view that showcases all components rendered via A2UI,
 /// matching the Flutter `DebugCatalogView` layout: each component's example data
