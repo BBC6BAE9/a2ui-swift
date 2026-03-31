@@ -46,6 +46,14 @@ let package = Package(
             name: "A2UISwiftUI",
             targets: ["A2UISwiftUI"]
         ),
+        .library(
+            name: "A2UIUIKit",
+            targets: ["A2UIUIKit"]
+        ),
+        .library(
+            name: "A2UIAppKit",
+            targets: ["A2UIAppKit"]
+        ),
     ],
     targets: [
         .target(
@@ -68,6 +76,16 @@ let package = Package(
             name: "A2UISwiftUI",
             dependencies: ["A2UISwiftCore"],
             path: "Sources/A2UISwiftUI"
+        ),
+        .target(
+            name: "A2UIUIKit",
+            dependencies: ["A2UISwiftCore"],
+            path: "Sources/A2UIUIKit"
+        ),
+        .target(
+            name: "A2UIAppKit",
+            dependencies: ["A2UISwiftCore"],
+            path: "Sources/A2UIAppKit"
         ),
         .testTarget(
             name: "A2ATests",
@@ -94,6 +112,16 @@ let package = Package(
             name: "A2UISwiftUITests",
             dependencies: ["A2UISwiftCore", "A2UISwiftUI"],
             path: "Tests/A2UISwiftUITests"
+        ),
+        .testTarget(
+            name: "A2UIUIKitTests",
+            dependencies: ["A2UISwiftCore", "A2UIUIKit"],
+            path: "Tests/A2UIUIKitTests"
+        ),
+        .testTarget(
+            name: "A2UIAppKitTests",
+            dependencies: ["A2UISwiftCore", "A2UIAppKit"],
+            path: "Tests/A2UIAppKitTests"
         ),
     ]
 )

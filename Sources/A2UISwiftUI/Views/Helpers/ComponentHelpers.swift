@@ -17,30 +17,19 @@ import A2UISwiftCore
 
 // MARK: - Two-way Binding Helpers
 //
-// These helpers bridge A2UI DynamicValue types to SwiftUI `Binding<T>`.
+// Free-function wrappers that delegate to DataContext extension methods
+// defined in DataContext+SwiftUI.swift.
 //
-// get: reads PathSlot.value via DataContext — SwiftUI builds a per-path reactive dependency.
-// set: writes back through DataContext.set() — updates DataModel, PathSlot fires, view re-renders.
+// These exist to maintain backward-compatible call sites in components
+// that use the older `a2uiXxxBinding(for:dataContext:)` style.
+// New code should prefer calling `dataContext.stringBinding(for:)` directly.
 
 @MainActor
 func a2uiStringBinding(
     for value: DynamicString?,
     dataContext: DataContext
 ) -> Binding<String> {
-    let fallback: String = {
-        if case .literal(let s) = value { return s }
-        return ""
-    }()
-    return Binding<String>(
-        get: {
-            guard let value else { return fallback }
-            return dataContext.resolve(value)
-        },
-        set: { newValue in
-            guard case .dataBinding(let path) = value else { return }
-            try? dataContext.set(path, value: .string(newValue))
-        }
-    )
+    dataContext.stringBinding(for: value)
 }
 
 @MainActor
@@ -48,13 +37,7 @@ func a2uiBoolBinding(
     for value: DynamicBoolean,
     dataContext: DataContext
 ) -> Binding<Bool> {
-    return Binding<Bool>(
-        get: { dataContext.resolve(value) },
-        set: { newValue in
-            guard case .dataBinding(let path) = value else { return }
-            try? dataContext.set(path, value: .bool(newValue))
-        }
-    )
+    dataContext.boolBinding(for: value)
 }
 
 @MainActor
@@ -63,37 +46,15 @@ func a2uiDoubleBinding(
     fallback: Double = 0,
     dataContext: DataContext
 ) -> Binding<Double> {
-    let effectiveFallback: Double = {
-        if case .literal(let n) = value { return n }
-        return fallback
-    }()
-    return Binding<Double>(
-        get: { dataContext.resolve(value) ?? effectiveFallback },
-        set: { newValue in
-            guard case .dataBinding(let path) = value else { return }
-            try? dataContext.set(path, value: .number(newValue))
-        }
-    )
+    dataContext.doubleBinding(for: value, fallback: fallback)
 }
-
-private nonisolated(unsafe) let _iso8601Formatter: ISO8601DateFormatter = ISO8601DateFormatter()
 
 @MainActor
 func a2uiDateBinding(
     for value: DynamicString,
     dataContext: DataContext
 ) -> Binding<Date> {
-    let formatter = _iso8601Formatter
-    return Binding<Date>(
-        get: {
-            let str = dataContext.resolve(value)
-            return formatter.date(from: str) ?? Date()
-        },
-        set: { newValue in
-            guard case .dataBinding(let path) = value else { return }
-            try? dataContext.set(path, value: .string(formatter.string(from: newValue)))
-        }
-    )
+    dataContext.dateBinding(for: value)
 }
 
 // MARK: - Layout Helpers
