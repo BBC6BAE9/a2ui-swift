@@ -1,10 +1,12 @@
 # Generative UI SDK for SwiftUI (genui)
 ![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
-![Platforms](https://img.shields.io/badge/Platforms-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
+![UIKit](https://img.shields.io/badge/UIKit-work in progress-lightgrey)
+![AppKit](https://img.shields.io/badge/AppKit-work in progress-lightgrey)
 ![A2UI](https://img.shields.io/badge/A2UI-v0.8-purple)
 ![A2UI](https://img.shields.io/badge/A2UI-v0.9-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-87%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-277%20passing-brightgreen)
 
 **Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
 
@@ -52,10 +54,13 @@ dependencies: [
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
-        "A2A",        // A2A protocol client
-        "Primitives", // Shared primitive types
-        "v_08",       // v0.8 renderer
-        "v_09",       // v0.9 renderer (standalone API)
+        "A2A",            // A2A protocol client
+        "Primitives",     // Shared primitive types
+        "v_08",           // v0.8 renderer
+        "A2UISwiftCore",  // v0.9 shared protocol layer (data model, schema, catalog)
+        "A2UISwiftUI",    // v0.9 SwiftUI renderer
+        // "A2UIUIKit",   // v0.9 UIKit renderer (iOS, tvOS, visionOS)
+        // "A2UIAppKit",  // v0.9 AppKit renderer (macOS)
     ]),
 ]
 ```
@@ -64,21 +69,24 @@ targets: [
 
 ## Modules
 
-The package is organized into four independent library products:
+The package is organized into six independent library products:
 
 | Module | Purpose |
 |--------|---------|
 | **A2A** | A2A protocol client — agent card, task lifecycle, JSON-RPC, HTTP & SSE transports |
 | **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
-| **v_08** | v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
-| **v_09** | v0.9 renderer via `A2UISurfaceView` with catalog system, expression parser, and transport abstraction |
+| **A2UISwiftCore** | v0.9 shared protocol layer — schema, data model, catalog system, expression parser, transport |
+| **A2UISwiftUI** | v0.9 SwiftUI renderer via `A2UISurfaceView` with `SurfaceViewModel` |
+| **A2UIUIKit** | v0.9 UIKit renderer — iOS, tvOS, visionOS (community extension point via `A2UIUIKitComponent`) |
+| **A2UIAppKit** | v0.9 AppKit renderer — macOS (community extension point via `A2UIAppKitComponent`) |
+| ~~**v_08**~~ | ⚠️ **Deprecated** — v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
 
 ## Quick Start
 
 ### v0.9 — `A2UISurfaceView` (recommended)
 
 ```swift
-import v_09
+import A2UISwiftUI
 
 @State var vm = SurfaceViewModel(catalog: basicCatalog)
 
@@ -175,25 +183,33 @@ Sources/
 │   ├── Styling/          A2UIStyle + Environment integration
 │   ├── Networking/       A2AClient (JSON-RPC over HTTP + SSE)
 │   └── A2UIRenderer.swift  Public API — A2UIRendererView
-├── v_09/                 New standalone v0.9 renderer
-│   └── A2UIV09/
-│       ├── Core/
-│       │   ├── Schema/       ServerToClient / ClientToServer messages, component types
-│       │   ├── State/        SurfaceModel, DataModel, ComponentModel, UIState
-│       │   ├── Rendering/    SurfaceViewModel, ComponentNode, ComponentContext
-│       │   ├── Processing/   MessageProcessor
-│       │   ├── BasicCatalog/ Built-in catalog, expression parser, functions
-│       │   ├── Catalog/      FunctionInvoker, catalog type system
-│       │   ├── Styling/      A2UIStyle + Environment
-│       │   ├── Views/        A2UISurfaceView, A2UIComponentView, per-component views
-│       │   └── Helpers/      SVG, alignment, weight modifiers
-│       └── Transport/        A2UITransport, stream parser, JSON block parser
+├── A2UISwiftCore/        v0.9 shared protocol layer (UI-framework agnostic)
+│   ├── Schema/           ServerToClient / ClientToServer messages, component types
+│   ├── State/            SurfaceModel, DataModel, ComponentModel, UIState
+│   ├── Rendering/        ComponentNode, ComponentContext, DataContext, DataSubscriptions
+│   ├── Processing/       MessageProcessor
+│   ├── BasicCatalog/     Built-in catalog, expression parser, catalog functions
+│   ├── Catalog/          FunctionInvoker, catalog type system
+│   ├── Common/           Shared utilities
+│   ├── Errors.swift      Protocol error types
+│   └── Transport/        A2UITransport, stream parser, JSON block parser
+├── A2UISwiftUI/          v0.9 SwiftUI renderer
+│   ├── SurfaceViewModel.swift  @Observable SwiftUI view model
+│   ├── CatalogItem.swift
+│   ├── CustomComponentRegistry.swift
+│   ├── Styling/          A2UIStyle + SwiftUI Environment
+│   ├── Helpers/          SVG, alignment, weight modifiers
+│   └── Views/            A2UISurfaceView, A2UIComponentView, per-component views
+├── A2UIUIKit/            v0.9 UIKit renderer — iOS, tvOS, visionOS
+│   └── A2UIUIKitComponent.swift  Protocol + implementation guide
+├── A2UIAppKit/           v0.9 AppKit renderer — macOS
+│   └── A2UIAppKitComponent.swift Protocol + implementation guide
 └── samples/
     ├── sample_0.8/       Demo app for v0.8 renderer (Xcode project)
     └── travel_app/       Full travel app sample with AI client integration
 ```
 
-The **v_09** module introduces a new architecture with a catalog system, expression parser, and transport abstraction layer — aligned with the official A2UI web renderer design. The **v_08** module provides the `A2UIRendererView` API with `SurfaceManager` for v0.8 protocol rendering.
+The v0.9 implementation is split into three renderer-agnostic layers: **A2UISwiftCore** owns all protocol logic (schema, data model, catalog, transport); **A2UISwiftUI** adds the `@Observable` `SurfaceViewModel` and SwiftUI views; **A2UIUIKit** / **A2UIAppKit** provide the `A2UIUIKitComponent` / `A2UIAppKitComponent` protocols as extension points for UIKit and AppKit renderers. The **v_08** module provides the `A2UIRendererView` API with `SurfaceManager` for v0.8 protocol rendering.
 
 ## Sample Apps
 
@@ -207,7 +223,7 @@ Includes static JSON demos (no agent required) and live A2A agent connections. E
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="https://github.com/user-attachments/assets/1cefe139-3266-4b57-8f2e-d4d2046b3ae6" height="200"/> | <img src="https://github.com/user-attachments/assets/f65a68a3-78a7-4542-8bf4-868ce0e91ec4" height="200"/> | <img src="https://github.com/user-attachments/assets/3b38f7c5-3b7e-4910-9222-bfa2c7cf236b" height="200"/> |
 
-> Live agent demo: [BBC6BAE9/genui](https://github.com/BBC6BAE9/genui)
+> Live agent demo is included in the app — no external dependency required.
 
 ### travel_app
 
@@ -221,7 +237,7 @@ A full-featured travel app sample demonstrating the v0.9 renderer with AI client
 - **Action system:** Full action context resolution with `[{key, value}]` context format
 - **Styling:** `beginRendering.styles` parsed into `A2UIStyle`
 
-### v0.9 (`v_09` module)
+### v0.9 (`A2UISwiftCore` + `A2UISwiftUI` modules)
 - **Protocol messages:** `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`
 - **Flat component format:** `{"component": "Text", "text": "hello"}` (no nested wrapper)
 - **Data binding:** JSON Pointer paths (RFC 6901), `DynamicString` / `DynamicNumber` / `DynamicBoolean` / `DynamicStringList` with literal, path, and function call support
@@ -236,7 +252,7 @@ A full-featured travel app sample demonstrating the v0.9 renderer with AI client
 swift test
 ```
 
-87 tests across 5 test files cover message decoding, component parsing, data binding, path resolution, template rendering, catalog functions, validation, JSONL streaming, incremental updates, and Codable round-trips.
+277 tests across 7 test suites cover message decoding, component parsing, data binding, path resolution, template rendering, catalog functions, validation, JSONL streaming, incremental updates, and Codable round-trips.
 
 ## Known Limitations
 

@@ -245,6 +245,17 @@ private func basicEndsWith(_ name: String, _ args: [String: AnyCodable], _ conte
     return .bool(str.hasSuffix(suffix))
 }
 
+// MARK: - String transformation
+
+private func basicCapitalize(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
+    guard let raw = args["value"] else {
+        throw A2uiExpressionError(
+            "Missing required argument 'value' for '\(name)'", expression: name)
+    }
+    guard let s = toString(raw), !s.isEmpty else { return .string("") }
+    return .string(s.prefix(1).uppercased() + s.dropFirst())
+}
+
 // MARK: - Validation
 
 private func basicRequired(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
@@ -444,7 +455,7 @@ private func basicOpenUrl(_ name: String, _ args: [String: AnyCodable], _ contex
 
 // MARK: - BASIC_FUNCTIONS dictionary
 
-/// All 25 Basic Catalog function implementations, keyed by name.
+/// All 26 Basic Catalog function implementations, keyed by name.
 /// Mirrors WebCore `BASIC_FUNCTIONS` in basic_catalog/functions/basic_functions.ts.
 public nonisolated(unsafe) let BASIC_FUNCTIONS: [String: FunctionInvoker] = [
     "add":              basicAdd,
@@ -458,6 +469,7 @@ public nonisolated(unsafe) let BASIC_FUNCTIONS: [String: FunctionInvoker] = [
     "and":              basicAnd,
     "or":               basicOr,
     "not":              basicNot,
+    "capitalize":       basicCapitalize,
     "contains":         basicContains,
     "starts_with":      basicStartsWith,
     "ends_with":        basicEndsWith,
