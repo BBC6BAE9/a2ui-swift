@@ -296,6 +296,31 @@ struct BasicFunctionsTests {
                 try invoke("ends_with", ["suffix": .string("lo")], catalog: catalog, context: context)
             }
         }
+
+        // Spec: https://a2ui.org/specification/v0_9/catalogs/minimal/minimal_catalog.json
+        // Example: https://a2ui.org/specification/v0_9/catalogs/minimal/examples/6_capitalized_text.json
+        @Test("capitalize")
+        func capitalize() throws {
+            let (catalog, context) = try makeContext()
+
+            // Basic: first char uppercased, rest unchanged — matches Lit renderer test
+            // ("hello world" → "Hello world")
+            #expect(try invoke("capitalize", ["value": .string("hello world")], catalog: catalog, context: context) == .string("Hello world"))
+            // Already capitalized → unchanged
+            #expect(try invoke("capitalize", ["value": .string("Hello")], catalog: catalog, context: context) == .string("Hello"))
+            // All uppercase → only first char touched, rest preserved
+            #expect(try invoke("capitalize", ["value": .string("HELLO")], catalog: catalog, context: context) == .string("HELLO"))
+            // Single char
+            #expect(try invoke("capitalize", ["value": .string("a")], catalog: catalog, context: context) == .string("A"))
+            // Empty string → ""
+            #expect(try invoke("capitalize", ["value": .string("")], catalog: catalog, context: context) == .string(""))
+            // null → "" (falsy, same as empty)
+            #expect(try invoke("capitalize", ["value": .null], catalog: catalog, context: context) == .string(""))
+            // missing key → throw (spec marks value as required)
+            #expect(throws: A2uiExpressionError.self) {
+                try invoke("capitalize", [:], catalog: catalog, context: context)
+            }
+        }
     }
 
     // MARK: - Validation
