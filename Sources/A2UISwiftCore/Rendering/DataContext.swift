@@ -236,7 +236,7 @@ public final class DataContext {
     /// For non-path DynamicValues (literals, function calls), returns nil.
     /// Mirrors WebCore `DataContext.resolveSignal<V>(value)` — path bindings only.
     /// Internal — consumers use resolveDynamicValue() or subscribeDynamicValue().
-    func resolveSlot(for binding: DynamicValue) -> PathSlot? {
+    internal func resolveSlot(for binding: DynamicValue) -> PathSlot? {
         guard case .dataBinding(let pathStr) = binding else { return nil }
         let absolutePath = resolvePath(pathStr)
         return dataModel.slot(for: absolutePath)
@@ -268,6 +268,57 @@ public final class DataContext {
             let currentValue = resolveDynamicValue(value)
             return DataSubscription<AnyCodable>(initialValue: currentValue, unsubscribe: {})
         }
+    }
+
+    // MARK: - Typed subscribe helpers (for UIKit / non-SwiftUI consumers)
+
+    /// Subscribes to a `DynamicString` and invokes `onChange` whenever the resolved
+    /// `String` value changes. Convenience wrapper over `subscribeDynamicValue`.
+    /// Returns a `DataSubscription<String>` with the initial resolved value.
+    /// For UIKit components: keep the returned subscription alive and call
+    /// `unsubscribe()` when the cell/view is reused or deallocated.
+    public func subscribeString(
+        for value: DynamicString,
+        onChange: @escaping (String) -> Void
+    ) -> DataSubscription<String> {
+        subscribeDynamic(value, transform: { $0?.stringValue ?? "" }, onChange: onChange)
+    }
+
+    /// Subscribes to a `DynamicBoolean` and invokes `onChange` whenever the resolved
+    /// `Bool` value changes.
+    public func subscribeBool(
+        for value: DynamicBoolean,
+        onChange: @escaping (Bool) -> Void
+    ) -> DataSubscription<Bool> {
+        subscribeDynamic(value, transform: { $0?.boolValue ?? false }, onChange: onChange)
+    }
+
+    /// Subscribes to a `DynamicNumber` and invokes `onChange` whenever the resolved
+    /// `Double` value changes. The callback receives `nil` when the path has no value.
+    public func subscribeDouble(
+        for value: DynamicNumber,
+        onChange: @escaping (Double?) -> Void
+    ) -> DataSubscription<Double> {
+        let dv = toDynamicValue(value)
+        let sub = subscribeDynamicValue(dv) { raw in onChange(raw?.numberValue) }
+        return DataSubscription<Double>(initialValue: sub.value?.numberValue, unsubscribe: {
+            sub.unsubscribe()
+        })
+    }
+
+    /// Generic backbone for the typed subscribe helpers.
+    /// Converts `Dynamic<U>` → `DynamicValue`, subscribes once, and maps each
+    /// raw `AnyCodable?` emission to `T` via `transform`.
+    private func subscribeDynamic<U: LiteralDecodable, T>(
+        _ value: Dynamic<U>,
+        transform: @escaping (AnyCodable?) -> T,
+        onChange: @escaping (T) -> Void
+    ) -> DataSubscription<T> {
+        let dv = toDynamicValue(value)
+        let sub = subscribeDynamicValue(dv) { raw in onChange(transform(raw)) }
+        return DataSubscription<T>(initialValue: transform(sub.value), unsubscribe: {
+            sub.unsubscribe()
+        })
     }
 
     // MARK: - nested
