@@ -1,4 +1,4 @@
-# Generative UI SDK for SwiftUI (genui)
+# A2UI: Agent-to-User Interface
 ![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
 ![UIKit](https://img.shields.io/badge/UIKit-work%20in%20progress-lightgrey)
