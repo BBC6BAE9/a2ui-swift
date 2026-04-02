@@ -75,23 +75,6 @@ Includes static JSON demos (no agent required) and live A2A agent connections. E
 
 A full-featured travel app sample demonstrating the v0.9 renderer with AI client integration, custom catalog components, and real generative AI interactions.
 
-## Spec Compliance
-
-### v0.8 (`v_08` module)
-- **Protocol messages:** `beginRendering`, `surfaceUpdate`, `dataModelUpdate`, `deleteSurface`
-- **Data binding:** Path-based resolution (`/items/0/name`), bracket/dot normalization, template rendering, literal seeding
-- **Action system:** Full action context resolution with `[{key, value}]` context format
-- **Styling:** `beginRendering.styles` parsed into `A2UIStyle`
-
-### v0.9 (`A2UISwiftCore` + `A2UISwiftUI` modules)
-- **Protocol messages:** `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`
-- **Flat component format:** `{"component": "Text", "text": "hello"}` (no nested wrapper)
-- **Data binding:** JSON Pointer paths (RFC 6901), `DynamicString` / `DynamicNumber` / `DynamicBoolean` / `DynamicStringList` with literal, path, and function call support
-- **Action system:** Event-based `{event: {name, context}}` with `Record<string, DynamicValue>` context, or client-side `{functionCall: {...}}`
-- **Validation:** `checks` array with `CheckRule` (condition + message) for input components
-- **Styling:** `createSurface.theme` structured JSON object
-- **Catalog functions:** `formatString`, `formatNumber`, `formatCurrency`, `formatDate`, `pluralize`, `openUrl`, `required`, `email`, `regex`, `length`, `numeric`, `and`, `or`, `not`
-
 ## Testing
 
 ```bash
