@@ -18,11 +18,22 @@
 // properties by subscribing to Preact Signals and reactively updating DOM
 // attributes whenever the underlying data changes.
 //
-// In Swift / SwiftUI this responsibility is handled natively by the @Observable
-// macro and SwiftUI's automatic dependency tracking. When a View reads a value
-// from an @Observable object (e.g. PathSlot.value or DataStore), SwiftUI
-// automatically invalidates and re-renders only that view when the value changes —
-// no explicit binder or subscription management is needed.
+// In Swift, this responsibility is split across two paths depending on the UI framework:
+//
+// SwiftUI (implicit binding)
+// ─────────────────────────
+// DataContext.resolve*() reads PathSlot.value, which is marked @Observable.
+// SwiftUI's automatic dependency tracking registers the PathSlot as a dependency
+// of the current View body and re-renders only that view when the value changes.
+// No explicit subscription or disposal is needed.
+// See: DataContext.resolveDynamicValue(_:), DataContext+SwiftUI.swift
+//
+// UIKit / AppKit (explicit subscription)
+// ───────────────────────────────────────
+// DataContext.subscribe*() returns a DataSubscription<V> token that holds the
+// current value and an unsubscribe() method. Tokens are collected in a
+// DataSubscriptions bag and cancelled together (e.g. in prepareForReuse).
+// See: DataContext.subscribeDynamicValue(_:onChange:), DataSubscriptions.swift
 //
 // This file is kept as a structural mirror of WebCore. No implementation is
 // required on the Swift side.
