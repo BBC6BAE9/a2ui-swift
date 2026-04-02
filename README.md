@@ -1,14 +1,4 @@
-# A2UI: Agent-to-User Interface
-![Swift](https://img.shields.io/badge/Swift-5.9+-orange?logo=swift)
-![SwiftUI](https://img.shields.io/badge/SwiftUI-iOS%2017%20%7C%20macOS%2014%20%7C%20visionOS%201%20%7C%20watchOS%2010%20%7C%20tvOS%2017-blue)
-![UIKit](https://img.shields.io/badge/UIKit-work%20in%20progress-lightgrey)
-![AppKit](https://img.shields.io/badge/AppKit-work%20in%20progress-lightgrey)
-![A2UI](https://img.shields.io/badge/A2UI-v0.8-purple)
-![A2UI](https://img.shields.io/badge/A2UI-v0.9-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-277%20passing-brightgreen)
-
-**Render AI agent interfaces natively on Apple platforms — no WebView, no compromise.**
+![a2ui](./a2ui.png)
 
 The community SwiftUI renderer for the [A2UI](https://github.com/google/A2UI) protocol, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/). Your agent's JSON surfaces become fully native iOS, macOS, visionOS, watchOS, and tvOS interfaces — complete with live streaming, two-way data binding, and the full SwiftUI component lifecycle.
 
