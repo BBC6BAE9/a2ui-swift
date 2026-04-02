@@ -6,7 +6,7 @@ import SwiftUI
 import A2UISwiftCore
 import A2UISwiftUI
 
-// MARK: - Data Models
+// MARK: - Data Models (pure data, no catalog)
 
 enum ItineraryEntryType: String, Codable {
     case accommodation
@@ -62,9 +62,9 @@ struct ItineraryEntryData: Identifiable {
 }
 
 // MARK: - Itinerary View
+// Views are generic over Catalog — catalog is passed separately from data,
+// mirroring Flutter's BuildContext pattern where catalog flows via InheritedWidget.
 
-/// Displays a multi-day travel itinerary as a compact card that expands
-/// to a full detail sheet. Equivalent to the Flutter `Itinerary` component.
 struct ItineraryView: View {
     let data: ItineraryData
     var onEntryAction: ((ItineraryEntryData) -> Void)?
@@ -135,7 +135,7 @@ struct ItineraryDetailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if let node = data.imageNode, let surface = data.surface {
-                        A2UIComponentView(node: node, surface: surface)
+                    A2UIComponentView(node: node, surface: surface)
                             .frame(height: 200)
                             .frame(maxWidth: .infinity)
                             .clipped()
@@ -239,7 +239,7 @@ struct ItineraryDayView: View {
     }
 }
 
-// MARK: - Itinerary Entry
+// MARK: - Itinerary Entry (leaf — no children to render, no catalog needed)
 
 struct ItineraryEntryView: View {
     let entry: ItineraryEntryData
@@ -322,7 +322,6 @@ struct ItineraryEntryView: View {
 
 // MARK: - A2UI Wrapper
 
-/// Renders an `Itinerary` from an A2UI `ComponentNode`.
 struct A2UIItineraryView: View {
     let node: ComponentNode
     let children: [ComponentNode]

@@ -29,14 +29,11 @@ import A2UISwiftCore
 /// - Applies theme from `createSurface.theme`
 /// - Routes taps to `onAction` as resolved `ResolvedAction` values
 ///
-/// # Usage
+/// # Without custom components
 /// ```swift
 /// @State var vm = SurfaceViewModel(catalog: basicCatalog)
-///
-/// // Process messages from your agent transport:
 /// try vm.processMessages(messages)
 ///
-/// // Render:
 /// A2UISurfaceView(viewModel: vm)
 ///
 /// // With action handler:
@@ -44,15 +41,41 @@ import A2UISwiftCore
 ///     print("Action: \(action.name)")
 /// }
 /// ```
-public struct A2UISurfaceView: View {
+///
+/// # With custom components (call-site identical to Flutter)
+/// ```swift
+/// // Flutter:  final catalog = AppCatalog(); A2UISurfaceView(surface: surface, catalog: catalog)
+/// // SwiftUI:
+/// let catalog = AppCatalog()
+/// A2UISurfaceView(viewModel: vm, catalog: catalog)
+/// ```
+///
+/// # Catalog pattern
+/// Define a `CustomComponentCatalog` in your own module — no framework files modified:
+/// ```swift
+/// struct AppCatalog: CustomComponentCatalog {
+///     @ViewBuilder
+///     func build(typeName: String, node: ComponentNode, surface: SurfaceModel) -> some View {
+///         switch typeName {
+///         case "Chart":    MyChartView(node: node, surface: surface)
+///         case "Carousel": MyCarouselView(node: node, surface: surface)
+///         default:         EmptyView()
+///         }
+///     }
+/// }
+/// ```
+public struct A2UISurfaceView<Catalog: CustomComponentCatalog>: View {
     private let viewModel: SurfaceViewModel
+    private let catalog: Catalog
     private let onAction: (@Sendable (ResolvedAction) -> Void)?
 
     public init(
         viewModel: SurfaceViewModel,
+        catalog: Catalog,
         onAction: (@Sendable (ResolvedAction) -> Void)? = nil
     ) {
         self.viewModel = viewModel
+        self.catalog = catalog
         self.onAction = onAction
     }
 
@@ -65,6 +88,24 @@ public struct A2UISurfaceView: View {
             .tint(viewModel.a2uiStyle.primaryColor)
             .environment(\.a2uiStyle, viewModel.a2uiStyle)
             .environment(\.a2uiActionHandler, onAction)
+            .environment(\.a2uiCatalog, AnyCustomComponentCatalog(catalog))
         }
+    }
+}
+
+// MARK: - Convenience init (no custom components)
+
+extension A2UISurfaceView where Catalog == EmptyCustomCatalog {
+    /// Creates a surface view with no custom components.
+    ///
+    /// ```swift
+    /// A2UISurfaceView(viewModel: vm)
+    /// A2UISurfaceView(viewModel: vm) { action in print(action.name) }
+    /// ```
+    public init(
+        viewModel: SurfaceViewModel,
+        onAction: (@Sendable (ResolvedAction) -> Void)? = nil
+    ) {
+        self.init(viewModel: viewModel, catalog: EmptyCustomCatalog(), onAction: onAction)
     }
 }

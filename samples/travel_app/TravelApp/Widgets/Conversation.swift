@@ -51,13 +51,13 @@ private struct SurfaceListView: View {
             if let vm = viewModel.surfaceViewModels[surfaceId],
                let rootNode = vm.componentTree {
                 A2UIComponentView(node: rootNode, surface: vm.surface)
+                    .a2uiCatalog(TravelCatalog())
                     .a2uiLeafMargin(0)
                     .environment(\.a2uiActionHandler) { action in
                         Task { @MainActor in
                             viewModel.handleAction(action, surfaceId: surfaceId)
                         }
                     }
-                    .a2uiCustomComponentsV09(travelCustomRenderer)
                     .a2uiCatalogItem(.text) { ctx in
                         AnyView(
                             ctx.buildDefaultView()

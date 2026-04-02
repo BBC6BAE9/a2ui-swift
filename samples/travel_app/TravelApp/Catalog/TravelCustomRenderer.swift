@@ -6,43 +6,47 @@ import SwiftUI
 import A2UISwiftCore
 import A2UISwiftUI
 
-/// Custom component renderer that maps A2UI component types to travel app views.
-let travelCustomRenderer: CustomComponentRenderer = { typeName, node, children, surface in
-    switch typeName {
-    case TravelComponentNames.travelCarousel:
-        return AnyView(A2UITravelCarouselView(node: node, children: children, surface: surface))
+/// Custom component catalog that maps A2UI component types to travel app views.
+/// Equivalent to the Flutter `travelCustomRenderer` catalog item list.
+struct TravelCatalog: CustomComponentCatalog {
+    @ViewBuilder
+    func build(typeName: String, node: ComponentNode, surface: SurfaceModel) -> some View {
+        switch typeName {
+        case TravelComponentNames.travelCarousel:
+            A2UITravelCarouselView(node: node, children: node.children, surface: surface)
 
-    case TravelComponentNames.informationCard:
-        return AnyView(A2UIInformationCardView(node: node, children: children, surface: surface))
+        case TravelComponentNames.informationCard:
+            A2UIInformationCardView(node: node, children: node.children, surface: surface)
 
-    case TravelComponentNames.itinerary:
-        return AnyView(A2UIItineraryView(node: node, children: children, surface: surface))
+        case TravelComponentNames.itinerary:
+            A2UIItineraryView(node: node, children: node.children, surface: surface)
 
-    case TravelComponentNames.inputGroup:
-        return AnyView(A2UIInputGroupView(node: node, children: children, surface: surface))
+        case TravelComponentNames.inputGroup:
+            A2UIInputGroupView(node: node, children: node.children, surface: surface)
 
-    case TravelComponentNames.trailhead:
-        return AnyView(A2UITrailheadView(node: node, surface: surface))
+        case TravelComponentNames.trailhead:
+            A2UITrailheadView(node: node, surface: surface)
 
-    case TravelComponentNames.listingsBooker:
-        return AnyView(A2UIListingsBookerView(node: node, surface: surface))
+        case TravelComponentNames.listingsBooker:
+            A2UIListingsBookerView(node: node, surface: surface)
 
-    case TravelComponentNames.tabbedSections:
-        return AnyView(A2UITabbedSectionsView(node: node, children: children, surface: surface))
+        case TravelComponentNames.tabbedSections:
+            A2UITabbedSectionsView(node: node, children: node.children, surface: surface)
 
-    case TravelComponentNames.optionsFilterChipInput:
-        return AnyView(A2UIOptionsFilterChipView(node: node, surface: surface))
+        case TravelComponentNames.optionsFilterChipInput:
+            A2UIOptionsFilterChipView(node: node, surface: surface)
 
-    case TravelComponentNames.checkboxFilterChipsInput:
-        return AnyView(A2UICheckboxFilterChipsView(node: node, surface: surface))
+        case TravelComponentNames.checkboxFilterChipsInput:
+            A2UICheckboxFilterChipsView(node: node, surface: surface)
 
-    case TravelComponentNames.dateInputChip:
-        return AnyView(A2UIDateInputChipView(node: node, surface: surface))
+        case TravelComponentNames.dateInputChip:
+            A2UIDateInputChipView(node: node, surface: surface)
 
-    case TravelComponentNames.textInputChip:
-        return AnyView(A2UITextInputChipView(node: node, surface: surface))
+        case TravelComponentNames.textInputChip:
+            A2UITextInputChipView(node: node, surface: surface)
 
-    default:
-        return nil
+        default:
+            EmptyView()
+        }
     }
 }

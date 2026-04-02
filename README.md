@@ -156,6 +156,8 @@ All 18 standard A2UI components are implemented and platform-adaptive. Each uses
 
 ## Custom Components
 
+### v0.8 — `A2UIRendererView`
+
 Third-party components can be registered and rendered inline alongside standard A2UI components:
 
 ```swift
@@ -165,6 +167,41 @@ A2UIRendererView(messages: messages)
             MyChartView(props: props)
         }
     }
+```
+
+### v0.9 — `CustomComponentCatalog`
+
+Extend the standard catalog with your own component types by conforming to `CustomComponentCatalog`:
+
+```swift
+import A2UISwiftUI
+
+struct AppCatalog: CustomComponentCatalog {
+    @ViewBuilder
+    func build(typeName: String, node: ComponentNode, surface: SurfaceModel) -> some View {
+        switch typeName {
+        case "Chart":
+            ChartView(node: node, surface: surface)
+        case "RatingStars":
+            RatingStarsView(node: node, surface: surface)
+        default:
+            EmptyView() // fall back to rendering children
+        }
+    }
+}
+```
+
+Pass the catalog to `A2UISurfaceView` — it flows automatically to every descendant via the SwiftUI environment, no parameter threading required:
+
+```swift
+A2UISurfaceView(viewModel: vm, catalog: AppCatalog())
+```
+
+When constructing `A2UIComponentView` directly (e.g. in a custom host view), use the `.a2uiCatalog()` modifier instead:
+
+```swift
+A2UIComponentView(node: rootNode, surface: surface)
+    .a2uiCatalog(AppCatalog())
 ```
 
 ## Architecture

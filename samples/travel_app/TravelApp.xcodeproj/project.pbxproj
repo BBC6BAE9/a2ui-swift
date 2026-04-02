@@ -527,30 +527,37 @@
 /* Begin XCSwiftPackageProductDependency section */
 		F131A2502F78D26E007CCC16 /* A2A */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = A2A;
 		};
 		F131A2522F78D26E007CCC16 /* Primitives */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = Primitives;
 		};
 		F131A2572F78D26E007CCC16 /* A2UISwiftCore */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = A2UISwiftCore;
 		};
 		F131A2592F78D26E007CCC16 /* A2UISwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = A2UISwiftUI;
 		};
 		F1TE5T012F87000000000014 /* A2UISwiftCore */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = A2UISwiftCore;
 		};
 		F1TE5T012F87000000000015 /* A2UISwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = A2UISwiftUI;
 		};
 		F1TE5T012F87000000000013 /* Primitives */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
 			productName = Primitives;
 		};
 /* End XCSwiftPackageProductDependency section */

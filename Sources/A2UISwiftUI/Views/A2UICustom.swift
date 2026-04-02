@@ -15,24 +15,27 @@
 import SwiftUI
 import A2UISwiftCore
 
+/// Renders a `.custom(typeName)` node by delegating to the `AnyCustomComponentCatalog`
+/// stored in the SwiftUI environment.
+///
+/// If the catalog returns `nil` (i.e. does not handle this typeName),
+/// the default fallback renders the node's children in a VStack.
 struct A2UICustom: View {
     let node: ComponentNode
     let surface: SurfaceModel
 
-    @Environment(\.a2uiCustomComponentRendererV09) private var customRenderer
+    @Environment(\.a2uiCatalog) private var catalog
 
     var body: some View {
-        // Standard components observe property changes via typedProperties(),
-        // which accesses `node.instance` and establishes @Observable tracking.
-        // Custom components need the same observation — this is the SwiftUI
-        // equivalent of React v0.9's GenericBinder subscribing to
-        // componentModel.onUpdated via useSyncExternalStore.
+        // Establish @Observable tracking on node.instance so SwiftUI re-renders
+        // when the server pushes property updates — same as built-in components
+        // that call node.typedProperties() inside body.
         let _ = node.instance
         if case .custom(let typeName) = node.type {
-            if let renderer = customRenderer,
-               let customView = renderer(typeName, node, node.children, surface) {
-                customView
+            if let built = catalog.build(typeName: typeName, node: node, surface: surface) {
+                built
             } else {
+                // Catalog does not handle this type — fall back to rendering children.
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(node.children) { child in
                         A2UIComponentView(node: child, surface: surface)

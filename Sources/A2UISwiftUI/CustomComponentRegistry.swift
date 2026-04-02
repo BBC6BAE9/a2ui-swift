@@ -15,37 +15,19 @@
 import SwiftUI
 import A2UISwiftCore
 
-// MARK: - Custom Component Renderer
+// MARK: - Custom Component Renderer (deprecated)
 
 /// A closure that renders a custom v0.9 component.
-/// Receives the `SurfaceModel` so the renderer can create a `DataContext`
-/// and resolve DynamicValues reactively.
+///
+/// - Deprecated: Use `CustomComponentCatalog` protocol instead.
+///   Define a struct conforming to `CustomComponentCatalog` and pass it to
+///   `A2UISurfaceView(viewModel:catalog:)`.  The protocol approach is zero-`AnyView`,
+///   type-safe, testable, and has a call-site identical to Flutter.
+@available(*, deprecated, renamed: "CustomComponentCatalog",
+    message: "Use CustomComponentCatalog protocol and A2UISurfaceView(viewModel:catalog:) instead.")
 public typealias CustomComponentRenderer = @Sendable (
     _ typeName: String,
     _ node: ComponentNode,
     _ children: [ComponentNode],
     _ surface: SurfaceModel
 ) -> AnyView?
-
-// MARK: - Environment Key
-
-private struct CustomComponentRendererV09Key: EnvironmentKey {
-    static let defaultValue: CustomComponentRenderer? = nil
-}
-
-extension EnvironmentValues {
-    public var a2uiCustomComponentRendererV09: CustomComponentRenderer? {
-        get { self[CustomComponentRendererV09Key.self] }
-        set { self[CustomComponentRendererV09Key.self] = newValue }
-    }
-}
-
-// MARK: - View Modifier
-
-extension View {
-    public func a2uiCustomComponentsV09(
-        _ renderer: @escaping CustomComponentRenderer
-    ) -> some View {
-        self.environment(\.a2uiCustomComponentRendererV09, renderer)
-    }
-}

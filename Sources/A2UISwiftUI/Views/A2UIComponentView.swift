@@ -16,6 +16,10 @@ import SwiftUI
 import A2UISwiftCore
 
 /// Recursively renders a pre-resolved `ComponentNode` and its children.
+///
+/// The active `CustomComponentCatalog` is read from the SwiftUI environment
+/// (injected once at `A2UISurfaceView`) so no generic parameter needs to be
+/// threaded through every internal component.
 public struct A2UIComponentView: View {
     public let node: ComponentNode
     public let surface: SurfaceModel
@@ -25,6 +29,7 @@ public struct A2UIComponentView: View {
         self.surface = surface
     }
 
+    @Environment(\.a2uiCatalog) private var catalog
     @Environment(\.a2uiCatalogItemOverrides) private var catalogOverrides
     @Environment(\.a2uiActionHandler) private var actionHandler
 
