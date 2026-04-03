@@ -4,7 +4,7 @@ set -e
 # Build DocC for all targets using macOS destination
 # (supports all targets including A2UIAppKit which is macOS-only)
 xcrun xcodebuild docbuild \
-    -scheme A2UI \
+    -scheme A2UI-Package \
     -destination 'generic/platform=macOS' \
     -derivedDataPath "$PWD/.derivedData"
 
