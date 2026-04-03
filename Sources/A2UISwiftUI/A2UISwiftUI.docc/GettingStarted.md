@@ -24,7 +24,7 @@ dependencies: [
     .package(url: "https://github.com/BBC6BAE9/a2ui-swiftui", from: "0.1.0"),
 ],
 targets: [
-    .target(name: "YourApp", dependencies: ["A2UI"]),
+    .target(name: "YourApp", dependencies: ["A2UISwiftUI"]),
 ]
 ```
 
@@ -32,10 +32,10 @@ targets: [
 
 ### Render Static JSON
 
-The simplest integration decodes a JSON payload and passes it to ``A2UIRendererView`` via a ``SurfaceManager``:
+The simplest integration decodes a JSON payload and passes it to ``A2UIRendererView`` via a ``SurfaceViewModel``:
 
 ```swift
-import A2UI
+import A2UISwiftUI
 
 let messages = try JSONDecoder().decode(
     [ServerToClientMessage].self,
@@ -61,7 +61,8 @@ struct ContentView: View {
 Agents typically send A2UI messages as a JSONL stream — one JSON object per line. Use ``JSONLStreamParser`` to consume the stream and feed messages to the manager:
 
 ```swift
-import A2UI
+import A2UISwiftUI
+import A2A
 
 let parser = JSONLStreamParser()
 let manager = SurfaceManager()
@@ -71,7 +72,6 @@ for try await message in parser.messages(from: bytes) {
     try manager.processMessage(message)
 }
 
-// View layer — just renders
 A2UIRendererView(manager: manager)
 ```
 
@@ -80,7 +80,8 @@ A2UIRendererView(manager: manager)
 For a full agent-to-agent connection, use ``A2AClient`` to discover the agent endpoint from its card and send queries:
 
 ```swift
-import A2UI
+import A2UISwiftUI
+import A2A
 
 let client = try await A2AClient.fromAgentCardURL(
     URL(string: "http://localhost:10003/.well-known/agent-card.json")!
@@ -108,7 +109,7 @@ A2UIRendererView(manager: manager) { action in
 
 ### Handle User Actions
 
-When a user taps a button or interacts with a form, the renderer emits a ``ResolvedAction`` through the `onAction` callback. Each action contains the action name, the source component ID, and a context dictionary with resolved values from the data model:
+When a user taps a button or interacts with a form, the renderer emits a ``ResolvedAction`` through the `onAction` callback:
 
 ```swift
 A2UIRendererView(manager: manager) { action in
@@ -132,7 +133,7 @@ A2UIRendererView(manager: manager)
 
 ### Register Custom Components
 
-Extend the renderer with your own component types using the custom component environment:
+Extend the renderer with your own component types using ``CustomComponentRegistry``:
 
 ```swift
 A2UIRendererView(manager: manager)
