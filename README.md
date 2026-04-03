@@ -1,5 +1,7 @@
 # A2UI-Swift
 
+![a2ui](./a2ui.png)
+
 ## What is A2UI-Swift?
 
 [A2UI](https://github.com/google/A2UI) is an open protocol that lets AI agents generate rich, interactive user interfaces through a declarative JSON format — not executable code. An agent describes *what* to render; the renderer decides *how* using native platform controls. 
