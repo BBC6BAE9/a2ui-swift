@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 # Build DocC for all targets using macOS destination
@@ -11,26 +11,24 @@ xcrun xcodebuild docbuild \
 PRODUCTS_DIR="$PWD/.derivedData/Build/Products/Debug"
 
 # Dynamically find all generated .doccarchive files
-ARCHIVES=()
-while IFS= read -r -d '' archive; do
-    ARCHIVES+=("$archive")
-done < <(find "$PRODUCTS_DIR" -maxdepth 1 -name "*.doccarchive" -print0)
+ARCHIVE_COUNT=$(find "$PRODUCTS_DIR" -maxdepth 1 -name "*.doccarchive" | wc -l | tr -d ' ')
 
-echo "Found ${#ARCHIVES[@]} archive(s): ${ARCHIVES[*]}"
+echo "Found $ARCHIVE_COUNT archive(s)"
 
-if [ ${#ARCHIVES[@]} -eq 0 ]; then
+if [ "$ARCHIVE_COUNT" -eq 0 ]; then
     echo "Error: No .doccarchive files found in $PRODUCTS_DIR"
     exit 1
-elif [ ${#ARCHIVES[@]} -eq 1 ]; then
+elif [ "$ARCHIVE_COUNT" -eq 1 ]; then
     # Single archive: transform directly
+    ARCHIVE=$(find "$PRODUCTS_DIR" -maxdepth 1 -name "*.doccarchive")
     xcrun docc process-archive transform-for-static-hosting \
-        "${ARCHIVES[0]}" \
+        "$ARCHIVE" \
         --output-path ".docs" \
         --hosting-base-path "a2ui-swiftui"
 else
     # Multiple archives: merge first, then transform (requires Xcode 15+ / docc 5.9+)
     MERGED="$PWD/.derivedData/A2UI-merged.doccarchive"
-    xcrun docc merge "${ARCHIVES[@]}" --output-path "$MERGED"
+    find "$PRODUCTS_DIR" -maxdepth 1 -name "*.doccarchive" | xargs xcrun docc merge --output-path "$MERGED"
 
     xcrun docc process-archive transform-for-static-hosting \
         "$MERGED" \
