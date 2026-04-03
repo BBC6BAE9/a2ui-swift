@@ -6,7 +6,7 @@
 
 [A2UI](https://github.com/google/A2UI) is an open protocol that lets AI agents generate rich, interactive user interfaces through a declarative JSON format — not executable code. An agent describes *what* to render; the renderer decides *how* using native platform controls. 
 
-A2UI-Swift is a Swift-based renderer for A2UI that supports all Apple UI frameworks. The SwiftUI implementation is feature-complete, while UIKit and AppKit support are currently under active development. Listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/).
+A2UI-Swift is a Swift-based renderer for A2UI that supports all Apple UI frameworks. The `SwiftUI` implementation is feature-complete, while `UIKit` and `AppKit` support are currently under active development. Listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/).
 
 ```
 Agent → JSON payload → A2UISurfaceView / A2UIRendererView → Native UI
