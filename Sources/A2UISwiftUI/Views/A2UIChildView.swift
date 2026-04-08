@@ -15,22 +15,21 @@
 import SwiftUI
 import A2UISwiftCore
 
-/// Applies `flex-grow` equivalent: when a component has `weight`, it expands
-/// to fill available space proportionally within an HStack/VStack.
-struct WeightModifier: ViewModifier {
-    let weight: Double?
+/// Renders a resolved child `ComponentNode` inside a custom SwiftUI component.
+///
+/// Use this from a `CustomComponentCatalog` implementation when you need to
+/// render one of the child nodes already attached to the current component,
+/// mirroring Flutter's `itemContext.buildChild(...)` pattern.
+public struct A2UIChildView: View {
+    public let node: ComponentNode
+    public let surface: SurfaceModel
 
-    init(weight: Double?) {
-        self.weight = weight
+    public init(node: ComponentNode, surface: SurfaceModel) {
+        self.node = node
+        self.surface = surface
     }
 
-    func body(content: Content) -> some View {
-        if let w = weight, w > 0 {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .layoutPriority(w)
-        } else {
-            content
-        }
+    public var body: some View {
+        A2UIComponentView(node: node, surface: surface)
     }
 }

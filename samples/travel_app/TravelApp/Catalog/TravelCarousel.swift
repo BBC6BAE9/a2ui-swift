@@ -157,7 +157,7 @@ struct A2UITravelCarouselView: View {
     private func carouselItemView(item: CarouselItem) -> some View {
         VStack(spacing: 0) {
             if let imageNode = item.imageNode {
-                A2UIComponentView(node: imageNode, surface: surface)
+                A2UIChildView(node: imageNode, surface: surface)
                     .frame(width: 190, height: 150)
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 12))

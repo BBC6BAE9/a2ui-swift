@@ -16,7 +16,7 @@ import Foundation
 
 // MARK: - Errors
 
-public enum ComponentContextError: Error, LocalizedError {
+enum ComponentContextError: Error, LocalizedError {
     case componentNotFound(id: String)
 
     public var errorDescription: String? {
@@ -33,13 +33,13 @@ public enum ComponentContextError: Error, LocalizedError {
 /// Gives access to the component's model, the scoped data context,
 /// the surface's component collection, and action dispatching.
 /// Mirrors WebCore `ComponentContext`.
-public final class ComponentContext {
+final class ComponentContext {
     /// The state model for this specific component.
-    public let componentModel: ComponentModel
+    let componentModel: ComponentModel
     /// The data context scoped to this component's position in the hierarchy.
-    public let dataContext: DataContext
+    let dataContext: DataContext
     /// The collection of all component models for the current surface.
-    public let surfaceComponents: SurfaceComponentsModel
+    let surfaceComponents: SurfaceComponentsModel
 
     private let surface: SurfaceModel
 
@@ -49,7 +49,7 @@ public final class ComponentContext {
     ///   - componentId: The ID of the component.
     ///   - dataModelBasePath: The base path for data model access (default: "/").
     /// - Throws: `ComponentContextError.componentNotFound` if the component doesn't exist.
-    public init(
+    init(
         surface: SurfaceModel,
         componentId: String,
         dataModelBasePath: String = "/"
@@ -68,7 +68,7 @@ public final class ComponentContext {
     /// then forwards resolved name + context to surface.dispatchAction().
     /// For functionCall actions: executed locally by the renderer, not dispatched to the server.
     /// Mirrors WebCore `ComponentContext.dispatchAction(action)`.
-    public func dispatchAction(_ action: Action) {
+    func dispatchAction(_ action: Action) {
         guard case .event(let name, _) = action else { return }
         let resolved = dataContext.resolveAction(action)
         // Extract resolved context from the returned dictionary
@@ -86,7 +86,7 @@ public final class ComponentContext {
     }
 
     /// Convenience overload — dispatches by explicit name + already-resolved context.
-    public func dispatchAction(name: String, context: [String: AnyCodable] = [:]) {
+    func dispatchAction(name: String, context: [String: AnyCodable] = [:]) {
         surface.dispatchAction(
             name: name,
             sourceComponentId: componentModel.id,

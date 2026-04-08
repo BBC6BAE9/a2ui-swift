@@ -170,7 +170,7 @@ struct A2UIInputGroupView: View {
         VStack(alignment: .leading, spacing: 12) {
             FlowLayout(spacing: 8) {
                 ForEach(children) { child in
-                    A2UIComponentView(node: child, surface: surface)
+                    A2UIChildView(node: child, surface: surface)
                 }
             }
 

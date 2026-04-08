@@ -52,14 +52,14 @@ public protocol EventSource<T> {
 /// Internal implementation used by models.
 /// Conforms to `EventSource` and adds the `emit` method.
 /// Mirrors WebCore `EventEmitter<T>`.
-public final class EventEmitter<T>: EventSource {
+final class EventEmitter<T>: EventSource {
     private var listeners: [(id: UUID, fn: (T) -> Void)] = []
 
-    public init() {}
+    init() {}
 
     /// Subscribes a listener. Returns a `Subscription` to unsubscribe.
     @discardableResult
-    public func subscribe(_ listener: @escaping (T) -> Void) -> Subscription {
+    func subscribe(_ listener: @escaping (T) -> Void) -> Subscription {
         let id = UUID()
         listeners.append((id: id, fn: listener))
         return Subscription { [weak self] in
@@ -68,7 +68,7 @@ public final class EventEmitter<T>: EventSource {
     }
 
     /// Emits an event to all current subscribers.
-    public func emit(_ data: T) {
+    func emit(_ data: T) {
         // Snapshot to allow listener mutations during iteration
         let snapshot = listeners
         for item in snapshot {
@@ -77,7 +77,7 @@ public final class EventEmitter<T>: EventSource {
     }
 
     /// Removes all listeners.
-    public func dispose() {
+    func dispose() {
         listeners.removeAll()
     }
 }

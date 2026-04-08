@@ -23,12 +23,12 @@ The SDK is organized into focused modules:
 - **Primitives** — Shared primitive types
 
 ```swift
-let messages = try JSONDecoder().decode([ServerToClientMessage].self, from: data)
+let messages = try JSONDecoder().decode([A2uiMessage].self, from: data)
 
-let manager = SurfaceManager()
-try manager.processMessages(messages)
+let viewModel = SurfaceViewModel(catalog: basicCatalog)
+try viewModel.processMessages(messages)
 
-A2UIRendererView(manager: manager) { action in
+A2UISurfaceView(viewModel: viewModel) { action in
     print("User triggered: \(action.name)")
 }
 ```
@@ -47,7 +47,8 @@ A2UIRendererView(manager: manager) { action in
 
 ### Rendering
 
-- ``A2UIRendererView``
+- ``A2UISurfaceView``
+- ``A2UIChildView``
 - ``SurfaceViewModel``
 
 ### Styling and Theming
@@ -65,7 +66,4 @@ A2UIRendererView(manager: manager) { action in
 ### Custom Components
 
 - ``CustomComponentCatalog``
-- ``CustomComponentRegistry``
-- ``AnyCustomComponentCatalog``
 - ``CatalogItem``
-- ``CatalogItemKey``

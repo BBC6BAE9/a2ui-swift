@@ -59,7 +59,7 @@ struct A2UITabbedSectionsView: View {
             Divider()
 
             if selectedTab < sections.count, let childNode = sections[selectedTab].childNode {
-                A2UIComponentView(node: childNode, surface: surface)
+                A2UIChildView(node: childNode, surface: surface)
             }
         }
     }
