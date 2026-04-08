@@ -48,29 +48,66 @@ public struct FunctionCall: Codable, Sendable {
 /// 让泛型 Dynamic<T> 知道如何从 AnyCodable 提取字面量，以及提供默认值。
 public protocol LiteralDecodable: Codable {
     static func fromAnyCodable(_ value: AnyCodable) -> Self?
-    static var defaultLiteral: Self { get }
 }
 
 extension String: LiteralDecodable {
     public static func fromAnyCodable(_ value: AnyCodable) -> String? { value.stringValue }
-    public static var defaultLiteral: String { "" }
 }
 
 extension Double: LiteralDecodable {
     public static func fromAnyCodable(_ value: AnyCodable) -> Double? { value.numberValue }
-    public static var defaultLiteral: Double { 0 }
 }
 
 extension Bool: LiteralDecodable {
     public static func fromAnyCodable(_ value: AnyCodable) -> Bool? { value.boolValue }
-    public static var defaultLiteral: Bool { false }
 }
 
 extension Array: LiteralDecodable where Element == String {
     public static func fromAnyCodable(_ value: AnyCodable) -> [String]? {
-        value.arrayValue?.compactMap(\.stringValue)
+        guard let values = value.arrayValue else { return nil }
+        var strings: [String] = []
+        strings.reserveCapacity(values.count)
+        for item in values {
+            guard let string = item.stringValue else { return nil }
+            strings.append(string)
+        }
+        return strings
     }
-    public static var defaultLiteral: [String] { [] }
+}
+
+private func schemaDecodingError(at codingPath: [any CodingKey], _ message: String) -> DecodingError {
+    DecodingError.dataCorrupted(.init(codingPath: codingPath, debugDescription: message))
+}
+
+private enum DynamicSchemaKind: String {
+    case string
+    case number
+    case boolean
+    case array
+
+    var functionReturnType: FunctionCallReturnType {
+        switch self {
+        case .string: return .string
+        case .number: return .number
+        case .boolean: return .boolean
+        case .array: return .array
+        }
+    }
+}
+
+private func dynamicSchemaKind<T>(for type: T.Type) -> DynamicSchemaKind? {
+    switch type {
+    case is String.Type:
+        return .string
+    case is Double.Type:
+        return .number
+    case is Bool.Type:
+        return .boolean
+    case is [String].Type:
+        return .array
+    default:
+        return nil
+    }
 }
 
 // MARK: - Dynamic<T>
@@ -84,16 +121,29 @@ public enum Dynamic<T: LiteralDecodable & Sendable>: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let raw = try AnyCodable(from: decoder)
+        guard let schemaKind = dynamicSchemaKind(for: T.self) else {
+            throw schemaDecodingError(at: decoder.codingPath, "Unsupported Dynamic literal type: \(T.self).")
+        }
         if let literal = T.fromAnyCodable(raw) {
             self = .literal(literal)
-        } else if case .dictionary(let dict) = raw, let resolved = DynamicDictResolver.resolve(dict) {
+        } else if case .dictionary(let dict) = raw {
+            let resolved = try DynamicDictResolver.resolve(dict, codingPath: decoder.codingPath)
             switch resolved {
             case .dataBinding(let path): self = .dataBinding(path: path)
-            case .functionCall(let fc): self = .functionCall(fc)
+            case .functionCall(let fc):
+                if let returnType = fc.returnType, returnType != schemaKind.functionReturnType {
+                    throw schemaDecodingError(
+                        at: decoder.codingPath,
+                        "Dynamic<\(T.self)> function call must declare returnType '\(schemaKind.rawValue)'."
+                    )
+                }
+                self = .functionCall(fc)
             }
         } else {
-            assertionFailure("A2UI: Dynamic<\(T.self)> received unexpected value: \(raw)")
-            self = .literal(T.defaultLiteral)
+            throw schemaDecodingError(
+                at: decoder.codingPath,
+                "Dynamic<\(T.self)> must be a literal \(schemaKind.rawValue), data binding, or matching function call."
+            )
         }
     }
 
@@ -123,16 +173,49 @@ enum DynamicDictResolver {
         case functionCall(FunctionCall)
     }
 
-    static func resolve(_ dict: [String: AnyCodable]) -> Result? {
-        if let callName = dict["call"]?.stringValue {
-            let args = dict["args"]?.dictionaryValue ?? [:]
-            let returnType = dict["returnType"]?.stringValue.flatMap(FunctionCallReturnType.init(rawValue:))
-            return .functionCall(FunctionCall(call: callName, args: args, returnType: returnType))
-        }
-        if let path = dict["path"]?.stringValue {
+    static func resolve(_ dict: [String: AnyCodable], codingPath: [any CodingKey]) throws -> Result {
+        if dict.keys.contains("path") {
+            guard dict.count == 1, let path = dict["path"]?.stringValue else {
+                throw schemaDecodingError(at: codingPath, "DataBinding must be exactly {'path': string}.")
+            }
             return .dataBinding(path: path)
         }
-        return nil
+
+        if dict.keys.contains("call") || dict.keys.contains("args") || dict.keys.contains("returnType") {
+            let allowedKeys: Set<String> = ["call", "args", "returnType"]
+            let extraKeys = Set(dict.keys).subtracting(allowedKeys)
+            guard extraKeys.isEmpty else {
+                throw schemaDecodingError(
+                    at: codingPath,
+                    "FunctionCall contains unsupported properties: \(extraKeys.sorted().joined(separator: ", "))."
+                )
+            }
+            guard let callName = dict["call"]?.stringValue else {
+                throw schemaDecodingError(at: codingPath, "FunctionCall requires 'call' to be a string.")
+            }
+            let args: [String: AnyCodable]
+            if let rawArgs = dict["args"] {
+                guard let dictArgs = rawArgs.dictionaryValue else {
+                    throw schemaDecodingError(at: codingPath, "FunctionCall 'args' must be an object.")
+                }
+                args = dictArgs
+            } else {
+                args = [:]
+            }
+            let returnType: FunctionCallReturnType?
+            if let rawReturnType = dict["returnType"] {
+                guard let stringValue = rawReturnType.stringValue,
+                      let decodedReturnType = FunctionCallReturnType(rawValue: stringValue) else {
+                    throw schemaDecodingError(at: codingPath, "FunctionCall 'returnType' must be a valid spec enum value.")
+                }
+                returnType = decodedReturnType
+            } else {
+                returnType = nil
+            }
+            return .functionCall(FunctionCall(call: callName, args: args, returnType: returnType))
+        }
+
+        throw schemaDecodingError(at: codingPath, "Object does not match DataBinding or FunctionCall schema.")
     }
 }
 
@@ -151,28 +234,48 @@ public enum DynamicValue: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let raw = try AnyCodable(from: decoder)
-        self.init(from: raw)
+        self = try Self.decodeStrict(from: raw, codingPath: decoder.codingPath)
     }
 
     public init(from value: AnyCodable) {
+        self = Self.decodeLenient(from: value)
+    }
+
+    fileprivate static func decodeStrict(from value: AnyCodable, codingPath: [any CodingKey]) throws -> DynamicValue {
         switch value {
-        case .string(let s): self = .string(s)
-        case .number(let n): self = .number(n)
-        case .bool(let b): self = .bool(b)
-        case .array(let arr): self = .array(arr)
+        case .string(let s): return .string(s)
+        case .number(let n): return .number(n)
+        case .bool(let b): return .bool(b)
+        case .array(let arr): return .array(arr)
         case .dictionary(let dict):
-            if let resolved = DynamicDictResolver.resolve(dict) {
-                switch resolved {
-                case .dataBinding(let path): self = .dataBinding(path: path)
-                case .functionCall(let fc): self = .functionCall(fc)
-                }
-            } else {
-                assertionFailure("A2UI: DynamicValue received unresolvable object: \(dict)")
-                self = .string("")
+            let resolved = try DynamicDictResolver.resolve(dict, codingPath: codingPath)
+            switch resolved {
+            case .dataBinding(let path): return .dataBinding(path: path)
+            case .functionCall(let fc): return .functionCall(fc)
             }
         case .null:
-            assertionFailure("A2UI: DynamicValue received null, falling back to empty string.")
-            self = .string("")
+            throw schemaDecodingError(at: codingPath, "DynamicValue does not allow null.")
+        }
+    }
+
+    private static func decodeLenient(from value: AnyCodable) -> DynamicValue {
+        switch value {
+        case .string(let s): return .string(s)
+        case .number(let n): return .number(n)
+        case .bool(let b): return .bool(b)
+        case .array(let arr): return .array(arr)
+        case .dictionary(let dict):
+            if let path = dict["path"]?.stringValue, dict.count == 1 {
+                return .dataBinding(path: path)
+            }
+            if let callName = dict["call"]?.stringValue {
+                let args = dict["args"]?.dictionaryValue ?? [:]
+                let returnType = dict["returnType"]?.stringValue.flatMap(FunctionCallReturnType.init(rawValue:))
+                return .functionCall(FunctionCall(call: callName, args: args, returnType: returnType))
+            }
+            return .string("")
+        case .null:
+            return .string("")
         }
     }
 
@@ -206,17 +309,45 @@ public enum Action: Codable, Sendable {
             ))
         }
 
+        let allowedTopLevelKeys: Set<String> = ["event", "functionCall"]
+        let extraTopLevelKeys = Set(dict.keys).subtracting(allowedTopLevelKeys)
+        guard extraTopLevelKeys.isEmpty else {
+            throw schemaDecodingError(
+                at: decoder.codingPath,
+                "Action contains unsupported properties: \(extraTopLevelKeys.sorted().joined(separator: ", "))."
+            )
+        }
+
+        let hasEvent = dict["event"] != nil
+        let hasFunctionCall = dict["functionCall"] != nil
+        guard hasEvent != hasFunctionCall else {
+            throw schemaDecodingError(at: decoder.codingPath, "Action must contain exactly one of 'event' or 'functionCall'.")
+        }
+
         if let eventDict = dict["event"]?.dictionaryValue,
            let name = eventDict["name"]?.stringValue {
+            let allowedEventKeys: Set<String> = ["name", "context"]
+            let extraEventKeys = Set(eventDict.keys).subtracting(allowedEventKeys)
+            guard extraEventKeys.isEmpty else {
+                throw schemaDecodingError(
+                    at: decoder.codingPath,
+                    "Action event contains unsupported properties: \(extraEventKeys.sorted().joined(separator: ", "))."
+                )
+            }
             var ctx: [String: DynamicValue]?
             if let ctxDict = eventDict["context"]?.dictionaryValue {
-                ctx = ctxDict.mapValues { DynamicValue(from: $0) }
+                ctx = try ctxDict.reduce(into: [:]) { result, item in
+                    result[item.key] = try DynamicValue.decodeStrict(from: item.value, codingPath: decoder.codingPath)
+                }
+            } else if eventDict["context"] != nil {
+                throw schemaDecodingError(at: decoder.codingPath, "Action event 'context' must be an object.")
             }
             self = .event(name: name, context: ctx)
         } else if let fcDict = dict["functionCall"]?.dictionaryValue,
-                  let resolved = DynamicDictResolver.resolve(fcDict),
-                  case .functionCall(let fc) = resolved {
+                  case .functionCall(let fc) = try DynamicDictResolver.resolve(fcDict, codingPath: decoder.codingPath) {
             self = .functionCall(fc)
+        } else if dict["functionCall"] != nil {
+            throw schemaDecodingError(at: decoder.codingPath, "Action 'functionCall' must be a valid FunctionCall object.")
         } else {
             throw DecodingError.dataCorrupted(.init(
                 codingPath: decoder.codingPath,
@@ -239,8 +370,10 @@ public enum Action: Codable, Sendable {
             }
             self = .event(name: name, context: ctx)
         } else if let fcDict = dict["functionCall"]?.dictionaryValue,
-                  let resolved = DynamicDictResolver.resolve(fcDict),
-                  case .functionCall(let fc) = resolved {
+                  let callName = fcDict["call"]?.stringValue {
+            let args = fcDict["args"]?.dictionaryValue ?? [:]
+            let returnType = fcDict["returnType"]?.stringValue.flatMap(FunctionCallReturnType.init(rawValue:))
+            let fc = FunctionCall(call: callName, args: args, returnType: returnType)
             self = .functionCall(fc)
         } else {
             self = .event(name: "", context: nil)
@@ -278,8 +411,24 @@ public enum ChildList: Codable, Sendable {
         let raw = try AnyCodable(from: decoder)
         switch raw {
         case .array(let items):
-            self = .staticList(items.compactMap(\.stringValue))
+            var componentIds: [String] = []
+            componentIds.reserveCapacity(items.count)
+            for item in items {
+                guard let componentId = item.stringValue else {
+                    throw schemaDecodingError(at: decoder.codingPath, "ChildList array items must all be strings.")
+                }
+                componentIds.append(componentId)
+            }
+            self = .staticList(componentIds)
         case .dictionary(let dict):
+            let allowedKeys: Set<String> = ["componentId", "path"]
+            let extraKeys = Set(dict.keys).subtracting(allowedKeys)
+            guard extraKeys.isEmpty else {
+                throw schemaDecodingError(
+                    at: decoder.codingPath,
+                    "ChildList template contains unsupported properties: \(extraKeys.sorted().joined(separator: ", "))."
+                )
+            }
             guard let componentId = dict["componentId"]?.stringValue,
                   let path = dict["path"]?.stringValue else {
                 throw DecodingError.dataCorrupted(.init(
@@ -289,7 +438,7 @@ public enum ChildList: Codable, Sendable {
             }
             self = .template(componentId: componentId, path: path)
         default:
-            self = .staticList([])
+            throw schemaDecodingError(at: decoder.codingPath, "ChildList must be an array of component ids or a template object.")
         }
     }
 
@@ -314,5 +463,22 @@ public struct CheckRule: Codable, Sendable {
     public init(condition: DynamicBoolean, message: String) {
         self.condition = condition
         self.message = message
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case condition
+        case message
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        condition = try container.decode(DynamicBoolean.self, forKey: .condition)
+        message = try container.decode(String.self, forKey: .message)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(condition, forKey: .condition)
+        try container.encode(message, forKey: .message)
     }
 }
