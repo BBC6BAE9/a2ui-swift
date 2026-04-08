@@ -361,9 +361,10 @@ struct MessageProcessorTests {
                 components: [RawComponent(id: "btn", component: "Button")]
             ))
         ])
-
+        
         #expect(receivedError != nil)
         #expect(receivedError?.code == "VALIDATION_FAILED")
+        #expect(receivedError?.path == "/updateComponents/components")
         sub.unsubscribe()
     }
 

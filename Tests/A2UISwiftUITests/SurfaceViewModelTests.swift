@@ -127,6 +127,28 @@ struct SurfaceViewModelUpdateComponentsTests {
         try vm.processMessage(msg)
         #expect(vm.componentTree == nil)
     }
+
+    @Test("missing root dispatches validation error with path")
+    func missingRootDispatchesValidationErrorWithPath() throws {
+        let vm = makeViewModel()
+        try vm.processMessage(makeCreateSurface())
+
+        var receivedError: A2uiClientError?
+        let sub = vm.surface.onError.subscribe { receivedError = $0 }
+
+        let msg = A2uiMessage.updateComponents(UpdateComponentsPayload(
+            surfaceId: "s1",
+            components: [
+                RawComponent(id: "notroot", component: "Text", properties: ["text": .string("hi")])
+            ]
+        ))
+
+        try vm.processMessage(msg)
+
+        #expect(receivedError?.code == "VALIDATION_FAILED")
+        #expect(receivedError?.path == "/updateComponents/components")
+        sub.unsubscribe()
+    }
 }
 
 // MARK: - processMessage: updateDataModel

@@ -189,7 +189,8 @@ public final class SurfaceViewModel {
             if !components.isEmpty {
                 surface.dispatchError(
                     code: "VALIDATION_FAILED",
-                    message: "Root component not found. At least one component must have id=\"root\"."
+                    message: "Root component not found. At least one component must have id=\"root\".",
+                    path: "/updateComponents/components"
                 )
             }
             componentTree = nil

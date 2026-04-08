@@ -103,9 +103,20 @@ public final class SurfaceModel: Identifiable {
     // MARK: - Error dispatch
 
     /// Dispatches an error from this surface.
-    public func dispatchError(code: String, message: String, details: [String: AnyCodable]? = nil) {
+    public func dispatchError(
+        code: String,
+        message: String,
+        path: String? = nil,
+        details: [String: AnyCodable]? = nil
+    ) {
         guard !disposed else { return }
-        let error = A2uiClientError(code: code, surfaceId: id, message: message, details: details)
+        let error = A2uiClientError(
+            code: code,
+            surfaceId: id,
+            message: message,
+            path: path,
+            details: details
+        )
         _onError.emit(error)
     }
 

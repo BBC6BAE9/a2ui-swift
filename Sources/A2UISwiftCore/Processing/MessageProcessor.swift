@@ -185,7 +185,8 @@ public final class MessageProcessor {
         if surface.componentsModel.get("root") == nil {
             surface.dispatchError(
                 code: "VALIDATION_FAILED",
-                message: "Surface '\(payload.surfaceId)' has no root component yet. Rendering will be deferred until a component with id=\"root\" is received."
+                message: "Surface '\(payload.surfaceId)' has no root component yet. Rendering will be deferred until a component with id=\"root\" is received.",
+                path: "/updateComponents/components"
             )
         }
     }

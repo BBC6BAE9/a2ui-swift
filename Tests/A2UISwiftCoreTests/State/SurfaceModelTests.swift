@@ -70,11 +70,12 @@ struct SurfaceModelTests {
         var received: A2uiClientError?
         surface.onError.subscribe { received = $0 }
 
-        surface.dispatchError(code: "TEST_ERROR", message: "Something failed")
+        surface.dispatchError(code: "TEST_ERROR", message: "Something failed", path: "/foo")
 
         #expect(received?.code == "TEST_ERROR")
         #expect(received?.message == "Something failed")
         #expect(received?.surfaceId == "surface-1")
+        #expect(received?.path == "/foo")
     }
 
     @Test("creates a component context")
