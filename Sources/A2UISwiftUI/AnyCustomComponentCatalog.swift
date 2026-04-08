@@ -70,7 +70,7 @@ extension EnvironmentValues {
 
 // MARK: - Public View Modifier
 
-public extension View {
+extension View {
     /// Injects a custom component catalog into the SwiftUI environment so that
     /// `A2UIComponentView` can render custom component types.
     ///

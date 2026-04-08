@@ -29,48 +29,48 @@ import Observation
 // MARK: - ComponentUIState Protocol & Concrete Types
 // Shared across protocol versions — pure SwiftUI state, no protocol-specific fields.
 
-public protocol ComponentUIState: AnyObject {}
+package protocol ComponentUIState: AnyObject {}
 
 @Observable
-public final class TabsUIState: ComponentUIState {
-    public var selectedIndex: Int = 0
-    public init() {}
+package final class TabsUIState: ComponentUIState {
+    package var selectedIndex: Int = 0
+    package init() {}
 }
 
 @Observable
-public final class ModalUIState: ComponentUIState {
-    public var isPresented: Bool = false
-    public init() {}
+package final class ModalUIState: ComponentUIState {
+    package var isPresented: Bool = false
+    package init() {}
 }
 
 @Observable
-public final class AudioPlayerUIState: ComponentUIState {
-    public var isPlaying: Bool = false
-    public var currentTime: Double = 0
-    public var duration: Double = 0
+package final class AudioPlayerUIState: ComponentUIState {
+    package var isPlaying: Bool = false
+    package var currentTime: Double = 0
+    package var duration: Double = 0
     #if canImport(AVKit) && !os(watchOS)
-    public var player: AVPlayer?
-    public var timeObserver: Any?
+    package var player: AVPlayer?
+    package var timeObserver: Any?
     #endif
-    public init() {}
+    package init() {}
 }
 
 @Observable
-public final class VideoUIState: ComponentUIState, @unchecked Sendable {
+package final class VideoUIState: ComponentUIState, @unchecked Sendable {
     #if canImport(AVKit) && !os(watchOS)
-    public var player: AVPlayer?
+    package var player: AVPlayer?
     #endif
     #if canImport(UIKit) && !os(watchOS) || canImport(AppKit)
     /// Cached first-frame thumbnail. Fetched once asynchronously, persists
     /// across LazyVStack recycling and tree rebuilds.
-    public var thumbnail: PlatformImage?
-    public var thumbnailLoaded = false
+    package var thumbnail: PlatformImage?
+    package var thumbnailLoaded = false
     #endif
-    public init() {}
+    package init() {}
 }
 
 @Observable
-public final class MultipleChoiceUIState: ComponentUIState {
-    public var filterText: String = ""
-    public init() {}
+package final class MultipleChoiceUIState: ComponentUIState {
+    package var filterText: String = ""
+    package init() {}
 }
