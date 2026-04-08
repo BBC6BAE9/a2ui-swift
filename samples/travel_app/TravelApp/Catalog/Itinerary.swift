@@ -78,7 +78,7 @@ struct ItineraryView: View {
         } label: {
             HStack(spacing: 12) {
                 if let node = data.imageNode, let surface = data.surface {
-                    A2UIComponentView(node: node, surface: surface)
+                    A2UIChildView(node: node, surface: surface)
                         .frame(width: 100, height: 100)
                         .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -135,7 +135,7 @@ struct ItineraryDetailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if let node = data.imageNode, let surface = data.surface {
-                    A2UIComponentView(node: node, surface: surface)
+                    A2UIChildView(node: node, surface: surface)
                             .frame(height: 200)
                             .frame(maxWidth: .infinity)
                             .clipped()
@@ -192,7 +192,7 @@ struct ItineraryDayView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 if let node = day.imageNode, let surface = day.surface {
-                    A2UIComponentView(node: node, surface: surface)
+                    A2UIChildView(node: node, surface: surface)
                         .frame(width: 80, height: 80)
                         .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: 8))

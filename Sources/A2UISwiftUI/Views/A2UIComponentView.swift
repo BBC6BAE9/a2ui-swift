@@ -20,11 +20,11 @@ import A2UISwiftCore
 /// The active `CustomComponentCatalog` is read from the SwiftUI environment
 /// (injected once at `A2UISurfaceView`) so no generic parameter needs to be
 /// threaded through every internal component.
-public struct A2UIComponentView: View {
-    public let node: ComponentNode
-    public let surface: SurfaceModel
+struct A2UIComponentView: View {
+    let node: ComponentNode
+    let surface: SurfaceModel
 
-    public init(node: ComponentNode, surface: SurfaceModel) {
+    init(node: ComponentNode, surface: SurfaceModel) {
         self.node = node
         self.surface = surface
     }
@@ -33,7 +33,7 @@ public struct A2UIComponentView: View {
     @Environment(\.a2uiCatalogItemOverrides) private var catalogOverrides
     @Environment(\.a2uiActionHandler) private var actionHandler
 
-    public var body: some View {
+    var body: some View {
         renderComponent(node.type)
             .modifier(WeightModifier(weight: node.weight))
     }

@@ -368,21 +368,18 @@ private struct CatalogSurfaceView: View {
     let viewModel: SurfaceViewModel
 
     var body: some View {
-        if let rootNode = viewModel.componentTree {
-            A2UIComponentView(node: rootNode, surface: viewModel.surface)
-                .a2uiCatalog(TravelCatalog())
-                .a2uiLeafMargin(0)
-                .a2uiImageResolver { urlString in
-                    let name = a2uiExtractAssetName(from: urlString)
-                    // Only return an Image if the asset catalog contains this name
-                    #if canImport(UIKit)
-                    guard UIImage(named: name) != nil else { return nil }
-                    #elseif canImport(AppKit)
-                    guard NSImage(named: name) != nil else { return nil }
-                    #endif
-                    return Image(name)
-                }
-        }
+        A2UISurfaceView(viewModel: viewModel, catalog: TravelCatalog())
+            .a2uiLeafMargin(0)
+            .a2uiImageResolver { urlString in
+                let name = a2uiExtractAssetName(from: urlString)
+                // Only return an Image if the asset catalog contains this name
+                #if canImport(UIKit)
+                guard UIImage(named: name) != nil else { return nil }
+                #elseif canImport(AppKit)
+                guard NSImage(named: name) != nil else { return nil }
+                #endif
+                return Image(name)
+            }
     }
 }
 

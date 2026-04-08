@@ -27,7 +27,7 @@ struct InformationCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let node = imageNode, let surface {
-                A2UIComponentView(node: node, surface: surface)
+                A2UIChildView(node: node, surface: surface)
                     .frame(maxWidth: .infinity)
                     .frame(height: 200)
                     .clipped()
@@ -80,19 +80,9 @@ struct A2UIInformationCardView: View {
         let subtitle = A2UIHelpers.resolveString(props["subtitle"], surface: surface, dataContextPath: node.dataContextPath)
         let body = A2UIHelpers.resolveString(props["body"], surface: surface, dataContextPath: node.dataContextPath) ?? ""
 
-        let imageNode: ComponentNode? = {
-            guard let imageChildId = props["imageChildId"]?.stringValue,
-                  let model = surface.componentsModel.get(imageChildId) else { return nil }
-            let raw = RawComponent(id: model.id, component: model.type, properties: model.properties)
-            return ComponentNode(
-                id: model.id,
-                baseComponentId: model.id,
-                type: raw.componentType,
-                dataContextPath: node.dataContextPath,
-                weight: nil,
-                instance: raw
-            )
-        }()
+        let imageNode = props["imageChildId"]?.stringValue.flatMap { imageChildId in
+            children.first { $0.baseComponentId == imageChildId }
+        }
 
         InformationCardView(
             data: InformationCardData(
