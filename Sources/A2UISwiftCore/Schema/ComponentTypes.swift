@@ -14,6 +14,13 @@
 
 import Foundation
 
+private func invalidEnumValueError<T>(for type: T.Type, rawValue: String, codingPath: [any CodingKey]) -> DecodingError {
+    DecodingError.dataCorrupted(.init(
+        codingPath: codingPath,
+        debugDescription: "Invalid \(type) value '\(rawValue)' for v0.9 schema."
+    ))
+}
+
 /// All standard A2UI v0.9 component types, plus `.custom` for extensions.
 public enum ComponentType: Hashable {
     case Text, Image, Icon, Video, AudioPlayer
@@ -52,7 +59,6 @@ public enum ComponentType: Hashable {
 /// Text variant: h1–h5, caption, body.
 public enum TextVariant: Codable, Hashable {
     case h1, h2, h3, h4, h5, caption, body
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -64,7 +70,7 @@ public enum TextVariant: Codable, Hashable {
         case "h5": self = .h5
         case "caption": self = .caption
         case "body": self = .body
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -82,7 +88,6 @@ public enum TextVariant: Codable, Hashable {
         case .h5: return "h5"
         case .caption: return "caption"
         case .body: return "body"
-        case .unknown(let s): return s
         }
     }
 }
@@ -90,7 +95,6 @@ public enum TextVariant: Codable, Hashable {
 /// Image fit mode.
 public enum ImageFit: Codable, Hashable {
     case contain, cover, fill, none, scaleDown
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -99,8 +103,8 @@ public enum ImageFit: Codable, Hashable {
         case "cover": self = .cover
         case "fill": self = .fill
         case "none": self = .none
-        case "scaleDown", "scale-down": self = .scaleDown
-        default: self = .unknown(raw)
+        case "scaleDown": self = .scaleDown
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -116,7 +120,6 @@ public enum ImageFit: Codable, Hashable {
         case .fill: return "fill"
         case .none: return "none"
         case .scaleDown: return "scaleDown"
-        case .unknown(let s): return s
         }
     }
 }
@@ -124,7 +127,6 @@ public enum ImageFit: Codable, Hashable {
 /// Image variant.
 public enum ImageVariant: Codable, Hashable {
     case icon, avatar, smallFeature, mediumFeature, largeFeature, header
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -135,7 +137,7 @@ public enum ImageVariant: Codable, Hashable {
         case "mediumFeature": self = .mediumFeature
         case "largeFeature": self = .largeFeature
         case "header": self = .header
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -152,7 +154,6 @@ public enum ImageVariant: Codable, Hashable {
         case .mediumFeature: return "mediumFeature"
         case .largeFeature: return "largeFeature"
         case .header: return "header"
-        case .unknown(let s): return s
         }
     }
 }
@@ -160,7 +161,6 @@ public enum ImageVariant: Codable, Hashable {
 /// Justify mode for Row/Column (maps to CSS justify-content).
 public enum Justify: Codable, Hashable {
     case start, center, end, spaceBetween, spaceAround, spaceEvenly, stretch
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -172,7 +172,7 @@ public enum Justify: Codable, Hashable {
         case "spaceAround": self = .spaceAround
         case "spaceEvenly": self = .spaceEvenly
         case "stretch": self = .stretch
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -190,7 +190,6 @@ public enum Justify: Codable, Hashable {
         case .spaceAround: return "spaceAround"
         case .spaceEvenly: return "spaceEvenly"
         case .stretch: return "stretch"
-        case .unknown(let s): return s
         }
     }
 }
@@ -198,7 +197,6 @@ public enum Justify: Codable, Hashable {
 /// Align mode for Row/Column/List (maps to CSS align-items).
 public enum Align: Codable, Hashable {
     case start, center, end, stretch
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -207,7 +205,7 @@ public enum Align: Codable, Hashable {
         case "center": self = .center
         case "end": self = .end
         case "stretch": self = .stretch
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -222,7 +220,6 @@ public enum Align: Codable, Hashable {
         case .center: return "center"
         case .end: return "end"
         case .stretch: return "stretch"
-        case .unknown(let s): return s
         }
     }
 }
@@ -230,14 +227,13 @@ public enum Align: Codable, Hashable {
 /// List direction.
 public enum ListDirection: Codable, Hashable {
     case vertical, horizontal
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         switch raw {
         case "vertical": self = .vertical
         case "horizontal": self = .horizontal
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -250,7 +246,6 @@ public enum ListDirection: Codable, Hashable {
         switch self {
         case .vertical: return "vertical"
         case .horizontal: return "horizontal"
-        case .unknown(let s): return s
         }
     }
 }
@@ -258,14 +253,13 @@ public enum ListDirection: Codable, Hashable {
 /// Divider axis.
 public enum DividerAxis: Codable, Hashable {
     case horizontal, vertical
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         switch raw {
         case "horizontal": self = .horizontal
         case "vertical": self = .vertical
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -278,7 +272,6 @@ public enum DividerAxis: Codable, Hashable {
         switch self {
         case .horizontal: return "horizontal"
         case .vertical: return "vertical"
-        case .unknown(let s): return s
         }
     }
 }
@@ -286,7 +279,6 @@ public enum DividerAxis: Codable, Hashable {
 /// Button variant.
 public enum ButtonVariant_Enum: Codable, Hashable {
     case `default`, primary, borderless
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -294,7 +286,7 @@ public enum ButtonVariant_Enum: Codable, Hashable {
         case "default": self = .default
         case "primary": self = .primary
         case "borderless": self = .borderless
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -308,7 +300,6 @@ public enum ButtonVariant_Enum: Codable, Hashable {
         case .default: return "default"
         case .primary: return "primary"
         case .borderless: return "borderless"
-        case .unknown(let s): return s
         }
     }
 }
@@ -316,7 +307,6 @@ public enum ButtonVariant_Enum: Codable, Hashable {
 /// TextField variant.
 public enum TextFieldVariant: Codable, Hashable {
     case shortText, longText, number, obscured
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -325,7 +315,7 @@ public enum TextFieldVariant: Codable, Hashable {
         case "longText": self = .longText
         case "number": self = .number
         case "obscured": self = .obscured
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -340,7 +330,6 @@ public enum TextFieldVariant: Codable, Hashable {
         case .longText: return "longText"
         case .number: return "number"
         case .obscured: return "obscured"
-        case .unknown(let s): return s
         }
     }
 }
@@ -348,14 +337,13 @@ public enum TextFieldVariant: Codable, Hashable {
 /// ChoicePicker variant.
 public enum ChoicePickerVariant: Codable, Hashable {
     case multipleSelection, mutuallyExclusive
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         switch raw {
         case "multipleSelection": self = .multipleSelection
         case "mutuallyExclusive": self = .mutuallyExclusive
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -368,7 +356,6 @@ public enum ChoicePickerVariant: Codable, Hashable {
         switch self {
         case .multipleSelection: return "multipleSelection"
         case .mutuallyExclusive: return "mutuallyExclusive"
-        case .unknown(let s): return s
         }
     }
 }
@@ -376,14 +363,13 @@ public enum ChoicePickerVariant: Codable, Hashable {
 /// ChoicePicker display style.
 public enum ChoicePickerDisplayStyle: Codable, Hashable {
     case checkbox, chips
-    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         switch raw {
         case "checkbox": self = .checkbox
         case "chips": self = .chips
-        default: self = .unknown(raw)
+        default: throw invalidEnumValueError(for: Self.self, rawValue: raw, codingPath: decoder.codingPath)
         }
     }
 
@@ -396,7 +382,6 @@ public enum ChoicePickerDisplayStyle: Codable, Hashable {
         switch self {
         case .checkbox: return "checkbox"
         case .chips: return "chips"
-        case .unknown(let s): return s
         }
     }
 }
