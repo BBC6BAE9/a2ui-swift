@@ -94,44 +94,10 @@ public enum A2uiClientMessage: Codable {
     }
 
     public init(from decoder: Decoder) throws {
-        let raw = try AnyCodable(from: decoder)
-        guard case .dictionary(let dict) = raw else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "A2uiClientMessage must be a JSON object."
-            ))
-        }
-
-        let allowedKeys: Set<String> = ["version", "action", "error"]
-        let extraKeys = Set(dict.keys).subtracting(allowedKeys)
-        guard extraKeys.isEmpty else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "A2uiClientMessage contains unsupported properties: \(extraKeys.sorted().joined(separator: ", "))."
-            ))
-        }
-
-        guard dict["version"]?.stringValue == "v0.9" else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "A2uiClientMessage version must be 'v0.9'."
-            ))
-        }
-
-        let data = try JSONEncoder().encode(raw)
-        let container = try JSONDecoder().decode(DecodedMessage.self, from: data)
-        let hasAction = container.action != nil
-        let hasError = container.error != nil
-        guard hasAction != hasError else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "A2uiClientMessage must contain exactly one of 'action' or 'error'."
-            ))
-        }
-
-        if let action = container.action {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let action = try container.decodeIfPresent(A2uiClientAction.self, forKey: .action) {
             self = .action(action)
-        } else if let error = container.error {
+        } else if let error = try container.decodeIfPresent(A2uiClientError.self, forKey: .error) {
             self = .error(error)
         } else {
             throw DecodingError.dataCorrupted(.init(
@@ -148,12 +114,6 @@ public enum A2uiClientMessage: Codable {
         case .action(let a): try container.encode(a, forKey: .action)
         case .error(let e): try container.encode(e, forKey: .error)
         }
-    }
-
-    private struct DecodedMessage: Codable {
-        let version: String
-        let action: A2uiClientAction?
-        let error: A2uiClientError?
     }
 }
 

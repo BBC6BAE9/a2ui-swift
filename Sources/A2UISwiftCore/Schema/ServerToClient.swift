@@ -38,40 +38,11 @@ public enum A2uiMessage: Codable, Sendable {
     }
 
     public init(from decoder: Decoder) throws {
-        let raw = try AnyCodable(from: decoder)
-        guard case .dictionary(let dict) = raw else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "A2uiMessage must be a JSON object."
-            ))
-        }
-
-        let allowedKeys: Set<String> = ["version", "createSurface", "updateComponents", "updateDataModel", "deleteSurface"]
-        let extraKeys = Set(dict.keys).subtracting(allowedKeys)
-        guard extraKeys.isEmpty else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "Message contains unsupported properties: \(extraKeys.sorted().joined(separator: ", "))."
-            ))
-        }
-
-        guard dict["version"]?.stringValue == "v0.9" else {
-            throw DecodingError.dataCorrupted(.init(
-                codingPath: decoder.codingPath,
-                debugDescription: "Message version must be 'v0.9'."
-            ))
-        }
-
-        let data = try JSONEncoder().encode(raw)
-        let container = try JSONDecoder().decode(DecodedMessage.self, from: data)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // Validate: only one update-type key is allowed per message.
-        let presentKeys = [
-            container.createSurface != nil ? CodingKeys.createSurface : nil,
-            container.updateComponents != nil ? CodingKeys.updateComponents : nil,
-            container.updateDataModel != nil ? CodingKeys.updateDataModel : nil,
-            container.deleteSurface != nil ? CodingKeys.deleteSurface : nil,
-        ].compactMap { $0 }
+        let updateTypeKeys: [CodingKeys] = [.createSurface, .updateComponents, .updateDataModel, .deleteSurface]
+        let presentKeys = updateTypeKeys.filter { container.contains($0) }
         if presentKeys.count > 1 {
             let names = presentKeys.map(\.stringValue).joined(separator: ", ")
             throw DecodingError.dataCorrupted(.init(
@@ -80,13 +51,13 @@ public enum A2uiMessage: Codable, Sendable {
             ))
         }
 
-        if let payload = container.createSurface {
+        if let payload = try container.decodeIfPresent(CreateSurfacePayload.self, forKey: .createSurface) {
             self = .createSurface(payload)
-        } else if let payload = container.updateComponents {
+        } else if let payload = try container.decodeIfPresent(UpdateComponentsPayload.self, forKey: .updateComponents) {
             self = .updateComponents(payload)
-        } else if let payload = container.updateDataModel {
+        } else if let payload = try container.decodeIfPresent(UpdateDataModelPayload.self, forKey: .updateDataModel) {
             self = .updateDataModel(payload)
-        } else if let payload = container.deleteSurface {
+        } else if let payload = try container.decodeIfPresent(DeleteSurfacePayload.self, forKey: .deleteSurface) {
             self = .deleteSurface(payload)
         } else {
             throw DecodingError.dataCorrupted(.init(
@@ -105,14 +76,6 @@ public enum A2uiMessage: Codable, Sendable {
         case .updateDataModel(let payload): try container.encode(payload, forKey: .updateDataModel)
         case .deleteSurface(let payload):   try container.encode(payload, forKey: .deleteSurface)
         }
-    }
-
-    private struct DecodedMessage: Codable {
-        let version: String
-        let createSurface: CreateSurfacePayload?
-        let updateComponents: UpdateComponentsPayload?
-        let updateDataModel: UpdateDataModelPayload?
-        let deleteSurface: DeleteSurfacePayload?
     }
 }
 

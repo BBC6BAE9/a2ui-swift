@@ -128,7 +128,7 @@ struct A2UIImage: View {
             return FlexibleSizing(maxHeight: 400)
         case .header:
             return FlexibleSizing(fixedHeight: 200)
-        case .mediumFeature, .none:
+        case .mediumFeature, .none, .some(.unknown):
             return FlexibleSizing()
         }
     }
