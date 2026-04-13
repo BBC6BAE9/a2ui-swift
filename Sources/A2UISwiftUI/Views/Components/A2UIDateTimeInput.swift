@@ -19,10 +19,10 @@ import A2UISwiftCore
 ///
 /// Spec properties:
 /// - `value` (required): DynamicString ISO 8601 string — bound to data model
-/// - `enableDate` (optional): show date selector (defaults to true)
-/// - `enableTime` (optional): show time selector (defaults to true)
-/// - `min` (optional): DynamicString — minimum date bound
-/// - `max` (optional): DynamicString — maximum date bound
+/// - `enableDate` (optional): show date selector (defaults to **false** per spec)
+/// - `enableTime` (optional): show time selector (defaults to **false** per spec)
+/// - `min` (optional): DynamicString ISO 8601 — minimum selectable date
+/// - `max` (optional): DynamicString ISO 8601 — maximum selectable date
 /// - `label` (optional): DynamicString
 ///
 /// ## Rendering strategy: system `DatePicker`, zero hardcoded values.
@@ -41,8 +41,9 @@ struct A2UIDateTimeInput: View {
     var body: some View {
         if let props = try? node.typedProperties(DateTimeInputProperties.self) {
             let dc = DataContext(surface: surface, path: dataContextPath)
-            let enableDate = props.enableDate ?? true
-            let enableTime = props.enableTime ?? true
+            // ③ Spec v0.9 defaults: enableDate and enableTime are both false when omitted.
+            let enableDate = props.enableDate ?? false
+            let enableTime = props.enableTime ?? false
 
             let labelText: String = {
                 if let labelValue = props.label {
@@ -55,6 +56,10 @@ struct A2UIDateTimeInput: View {
             }()
 
             let dtStyle = style.dateTimeInputStyle
+
+            // ② Resolve optional min/max ISO 8601 bounds.
+            let minDate: Date? = props.min.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
+            let maxDate: Date? = props.max.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
 
             let checksError = dc.firstFailingCheckMessage(props.checks)
             VStack(alignment: .leading, spacing: 4) {
@@ -76,14 +81,18 @@ struct A2UIDateTimeInput: View {
                         return c
                     }()
 
-                    DatePicker(
+                    // ② Wire min/max to DatePicker's `in:` range.
+                    datePickerView(
                         selection: a2uiDateBinding(for: props.value, dataContext: dc),
-                        displayedComponents: components
-                    ) {
-                        Text(labelText)
-                            .font(dtStyle.labelFont)
-                            .foregroundStyle(dtStyle.labelColor ?? .primary)
-                    }
+                        minDate: minDate,
+                        maxDate: maxDate,
+                        components: components,
+                        label: {
+                            Text(labelText)
+                                .font(dtStyle.labelFont)
+                                .foregroundStyle(dtStyle.labelColor ?? .primary)
+                        }
+                    )
                     .tint(dtStyle.tintColor)
                     #endif
                 }
@@ -96,5 +105,42 @@ struct A2UIDateTimeInput: View {
             .a2uiAccessibility(node.accessibility, dataContext: dc)
             .padding(style.leafMargin)
         }
+    }
+
+    // MARK: - Helpers
+
+#if !os(tvOS)
+    /// Returns a `DatePicker` configured with the appropriate date range.
+    /// Four variants exist because `DatePicker`'s `in:` parameter is generic over
+    /// `RangeExpression<Date>`, requiring concrete type branches.
+    @ViewBuilder
+    private func datePickerView(
+        selection: Binding<Date>,
+        minDate: Date?,
+        maxDate: Date?,
+        components: DatePicker.Components,
+        @ViewBuilder label: () -> some View
+    ) -> some View {
+        if let lo = minDate, let hi = maxDate {
+            DatePicker(selection: selection, in: lo...hi, displayedComponents: components, label: label)
+        } else if let lo = minDate {
+            DatePicker(selection: selection, in: lo..., displayedComponents: components, label: label)
+        } else if let hi = maxDate {
+            DatePicker(selection: selection, in: ...hi, displayedComponents: components, label: label)
+        } else {
+            DatePicker(selection: selection, displayedComponents: components, label: label)
+        }
+    }
+#endif
+
+    /// Parses an ISO 8601 date string, tolerating both full date-time and date-only formats.
+    private func parseISO8601(_ string: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withFullDate]
+        return formatter.date(from: string)
     }
 }

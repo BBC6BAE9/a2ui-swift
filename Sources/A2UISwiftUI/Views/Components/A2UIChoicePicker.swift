@@ -22,25 +22,21 @@ import A2UISwiftCore
 //   - options (required): [ChoicePickerOption] — available choices
 //   - displayStyle: "checkbox" (default) | "chips"
 //   - filterable: Bool — shows search to filter options
-//   - variant: "multipleSelection" | "mutuallyExclusive" — when "mutuallyExclusive" renders as single-select
 //   - label: DynamicString — label above the component
 //
 // ## Rendering strategy
 //
+//   ChoicePicker is always multi-select. `value` is an array of selected
+//   option.value strings; toggling an option adds/removes it from the array.
+//
 //   tvOS (all variants):
 //     NavigationLink → secondary page with checkmark list
 //
-//   variant == "mutuallyExclusive" (single-select):
-//     chips → horizontal button group (FlowLayout, only one active)
-//     macOS + any label contains space (multi-word) → Picker(.radioGroup)
-//     otherwise (incl. all iOS) → menu Picker
-//
-//   variant != "mutuallyExclusive" (multi-select):
-//     filterable = false:
-//       checkbox → inline checkmark rows
-//       chips    → FlowLayout with capsule buttons
-//     filterable = true:
-//       sheet + .searchable() + list/chips inside
+//   filterable = false:
+//     checkbox → inline checkmark rows
+//     chips    → FlowLayout with capsule buttons
+//   filterable = true:
+//     sheet + .searchable() + list/chips inside
 struct A2UIChoicePicker: View {
     let node: ComponentNode
     let surface: SurfaceModel
@@ -110,10 +106,6 @@ struct ChoicePickerContent: View {
 
     private var isChips: Bool { properties.displayStyle == .chips }
 
-    private var isSingleSelect: Bool {
-        properties.variant == .mutuallyExclusive
-    }
-
     private var labelText: String? {
         guard let labelVal = properties.label else { return nil }
         let resolved = dc.resolve(labelVal)
@@ -126,9 +118,7 @@ struct ChoicePickerContent: View {
 #if os(tvOS)
         tvOSPresentBody
 #else
-        if isSingleSelect {
-            singleSelectBody
-        } else if properties.filterable == true {
+        if properties.filterable == true {
             filterableMultiSelectBody
         } else {
             inlineMultiSelectBody
@@ -138,78 +128,12 @@ struct ChoicePickerContent: View {
 
     // MARK: - Single Select (variant == "mutuallyExclusive")
 
-    /// If any option label contains multiple words (has whitespace), the options
-    /// are descriptive phrases → use inline radio so users can read all choices.
-    /// All single-word labels (e.g. "Small", "Medium") → compact menu Picker.
-    private var hasMultiWordLabels: Bool {
-        resolvedOptions.contains { $0.label.contains(" ") }
-    }
-
-    @ViewBuilder
-    private var singleSelectBody: some View {
-        if isChips {
-            singleSelectChips
-        } else {
-#if os(macOS)
-            if hasMultiWordLabels {
-                singleSelectRadio
-            } else {
-                singleSelectMenu
-            }
-#else
-            singleSelectMenu
-#endif
-        }
-    }
-
-#if os(macOS)
-    /// Inline radio group — macOS only, used when labels are descriptive sentences.
-    @ViewBuilder
-    private var singleSelectRadio: some View {
-        VStack(alignment: .leading) {
-            if let desc = labelText {
-                Text(desc)
-                    .font(componentStyle.descriptionFont)
-                    .foregroundStyle(componentStyle.descriptionColor ?? .secondary)
-            }
-
-            Picker(labelText ?? "", selection: singleSelectBinding) {
-                ForEach(resolvedOptions, id: \.value) { option in
-                    Text(option.label).tag(option.value)
-                }
-            }
-            .pickerStyle(.radioGroup)
-            .labelsHidden()
-        }
-    }
-#endif
-
-    /// Compact menu Picker — used when labels are short words.
-    @ViewBuilder
-    private var singleSelectMenu: some View {
-        let selection = singleSelectBinding
-
-        Picker(labelText ?? "", selection: selection) {
-            ForEach(resolvedOptions, id: \.value) { option in
-                Text(option.label).tag(option.value)
-            }
-        }
-    }
-
 #if os(tvOS)
-    /// tvOS: all variants use NavigationLink to a secondary page.
+    /// tvOS: NavigationLink to a secondary page with checkmark list.
     @ViewBuilder
     private var tvOSPresentBody: some View {
         let selCount = currentSelections.count
-        let summary: String = {
-            if isSingleSelect {
-                return resolvedOptions.first { $0.value == currentSelections.first }?.label ?? "None"
-            } else if selCount > 0 {
-                return "\(selCount) selected"
-            } else {
-                return "Select"
-            }
-        }()
+        let summary: String = selCount > 0 ? "\(selCount) selected" : "Select"
 
         NavigationLink {
             tvOSSelectionPage
@@ -260,29 +184,6 @@ struct ChoicePickerContent: View {
         }
     }
 #endif
-
-    private var singleSelectBinding: Binding<String> {
-        Binding<String>(
-            get: { currentSelections.first ?? "" },
-            set: { newValue in
-                guard case .dataBinding(let path) = properties.value else { return }
-                try? dc.set(path, value: .array((newValue.isEmpty ? [] : [newValue]).map { .string($0) }))
-            }
-        )
-    }
-
-    /// Chips for single-select — horizontal group, only one active at a time.
-    @ViewBuilder
-    private var singleSelectChips: some View {
-        VStack(alignment: .leading) {
-            if let desc = labelText {
-                Text(desc)
-                    .font(componentStyle.descriptionFont)
-                    .foregroundStyle(componentStyle.descriptionColor ?? .secondary)
-            }
-            chipsGrid(options: resolvedOptions)
-        }
-    }
 
     // MARK: - Multi-select Inline (not filterable)
 
@@ -478,11 +379,10 @@ struct ChoicePickerContent: View {
     // MARK: - Toggle Logic
 
     private func toggle(_ value: String) {
-        let maxAllowed: Int? = properties.variant == .mutuallyExclusive ? 1 : nil
         let newSelections = MultipleChoiceLogic.toggle(
             value: value,
             in: currentSelections,
-            maxAllowed: maxAllowed
+            maxAllowed: nil
         )
         guard case .dataBinding(let path) = properties.value else { return }
         try? dc.set(path, value: .array(newSelections.map { .string($0) }))

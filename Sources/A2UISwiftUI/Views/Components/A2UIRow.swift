@@ -35,6 +35,7 @@ struct A2UIRow: View {
                     surface: surface
                 )
             }
+            .environment(\.a2uiLayoutAxis, .horizontal)
             .a2uiAccessibility(node.accessibility, dataContext: dc)
         }
     }

@@ -345,34 +345,6 @@ public enum TextFieldVariant: Codable, Hashable {
     }
 }
 
-/// ChoicePicker variant.
-public enum ChoicePickerVariant: Codable, Hashable {
-    case multipleSelection, mutuallyExclusive
-    case unknown(String)
-
-    public init(from decoder: Decoder) throws {
-        let raw = try decoder.singleValueContainer().decode(String.self)
-        switch raw {
-        case "multipleSelection": self = .multipleSelection
-        case "mutuallyExclusive": self = .mutuallyExclusive
-        default: self = .unknown(raw)
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
-
-    public var rawValue: String {
-        switch self {
-        case .multipleSelection: return "multipleSelection"
-        case .mutuallyExclusive: return "mutuallyExclusive"
-        case .unknown(let s): return s
-        }
-    }
-}
-
 /// ChoicePicker display style.
 public enum ChoicePickerDisplayStyle: Codable, Hashable {
     case checkbox, chips
@@ -519,14 +491,12 @@ public struct ButtonProperties: Codable {
     public var child: String
     public var action: Action
     public var variant: ButtonVariant_Enum?
-    public var checks: [CheckRule]?
 }
 
 public struct TextFieldProperties: Codable {
-    public var label: DynamicString
-    public var value: DynamicString?
+    public var label: DynamicString?
+    public var value: DynamicString
     public var variant: TextFieldVariant?
-    public var validationRegexp: String?
     public var checks: [CheckRule]?
 }
 
@@ -561,7 +531,6 @@ public struct ChoicePickerOption: Codable {
 
 public struct ChoicePickerProperties: Codable {
     public var label: DynamicString?
-    public var variant: ChoicePickerVariant?
     public var options: [ChoicePickerOption]
     public var value: DynamicStringList?
     public var displayStyle: ChoicePickerDisplayStyle?

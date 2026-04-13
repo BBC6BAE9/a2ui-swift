@@ -447,28 +447,18 @@ struct A2UITextFieldView: View {
     let label: String
     @Binding var text: String
     let variant: String?
-    let validationRegexp: String?
     var checksErrorMessage: String? = nil
 
     @Environment(\.a2uiStyle) private var style
-    @State private var isValid = true
     @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading) {
             fieldForVariant
                 .focused($isFocused)
-                .onChange(of: text) { validate($1) }
-                .onChange(of: isFocused) { _, focused in
-                    if !focused { validate(text) }
-                }
 
             if let msg = checksErrorMessage {
                 Text(msg)
-                    .font(.caption)
-                    .foregroundStyle(style.textFieldStyle.errorColor ?? .red)
-            } else if !isValid {
-                Text("Input does not match required format")
                     .font(.caption)
                     .foregroundStyle(style.textFieldStyle.errorColor ?? .red)
             }
@@ -542,14 +532,6 @@ struct A2UITextFieldView: View {
         }
     }
 
-    private func validate(_ value: String) {
-        isValid = Self.isValid(value: value, pattern: validationRegexp)
-    }
-
-    static func isValid(value: String, pattern: String?) -> Bool {
-        guard let pattern, !pattern.isEmpty else { return true }
-        return value.isEmpty || (try? Regex(pattern).wholeMatch(in: value)) != nil
-    }
 }
 
 // MARK: - MultipleChoiceLogic

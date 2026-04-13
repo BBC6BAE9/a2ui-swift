@@ -38,6 +38,12 @@ public struct A2UIStyle: Equatable, Sendable {
 
     public var primaryColor: Color
     public var fontFamily: String?
+    /// Base URL for icon assets served by the agent (e.g. `"https://example.com/icons"`).
+    /// Parsed from `createSurface.theme.iconUrl`.
+    public var iconUrl: String?
+    /// Display name for the agent, shown in the UI header or title bar.
+    /// Parsed from `createSurface.theme.agentDisplayName`.
+    public var agentDisplayName: String?
     /// Per-variant overrides for Text component appearance.
     /// Prefer using the `.a2uiTextStyle(for:...)` view modifier over setting
     /// this directly.
@@ -89,6 +95,8 @@ public struct A2UIStyle: Equatable, Sendable {
     public init(
         primaryColor: Color = .accentColor,
         fontFamily: String? = nil,
+        iconUrl: String? = nil,
+        agentDisplayName: String? = nil,
         textStyles: [String: TextStyle] = [:],
         iconOverrides: [String: String] = [:],
         imageStyles: [String: ImageStyle] = [:],
@@ -107,6 +115,8 @@ public struct A2UIStyle: Equatable, Sendable {
     ) {
         self.primaryColor = primaryColor
         self.fontFamily = fontFamily
+        self.iconUrl = iconUrl
+        self.agentDisplayName = agentDisplayName
         self.textStyles = textStyles
         self.iconOverrides = iconOverrides
         self.imageStyles = imageStyles
@@ -132,6 +142,8 @@ public struct A2UIStyle: Equatable, Sendable {
             self.primaryColor = .accentColor
         }
         self.fontFamily = styles["font"]
+        self.iconUrl = styles["iconUrl"]
+        self.agentDisplayName = styles["agentDisplayName"]
         self.textStyles = [:]
         self.iconOverrides = [:]
         self.imageStyles = [:]

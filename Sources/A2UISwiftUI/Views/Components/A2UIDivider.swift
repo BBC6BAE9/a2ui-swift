@@ -16,9 +16,9 @@ import SwiftUI
 import A2UISwiftCore
 
 /// # Divider
-/// Directly maps to `SwiftUI.Divider()`. The spec's `axis` property is intentionally ignored --
-/// SwiftUI's Divider auto-adapts orientation based on parent container (horizontal in VStack,
-/// vertical in HStack), making manual axis handling unnecessary.
+/// Maps to `SwiftUI.Divider()`, oriented according to the spec's `axis` property.
+/// - `horizontal` (default): full-width horizontal rule
+/// - `vertical`: full-height vertical rule
 struct A2UIDivider: View {
     let node: ComponentNode
     let surface: SurfaceModel
@@ -26,13 +26,20 @@ struct A2UIDivider: View {
     @Environment(\.a2uiStyle) private var style
 
     var body: some View {
-        // Intentionally ignored: spec defines `axis` ("horizontal"/"vertical"), but SwiftUI's
-        // Divider auto-adapts orientation based on parent (horizontal in VStack, vertical in HStack).
-        // swiftlint:disable:next unused_optional_binding
-        let _ = (try? node.typedProperties(DividerProperties.self))?.axis
+        let props = try? node.typedProperties(DividerProperties.self)
         let dc = DataContext(surface: surface, path: node.dataContextPath)
-        SwiftUI.Divider()
-            .a2uiAccessibility(node.accessibility, dataContext: dc)
-            .padding(style.leafMargin)
+        let axis = props?.axis ?? .horizontal
+
+        Group {
+            if axis == .vertical {
+                SwiftUI.Divider()
+                    .frame(maxHeight: .infinity)
+            } else {
+                SwiftUI.Divider()
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .a2uiAccessibility(node.accessibility, dataContext: dc)
+        .padding(style.leafMargin)
     }
 }
