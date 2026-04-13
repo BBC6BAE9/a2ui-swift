@@ -91,9 +91,6 @@ struct ButtonActionView<Label: View>: View {
     }
 
     var body: some View {
-        let dc = DataContext(surface: surface, path: dataContextPath)
-        let isEnabled = dc.firstFailingCheckMessage(props.checks) == nil
-
         if let custom = style.buttonStyles[variant.rawValue] {
             // Custom drawing path -- ButtonVariantStyle override is set
             SwiftUI.Button(action: handleAction) { label() }
@@ -105,7 +102,6 @@ struct ButtonActionView<Label: View>: View {
                     RoundedRectangle(cornerRadius: custom.cornerRadius ?? 8)
                         .fill(custom.backgroundColor ?? .clear)
                 )
-                .disabled(!isEnabled)
         } else {
             // System ButtonStyle path -- native HIG rendering
             switch variant {
@@ -113,15 +109,12 @@ struct ButtonActionView<Label: View>: View {
                 SwiftUI.Button(action: handleAction) { label() }
                     .buttonStyle(.borderedProminent)
                     .tint(style.primaryColor)
-                    .disabled(!isEnabled)
             case .borderless:
                 SwiftUI.Button(action: handleAction) { label() }
                     .buttonStyle(.borderless)
-                    .disabled(!isEnabled)
             default:
                 SwiftUI.Button(action: handleAction) { label() }
                     .buttonStyle(.bordered)
-                    .disabled(!isEnabled)
             }
         }
     }

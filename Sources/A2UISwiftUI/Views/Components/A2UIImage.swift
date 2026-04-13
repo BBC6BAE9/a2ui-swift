@@ -183,11 +183,13 @@ struct A2UIImage: View {
             image.resizable().aspectRatio(contentMode: .fill)
         case .fill:
             image.resizable()
-        case .none:
-            image
+        case .contain:
+            image.resizable().aspectRatio(contentMode: .fit)
         case .scaleDown:
             image.resizable().aspectRatio(contentMode: .fit)
-        default:
+        case .none:
+            image
+        case .unknown:
             image.resizable().aspectRatio(contentMode: .fit)
         }
     }

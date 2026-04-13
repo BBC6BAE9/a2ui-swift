@@ -172,6 +172,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */,
+				F131A2A02F78D26E007CCC16 /* XCRemoteSwiftPackageReference "A2A-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1AE97CA2F5EA2ED00610B17 /* Products */;
@@ -524,10 +525,21 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		F131A2A02F78D26E007CCC16 /* XCRemoteSwiftPackageReference "A2A-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/BBC6BAE9/A2A-Swift";
+			requirement = {
+				kind = exactVersion;
+				version = "0.0.1";
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		F131A2502F78D26E007CCC16 /* A2A */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F131A24F2F78D26E007CCC16 /* XCLocalSwiftPackageReference "../.." */;
+			package = F131A2A02F78D26E007CCC16 /* XCRemoteSwiftPackageReference "A2A-Swift" */;
 			productName = A2A;
 		};
 		F131A2522F78D26E007CCC16 /* Primitives */ = {

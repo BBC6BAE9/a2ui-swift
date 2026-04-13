@@ -18,10 +18,9 @@ import A2UISwiftCore
 /// Spec v0.9 TextField — input component.
 ///
 /// Spec properties:
-/// - `label` (required): DynamicString
-/// - `value` (optional): DynamicString — bound to data model
+/// - `label` (optional): DynamicString
+/// - `value` (required): DynamicString — bound to data model
 /// - `variant` (optional): `date`, `longText`, `number`, `shortText`, `obscured`
-/// - `validationRegexp` (optional): client-side regex validation
 /// - `checks` (optional): [CheckRule]
 ///
 /// ## Rendering strategy: system native, zero hardcoded values.
@@ -45,7 +44,7 @@ struct A2UITextField: View {
     var body: some View {
         if let props = try? node.typedProperties(TextFieldProperties.self) {
             let dc = DataContext(surface: surface, path: dataContextPath)
-            let label = dc.resolve(props.label)
+            let label = props.label.map { dc.resolve($0) } ?? ""
             let binding = a2uiStringBinding(for: props.value, dataContext: dc)
             let checksError = dc.firstFailingCheckMessage(props.checks)
 
@@ -53,7 +52,6 @@ struct A2UITextField: View {
                 label: label,
                 text: binding,
                 variant: props.variant?.rawValue,
-                validationRegexp: props.validationRegexp,
                 checksErrorMessage: checksError
             )
             .a2uiAccessibility(node.accessibility, dataContext: dc)
