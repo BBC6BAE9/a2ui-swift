@@ -27,10 +27,6 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "A2A",
-            targets: ["A2A"]
-        ),
-        .library(
             name: "Primitives",
             targets: ["Primitives"]
         ),
@@ -57,10 +53,6 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "A2A",
-            path: "Sources/A2A"
-        ),
-        .target(
             name: "Primitives",
             path: "Sources/Primitives"
         ),
@@ -86,11 +78,6 @@ let package = Package(
             name: "A2UIAppKit",
             dependencies: ["A2UISwiftCore"],
             path: "Sources/A2UIAppKit"
-        ),
-        .testTarget(
-            name: "A2ATests",
-            dependencies: ["A2A"],
-            path: "Tests/A2ATests"
         ),
         .testTarget(
             name: "PrimitivesTests",
