@@ -530,8 +530,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/BBC6BAE9/a2a-swift";
 			requirement = {
-				kind = exactVersion;
-				version = 0.0.1;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
