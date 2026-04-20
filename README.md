@@ -30,7 +30,6 @@ The package is organized into six independent library products:
 
 | Module | Purpose |
 |--------|---------|
-| **A2A** | A2A protocol client — agent card, task lifecycle, JSON-RPC, HTTP & SSE transports |
 | **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
 | **A2UISwiftCore** | v0.9 shared protocol layer — schema, data model, catalog system, expression parser, transport |
 | **A2UISwiftUI** | v0.9 SwiftUI renderer via `A2UISurfaceView` with `SurfaceViewModel` |
@@ -76,6 +75,8 @@ Includes static JSON demos (no agent required) and live A2A agent connections. E
 ### travel_app
 
 A full-featured travel app sample demonstrating the v0.9 renderer with AI client integration, custom catalog components, and real generative AI interactions.
+
+The A2A protocol client has been extracted into its own package — [a2a-swift](https://github.com/BBC6BAE9/a2a-swift) — and is consumed here as a remote Swift Package Manager dependency.
 
 ## Testing
 
