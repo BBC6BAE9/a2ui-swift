@@ -40,6 +40,15 @@ public enum A2uiMessage: Codable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
+        let version = try container.decode(String.self, forKey: .version)
+        guard version == "v0.9" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .version,
+                in: container,
+                debugDescription: #"A2UI message version must be "v0.9"."#
+            )
+        }
+
         // Validate: only one update-type key is allowed per message.
         let updateTypeKeys: [CodingKeys] = [.createSurface, .updateComponents, .updateDataModel, .deleteSurface]
         let presentKeys = updateTypeKeys.filter { container.contains($0) }

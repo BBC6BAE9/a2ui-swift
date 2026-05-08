@@ -36,5 +36,6 @@ public let basicCatalogId =
 public nonisolated(unsafe) let basicCatalog = Catalog(
     id: "https://a2ui.org/specification/v0_9/basic_catalog.json",
     componentNames: BASIC_COMPONENT_NAMES,
-    functions: BASIC_FUNCTIONS
+    functions: BASIC_FUNCTIONS,
+    componentSchemaPolicy: .bundledA2UIV09BasicCatalog
 )

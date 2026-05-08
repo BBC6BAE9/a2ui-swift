@@ -51,6 +51,9 @@ let package = Package(
             targets: ["A2UIAppKit"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/objecthub/swift-dynamicjson.git", from: "1.0.2"),
+    ],
     targets: [
         .target(
             name: "Primitives",
@@ -62,7 +65,9 @@ let package = Package(
         ),
         .target(
             name: "A2UISwiftCore",
-            path: "Sources/A2UISwiftCore"
+            dependencies: [.product(name: "DynamicJSON", package: "swift-dynamicjson")],
+            path: "Sources/A2UISwiftCore",
+            resources: [.copy("Resources/v0_9")]
         ),
         .target(
             name: "A2UISwiftUI",
