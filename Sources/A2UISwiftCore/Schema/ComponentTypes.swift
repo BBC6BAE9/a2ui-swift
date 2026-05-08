@@ -497,6 +497,7 @@ public struct TextFieldProperties: Codable {
     public var label: DynamicString?
     public var value: DynamicString
     public var variant: TextFieldVariant?
+    public var validationRegexp: String?
     public var checks: [CheckRule]?
 }
 

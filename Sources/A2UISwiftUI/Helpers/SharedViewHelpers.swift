@@ -447,17 +447,47 @@ struct A2UITextFieldView: View {
     let label: String
     @Binding var text: String
     let variant: String?
+    var validationRegexp: String? = nil
     var checksErrorMessage: String? = nil
 
     @Environment(\.a2uiStyle) private var style
     @FocusState private var isFocused: Bool
+
+    // MARK: - Pure validation logic (testable without UI)
+
+    /// Returns an error message if `value` does not fully match `pattern`, or `nil` if it passes.
+    ///
+    /// Semantics (mirrors v0.8):
+    /// - nil / empty pattern → passes (no rule)
+    /// - empty value → passes (emptiness is handled by `required` checks)
+    /// - malformed regex → fail-closed ("Invalid format"), not silently ignored
+    /// - uses `wholeMatch`, not `firstMatch`, to prevent partial-string bypass
+    static func regexpValidationMessage(value: String, pattern: String?) -> String? {
+        guard let pattern, !pattern.isEmpty, !value.isEmpty else { return nil }
+        // try? fails on malformed regex → matched == false → fail-closed
+        let matched = (try? Regex(pattern).wholeMatch(in: value)) != nil
+        return matched ? nil : "Invalid format"
+    }
+
+    /// Returns the message to display: `checks` errors take priority over regexp errors.
+    static func displayedValidationMessage(
+        checksErrorMessage: String?,
+        value: String,
+        pattern: String?
+    ) -> String? {
+        checksErrorMessage ?? regexpValidationMessage(value: value, pattern: pattern)
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
             fieldForVariant
                 .focused($isFocused)
 
-            if let msg = checksErrorMessage {
+            if let msg = Self.displayedValidationMessage(
+                checksErrorMessage: checksErrorMessage,
+                value: text,
+                pattern: validationRegexp
+            ) {
                 Text(msg)
                     .font(.caption)
                     .foregroundStyle(style.textFieldStyle.errorColor ?? .red)
