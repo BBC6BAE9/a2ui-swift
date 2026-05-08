@@ -483,15 +483,12 @@ final class GeminiTravelTransport: TravelTransport {
             }
         }
 
-        // Fallback: use JsonBlockParser (from SPM) for blocks that A2UIStreamParser
-        // couldn't decode (e.g. missing "version" field).
-        // Mirrors Flutter's GoogleGenerativeAiClient fallback path.
+        // Fallback: `JsonBlockParser` for markdown blocks where stream parsing yielded no `.message`s.
+        // Per v0.9 spec / JSON Schema, messages must carry `"version":"v0.9"`; do not fabricate it here.
         if messages.isEmpty {
             let blocks = JsonBlockParser.parseJsonBlocks(text)
             for block in blocks {
-                guard var json = block as? [String: Any] else { continue }
-                // Inject version if missing — matches Flutter SurfaceController behaviour.
-                if json["version"] == nil { json["version"] = "v0.9" }
+                guard let json = block as? [String: Any] else { continue }
                 if let message = MockServerToClientMessages.decodeMessage(json) {
                     messages.append(message)
                 }

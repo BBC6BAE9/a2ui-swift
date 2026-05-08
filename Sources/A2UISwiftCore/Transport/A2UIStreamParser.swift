@@ -233,14 +233,22 @@ public final class A2UIStreamParser: Sendable {
 
         private func tryEmitA2uiMessage(_ dict: [String: Any]) {
             guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return }
+            let looksLikeA2ui = !Self.a2uiKeys.isDisjoint(with: dict.keys)
+            // SPEC v0.9 / renderer_guide: validate against `server_to_client.json` before decode → state.
+            if looksLikeA2ui {
+                do {
+                    try V09JSONSchemaValidation.validateServerToClientMessage(dict)
+                } catch {
+                    continuation.yield(.error(error))
+                    return
+                }
+            }
             do {
                 let message = try JSONDecoder().decode(A2uiMessage.self, from: data)
                 continuation.yield(.message(message))
             } catch {
-                // Swift Codable always throws DecodingError; we can't catch A2uiError directly.
-                // Use key-presence to distinguish "malformed A2UI message" (→ .error, stream continues)
-                // from "unrelated JSON object" (→ .text). Mirrors Flutter's two-branch catch.
-                if !Self.a2uiKeys.isDisjoint(with: dict.keys) {
+                // Swift Codable throws DecodingError; use key-presence like Flutter's two-branch catch.
+                if looksLikeA2ui {
                     continuation.yield(.error(error))
                 } else if let text = String(data: data, encoding: .utf8) {
                     continuation.yield(.text(text))

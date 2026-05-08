@@ -18,6 +18,15 @@ import Foundation
 
 extension RawComponent {
 
+    /// Flat JSON object matching the wire format, suitable for Draft 2020-12 catalog validation.
+    public func asJSONObjectForValidation() throws -> [String: Any] {
+        let data = try JSONEncoder().encode(self)
+        guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw A2uiValidationError("Cannot encode RawComponent for JSON Schema validation.")
+        }
+        return obj
+    }
+
     /// The component type parsed from the `component` discriminator field.
     public var componentType: ComponentType {
         ComponentType.from(component)

@@ -155,6 +155,20 @@ public final class MessageProcessor {
             throw A2uiStateError("Surface not found for message: \(payload.surfaceId)")
         }
 
+        if surface.catalog.componentSchemaPolicy == .bundledA2UIV09BasicCatalog {
+            for rawComp in payload.components {
+                guard !rawComp.component.isEmpty else {
+                    throw A2uiValidationError(
+                        "Component \(rawComp.id) is missing \"component\" type for schema validation."
+                    )
+                }
+                try V09JSONSchemaValidation.validateCatalogComponent(
+                    try rawComp.asJSONObjectForValidation(),
+                    componentType: rawComp.component
+                )
+            }
+        }
+
         for rawComp in payload.components {
             let id = rawComp.id
             let componentType = rawComp.component

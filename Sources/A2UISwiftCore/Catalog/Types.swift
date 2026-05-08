@@ -14,6 +14,17 @@
 
 import Foundation
 
+// MARK: - CatalogComponentSchemaPolicy
+
+/// Controls whether `updateComponents` payloads are validated against bundled A2UI v0.9
+/// catalog JSON Schema before mutating ``SurfaceComponentsModel``.
+public enum CatalogComponentSchemaPolicy: Sendable {
+    /// Skip per-component JSON Schema checks (envelope validation may still run at transport).
+    case none
+    /// Validate each component object against bundled `catalog.json#/components/{Type}` from v0_9 Resources.
+    case bundledA2UIV09BasicCatalog
+}
+
 // MARK: - Catalog
 
 /// A collection of available component type names and optional function implementations.
@@ -27,6 +38,9 @@ public final class Catalog {
 
     /// Named function implementations, keyed by function name.
     public let functions: [String: FunctionInvoker]
+
+    /// Optional strict JSON Schema validation for component trees from `updateComponents`.
+    public let componentSchemaPolicy: CatalogComponentSchemaPolicy
 
     /// A ready-to-use FunctionInvoker that delegates to this catalog's registered functions.
     /// Mirrors WebCore `Catalog.invoker`.
@@ -43,10 +57,12 @@ public final class Catalog {
     public init(
         id: String,
         componentNames: Set<String> = [],
-        functions: [String: FunctionInvoker] = [:]
+        functions: [String: FunctionInvoker] = [:],
+        componentSchemaPolicy: CatalogComponentSchemaPolicy = .none
     ) {
         self.id = id
         self.componentNames = componentNames
         self.functions = functions
+        self.componentSchemaPolicy = componentSchemaPolicy
     }
 }
