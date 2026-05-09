@@ -430,6 +430,100 @@ struct BasicFunctionsTests {
             #expect(result == .string("Value: 10"))
         }
 
+        // MARK: Type-conversion cases — spec §"formatString type conversion"
+        // Objects/Arrays MUST be serialised as JSON (not comma-joined or "[object Object]").
+
+        @Test("formatString: array → JSON string")
+        func formatStringArray() throws {
+            // Spec: `"Tags: ${/tags}"` with tags=["swift","ios"]
+            //       → `Tags: ["swift","ios"]`
+            let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
+            let surface = SurfaceModel(id: "s1", catalog: catalog)
+            try surface.dataModel.set(
+                "/", value: .dictionary(["tags": .array([.string("swift"), .string("ios")])]))
+            let context = DataContext(surface: surface, path: "/")
+
+            let result = try invoke(
+                "formatString", ["value": .string("Tags: ${/tags}")],
+                catalog: catalog, context: context)
+            #expect(result == .string(#"Tags: ["swift","ios"]"#))
+        }
+
+        @Test("formatString: object → JSON string")
+        func formatStringObject() throws {
+            // Spec: `"User: ${/user}"` with user={name:"Alice",age:30}
+            //       → `User: {"name":"Alice","age":30}`  (key order must be stable)
+            let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
+            let surface = SurfaceModel(id: "s1", catalog: catalog)
+            try surface.dataModel.set(
+                "/",
+                value: .dictionary([
+                    "user": .dictionary(["name": .string("Alice"), "age": .number(30)])
+                ]))
+            let context = DataContext(surface: surface, path: "/")
+
+            let result = try invoke(
+                "formatString", ["value": .string("User: ${/user}")],
+                catalog: catalog, context: context)
+            // JSONEncoder key order is sorted on Apple platforms, so "age" < "name".
+            #expect(result == .string(#"User: {"age":30,"name":"Alice"}"#))
+        }
+
+        @Test("formatString: nested array → JSON string")
+        func formatStringNestedArray() throws {
+            // Spec: `"M = ${/matrix}"` with matrix=[[1,2],[3,4]]
+            //       → `M = [[1,2],[3,4]]`   (must NOT flatten to "1,2,3,4")
+            let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
+            let surface = SurfaceModel(id: "s1", catalog: catalog)
+            try surface.dataModel.set(
+                "/",
+                value: .dictionary([
+                    "matrix": .array([
+                        .array([.number(1), .number(2)]),
+                        .array([.number(3), .number(4)]),
+                    ])
+                ]))
+            let context = DataContext(surface: surface, path: "/")
+
+            let result = try invoke(
+                "formatString", ["value": .string("M = ${/matrix}")],
+                catalog: catalog, context: context)
+            #expect(result == .string("M = [[1,2],[3,4]]"))
+        }
+
+        @Test("formatString: array with null → JSON string")
+        func formatStringArrayWithNull() throws {
+            // Spec: `"V = ${/vals}"` with vals=[1,null,3]
+            //       → `V = [1,null,3]`    (null must NOT be silently dropped as "1,,3")
+            let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
+            let surface = SurfaceModel(id: "s1", catalog: catalog)
+            try surface.dataModel.set(
+                "/",
+                value: .dictionary([
+                    "vals": .array([.number(1), .null, .number(3)])
+                ]))
+            let context = DataContext(surface: surface, path: "/")
+
+            let result = try invoke(
+                "formatString", ["value": .string("V = ${/vals}")],
+                catalog: catalog, context: context)
+            #expect(result == .string("V = [1,null,3]"))
+        }
+
+        @Test("formatString: scalar null/missing → empty string")
+        func formatStringScalarNull() throws {
+            // Spec: null/undefined → ""   (unchanged from existing behaviour)
+            let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
+            let surface = SurfaceModel(id: "s1", catalog: catalog)
+            try surface.dataModel.set("/", value: .dictionary(["x": .null]))
+            let context = DataContext(surface: surface, path: "/")
+
+            let result = try invoke(
+                "formatString", ["value": .string("x=${/x}")],
+                catalog: catalog, context: context)
+            #expect(result == .string("x="))
+        }
+
         // NOTE: "formatString (with function call)" is not tested.
         // WebCore's version resolves nested function-call expressions via Preact signals
         // reactive invoker — TypeScript/signals-specific behavior not applicable in Swift.
