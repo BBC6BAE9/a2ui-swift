@@ -51,7 +51,14 @@ let package = Package(
             targets: ["A2UIAppKit"]
         ),
     ],
-    dependencies: [],
+    dependencies: [
+        // Upstream SwiftPM manifest is named `FoundationICU`; SPM package id from this URL is `swift-foundation-icu`.
+        // Exported library product is `_FoundationICU` only.
+        .package(
+            url: "https://github.com/swiftlang/swift-foundation-icu.git",
+            revision: "swift-6.3.1-RELEASE"
+        ),
+    ],
     targets: [
         .target(
             name: "Primitives",
@@ -63,6 +70,9 @@ let package = Package(
         ),
         .target(
             name: "A2UISwiftCore",
+            dependencies: [
+                .product(name: "_FoundationICU", package: "swift-foundation-icu"),
+            ],
             path: "Sources/A2UISwiftCore"
         ),
         .target(

@@ -432,12 +432,14 @@ private func basicFormatDate(_ name: String, _ args: [String: AnyCodable], _ con
     return .string(outputFormatter.string(from: parsedDate))
 }
 
+// WebCore `PluralizeImplementation`:
+//   const rule = new Intl.PluralRules('en-US').select(args.value);
+//   return String((args as Record<string, unknown>)[rule] ?? args.other ?? '');
 private func basicPluralize(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
-    let count = try coerceDouble(args["value"], argName: "value", funcName: name)
-    if count == 0, let val = args["zero"], let s = toString(val) { return .string(s) }
-    if count == 1, let val = args["one"],  let s = toString(val) { return .string(s) }
-    if let val = args["other"], let s = toString(val) { return .string(s) }
-    return .string("")
+    let value = try coerceDouble(args["value"], argName: "value", funcName: name)
+    _ = try coerceRequiredString(args["other"], argName: "other", funcName: name)
+    let rule = A2UIPluralRules(localeIdentifier: "en-US").select(value)
+    return .string(toString(args[rule]) ?? toString(args["other"]) ?? "")
 }
 
 private func basicOpenUrl(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
