@@ -18,8 +18,8 @@ import A2UISwiftCore
 /// Spec v0.9 TextField — input component.
 ///
 /// Spec properties (basic_catalog.json:537-557):
-/// - `label` (required): DynamicString
-/// - `value` (optional): DynamicString — bound to data model
+/// - `label` (optional): DynamicString
+/// - `value` (required): DynamicString — bound to data model
 /// - `variant` (optional): `longText` | `number` | `shortText` | `obscured` (default `shortText`).
 ///   Note: `date` is **not** a v0.9 variant — use `DateTimeInput` for date/time input.
 /// - `validationRegexp` (optional): client-side regex, whole-string match, fail-closed on malformed
