@@ -15,9 +15,10 @@
 import Foundation
 
 /// The catalog ID for the basic catalog.
-/// Mirrors Flutter's `basicCatalogId` from `primitives/constants.dart`.
+/// Mirrors Flutter's `basicCatalogId` from `primitives/constants.dart` and v0.9
+/// spec examples (`createSurface.catalogId`).
 public let basicCatalogId =
-    "https://a2ui.org/specification/v0_9/standard_catalog.json"
+    "https://a2ui.org/specification/v0_9/basic_catalog.json"
 
 /// The ready-to-use Basic Catalog instance.
 ///
@@ -34,7 +35,7 @@ public let basicCatalogId =
 /// A2UISurfaceView(viewModel: vm)
 /// ```
 public nonisolated(unsafe) let basicCatalog = Catalog(
-    id: "https://a2ui.org/specification/v0_9/basic_catalog.json",
+    id: basicCatalogId,
     componentNames: BASIC_COMPONENT_NAMES,
     functions: BASIC_FUNCTIONS
 )
