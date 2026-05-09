@@ -91,31 +91,39 @@ struct ButtonActionView<Label: View>: View {
     }
 
     var body: some View {
-        if let custom = style.buttonStyles[variant.rawValue] {
-            // Custom drawing path -- ButtonVariantStyle override is set
-            SwiftUI.Button(action: handleAction) { label() }
-                .buttonStyle(.plain)
-                .foregroundStyle(custom.foregroundColor ?? .primary)
-                .padding(.horizontal, custom.horizontalPadding ?? 16)
-                .padding(.vertical, custom.verticalPadding ?? 8)
-                .background(
-                    RoundedRectangle(cornerRadius: custom.cornerRadius ?? 8)
-                        .fill(custom.backgroundColor ?? .clear)
-                )
-        } else {
-            // System ButtonStyle path -- native HIG rendering
-            switch variant {
-            case .primary:
+        // Spec §617 (a2ui_protocol.md): "If any check fails, the button is automatically disabled."
+        // firstFailingCheckMessage reads PathSlots inside body, so SwiftUI tracks deps reactively.
+        let dc = DataContext(surface: surface, path: dataContextPath)
+        let isDisabled = dc.firstFailingCheckMessage(props.checks) != nil
+
+        Group {
+            if let custom = style.buttonStyles[variant.rawValue] {
+                // Custom drawing path -- ButtonVariantStyle override is set
                 SwiftUI.Button(action: handleAction) { label() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(style.primaryColor)
-            case .borderless:
-                SwiftUI.Button(action: handleAction) { label() }
-                    .buttonStyle(.borderless)
-            default:
-                SwiftUI.Button(action: handleAction) { label() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(custom.foregroundColor ?? .primary)
+                    .padding(.horizontal, custom.horizontalPadding ?? 16)
+                    .padding(.vertical, custom.verticalPadding ?? 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: custom.cornerRadius ?? 8)
+                            .fill(custom.backgroundColor ?? .clear)
+                    )
+            } else {
+                // System ButtonStyle path -- native HIG rendering
+                switch variant {
+                case .primary:
+                    SwiftUI.Button(action: handleAction) { label() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(style.primaryColor)
+                case .borderless:
+                    SwiftUI.Button(action: handleAction) { label() }
+                        .buttonStyle(.borderless)
+                default:
+                    SwiftUI.Button(action: handleAction) { label() }
+                        .buttonStyle(.bordered)
+                }
             }
         }
+        .disabled(isDisabled)
     }
 }

@@ -21,19 +21,27 @@ import A2UISwiftCore
 //   - value (required): DynamicStringList — array of selected values
 //   - options (required): [ChoicePickerOption] — available choices
 //   - displayStyle: "checkbox" (default) | "chips"
+//   - variant: "mutuallyExclusive" (default) | "multipleSelection"
 //   - filterable: Bool — shows search to filter options
 //   - label: DynamicString — label above the component
 //
 // ## Rendering strategy
 //
-//   ChoicePicker is always multi-select. `value` is an array of selected
-//   option.value strings; toggling an option adds/removes it from the array.
+//   `variant` controls selection semantics (matches Lit/React/Angular/Flutter):
+//     mutuallyExclusive (default) → setValue([val]); tapping the same option
+//                                   re-emits [val] (radio; no toggle-off).
+//     multipleSelection           → toggle in/out of the array.
+//
+//   Visual differentiation (non-chips only — chips use the same widget for
+//   both variants, matching all reference renderers):
+//     mutuallyExclusive + checkbox displayStyle → radio circle icon
+//     multipleSelection + checkbox displayStyle → checkmark icon
 //
 //   tvOS (all variants):
-//     NavigationLink → secondary page with checkmark list
+//     NavigationLink → secondary page with selection list
 //
 //   filterable = false:
-//     checkbox → inline checkmark rows
+//     checkbox → inline rows
 //     chips    → FlowLayout with capsule buttons
 //   filterable = true:
 //     sheet + .searchable() + list/chips inside
@@ -106,6 +114,18 @@ struct ChoicePickerContent: View {
 
     private var isChips: Bool { properties.displayStyle == .chips }
 
+    /// Spec default: `mutuallyExclusive` when `variant` is absent.
+    /// All v0.9 reference renderers apply this default (Lit/React/Angular via
+    /// Zod `.default()`, Flutter via field-level check). Swift renderer applies
+    /// it explicitly here since the schema validation layer was removed.
+    private var isMutuallyExclusive: Bool {
+        switch properties.variant ?? .mutuallyExclusive {
+        case .mutuallyExclusive: return true
+        case .multipleSelection: return false
+        case .unknown: return true  // unknown values default to spec default
+        }
+    }
+
     private var labelText: String? {
         guard let labelVal = properties.label else { return nil }
         let resolved = dc.resolve(labelVal)
@@ -161,11 +181,7 @@ struct ChoicePickerContent: View {
                 HStack {
                     Text(option.label)
                     Spacer()
-                    if selected {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(Color.accentColor)
-                            .fontWeight(.semibold)
-                    }
+                    selectionIndicator(selected: selected)
                 }
             }
         }
@@ -288,11 +304,7 @@ struct ChoicePickerContent: View {
                             Text(option.label)
                                 .foregroundStyle(.primary)
                             Spacer()
-                            if selected {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Color.accentColor)
-                                    .fontWeight(.semibold)
-                            }
+                            selectionIndicator(selected: selected)
                         }
                         .contentShape(Rectangle())
                     }
@@ -307,6 +319,23 @@ struct ChoicePickerContent: View {
     }
 
     // MARK: - Shared Subviews
+
+    /// Selection indicator icon for non-chips list rows.
+    /// - mutuallyExclusive: always shows a radio circle (filled when selected).
+    /// - multipleSelection: shows a checkmark only when selected (current behavior).
+    /// Mirrors visual differentiation in Lit (`<input type=radio|checkbox>`),
+    /// React (same), Angular (same), and Flutter (`RadioListTile` vs `CheckboxListTile`).
+    @ViewBuilder
+    private func selectionIndicator(selected: Bool) -> some View {
+        if isMutuallyExclusive {
+            Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                .foregroundStyle(selected ? Color.accentColor : .secondary)
+        } else if selected {
+            Image(systemName: "checkmark")
+                .foregroundStyle(Color.accentColor)
+                .fontWeight(.semibold)
+        }
+    }
 
     /// Chips layout using custom FlowLayout for wrapping horizontal chips.
     @ViewBuilder
@@ -359,11 +388,7 @@ struct ChoicePickerContent: View {
                     Text(option.label)
                         .foregroundStyle(.primary)
                     Spacer()
-                    if selected {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(Color.accentColor)
-                            .fontWeight(.semibold)
-                    }
+                    selectionIndicator(selected: selected)
                 }
                 .contentShape(Rectangle())
             }
@@ -379,10 +404,10 @@ struct ChoicePickerContent: View {
     // MARK: - Toggle Logic
 
     private func toggle(_ value: String) {
-        let newSelections = MultipleChoiceLogic.toggle(
+        let newSelections = MultipleChoiceLogic.selectionAfterTap(
             value: value,
             in: currentSelections,
-            maxAllowed: nil
+            isMutuallyExclusive: isMutuallyExclusive
         )
         guard case .dataBinding(let path) = properties.value else { return }
         try? dc.set(path, value: .array(newSelections.map { .string($0) }))

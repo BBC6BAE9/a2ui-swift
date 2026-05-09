@@ -15,20 +15,28 @@
 import SwiftUI
 import A2UISwiftCore
 
-func a2uiHorizontalAlignment(_ align: String?) -> HorizontalAlignment {
+/// Maps spec `Align` (`start | center | end | stretch`) to a SwiftUI `HorizontalAlignment`.
+///
+/// `.stretch` and `.unknown(_)` fall through to the spec-default cross-axis
+/// start-anchor (`.leading`), matching the pre-existing string-based behavior.
+func a2uiHorizontalAlignment(_ align: Align?) -> HorizontalAlignment {
     switch align {
-    case "start": return .leading
-    case "center": return .center
-    case "end": return .trailing
+    case .start: return .leading
+    case .center: return .center
+    case .end: return .trailing
     default: return .leading
     }
 }
 
-func a2uiVerticalAlignment(_ align: String?) -> VerticalAlignment {
+/// Maps spec `Align` (`start | center | end | stretch`) to a SwiftUI `VerticalAlignment`.
+///
+/// `.stretch` and `.unknown(_)` fall through to the spec-default cross-axis
+/// start-anchor (`.top`), matching the pre-existing string-based behavior.
+func a2uiVerticalAlignment(_ align: Align?) -> VerticalAlignment {
     switch align {
-    case "start": return .top
-    case "center": return .center
-    case "end": return .bottom
+    case .start: return .top
+    case .center: return .center
+    case .end: return .bottom
     default: return .top
     }
 }

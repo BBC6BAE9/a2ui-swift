@@ -17,21 +17,22 @@ import A2UISwiftCore
 
 /// Spec v0.9 TextField — input component.
 ///
-/// Spec properties:
-/// - `label` (optional): DynamicString
-/// - `value` (required): DynamicString — bound to data model
-/// - `variant` (optional): `date`, `longText`, `number`, `shortText`, `obscured`
+/// Spec properties (basic_catalog.json:537-557):
+/// - `label` (required): DynamicString
+/// - `value` (optional): DynamicString — bound to data model
+/// - `variant` (optional): `longText` | `number` | `shortText` | `obscured` (default `shortText`).
+///   Note: `date` is **not** a v0.9 variant — use `DateTimeInput` for date/time input.
 /// - `validationRegexp` (optional): client-side regex, whole-string match, fail-closed on malformed
 /// - `checks` (optional): [CheckRule]
 ///
 /// ## Rendering strategy: system native, zero hardcoded values.
 ///
-/// Each variant maps to the most appropriate native SwiftUI control:
+/// Each variant maps to the most appropriate native SwiftUI control (matches
+/// React/Lit/Flutter v0.9 reference renderers):
 /// - `shortText` / default → `TextField` with `.textFieldStyle(.roundedBorder)`
 /// - `obscured` → `SecureField` with `.textFieldStyle(.roundedBorder)`
 /// - `number` → `TextField` + `.keyboardType(.decimalPad)`
 /// - `longText` → `TextEditor` (with label above; fallback to `TextField` on watchOS/tvOS)
-/// - `date` → `DatePicker` (rendered by `A2UIDateTimeInput`, but fallback `TextField` here)
 ///
 /// No hardcoded spacing, padding, colors, or corner radii — all system defaults.
 struct A2UITextField: View {
@@ -52,7 +53,7 @@ struct A2UITextField: View {
             A2UITextFieldView(
                 label: label,
                 text: binding,
-                variant: props.variant?.rawValue,
+                variant: props.variant,
                 validationRegexp: props.validationRegexp,
                 checksErrorMessage: checksError
             )

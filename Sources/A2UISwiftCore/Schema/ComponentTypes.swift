@@ -373,6 +373,40 @@ public enum ChoicePickerDisplayStyle: Codable, Hashable {
     }
 }
 
+/// ChoicePicker selection variant.
+///
+/// Spec (basic_catalog.json:619-624):
+///   `variant: "multipleSelection" | "mutuallyExclusive"` (default `mutuallyExclusive`).
+/// Reference renderers (Lit/React/Angular/Flutter) all apply the spec default
+/// when the field is absent — Swift renderer must do the same explicitly because
+/// it does not run schema-level default coercion.
+public enum ChoicePickerVariant: Codable, Hashable {
+    case mutuallyExclusive, multipleSelection
+    case unknown(String)
+
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "mutuallyExclusive": self = .mutuallyExclusive
+        case "multipleSelection": self = .multipleSelection
+        default: self = .unknown(raw)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public var rawValue: String {
+        switch self {
+        case .mutuallyExclusive: return "mutuallyExclusive"
+        case .multipleSelection: return "multipleSelection"
+        case .unknown(let s): return s
+        }
+    }
+}
+
 // MARK: - Basic Content
 
 public struct TextProperties: Codable {
@@ -491,6 +525,8 @@ public struct ButtonProperties: Codable {
     public var child: String
     public var action: Action
     public var variant: ButtonVariant_Enum?
+    /// Spec §617 (a2ui_protocol.md): "If any check fails, the button is automatically disabled."
+    public var checks: [CheckRule]?
 }
 
 public struct TextFieldProperties: Codable {
@@ -535,6 +571,8 @@ public struct ChoicePickerProperties: Codable {
     public var options: [ChoicePickerOption]
     public var value: DynamicStringList?
     public var displayStyle: ChoicePickerDisplayStyle?
+    /// Spec (basic_catalog.json:619-624): default `mutuallyExclusive` when absent.
+    public var variant: ChoicePickerVariant?
     public var filterable: Bool?
     public var checks: [CheckRule]?
 }

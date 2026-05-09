@@ -446,7 +446,7 @@ struct VideoNodeView: View {
 struct A2UITextFieldView: View {
     let label: String
     @Binding var text: String
-    let variant: String?
+    let variant: TextFieldVariant?
     var validationRegexp: String? = nil
     var checksErrorMessage: String? = nil
 
@@ -499,14 +499,21 @@ struct A2UITextFieldView: View {
     private var fieldForVariant: some View {
         let tfStyle = style.textFieldStyle
 
+        // Spec v0.9 (basic_catalog.json:551): variant ∈ ["longText","number","shortText","obscured"].
+        // Mapping mirrors v0.9 reference renderers (React TextField.tsx:29-31, Lit TextField.ts:86-88,
+        // Angular text-field.component.ts:106-115, Flutter text_field.dart:148-153):
+        //   - .obscured → password / SecureField
+        //   - .longText → multi-line widget (textarea / TextEditor / multiline keyboard)
+        //   - .number   → numeric input / decimalPad keyboard
+        //   - .shortText / .unknown(_) / nil → plain TextField (default)
         switch variant {
-        case "obscured":
+        case .obscured:
             SecureField(label, text: $text)
                 #if !os(watchOS) && !os(tvOS)
                 .textFieldStyle(.roundedBorder)
                 #endif
 
-        case "longText":
+        case .longText:
             #if os(watchOS) || os(tvOS)
             SwiftUI.TextField(label, text: $text)
             #else
@@ -530,7 +537,7 @@ struct A2UITextFieldView: View {
             }
             #endif
 
-        case "number":
+        case .number:
             SwiftUI.TextField(label, text: $text)
                 #if !os(watchOS) && !os(tvOS)
                 .textFieldStyle(.roundedBorder)
@@ -539,22 +546,7 @@ struct A2UITextFieldView: View {
                 .keyboardType(.decimalPad)
                 #endif
 
-        case "date":
-            SwiftUI.TextField(label, text: $text)
-                #if !os(watchOS) && !os(tvOS)
-                .textFieldStyle(.roundedBorder)
-                #endif
-                #if os(iOS)
-                .keyboardType(.numbersAndPunctuation)
-                #endif
-
-        case "shortText":
-            SwiftUI.TextField(label, text: $text)
-                #if !os(watchOS) && !os(tvOS)
-                .textFieldStyle(.roundedBorder)
-                #endif
-
-        default:
+        case .shortText, .unknown, .none:
             SwiftUI.TextField(label, text: $text)
                 #if !os(watchOS) && !os(tvOS)
                 .textFieldStyle(.roundedBorder)
@@ -585,6 +577,24 @@ enum MultipleChoiceLogic {
             }
         }
         return result
+    }
+
+    /// Computes the new selection set after a tap, honoring ChoicePicker.variant semantics.
+    ///
+    /// Mirrors all v0.9 reference renderers (Lit `ChoicePicker.ts:113-127`,
+    /// React `ChoicePicker.tsx:33-44`, Angular `choice-picker.component.ts:157-172`,
+    /// Flutter `choice_picker.dart:340-360`):
+    ///   - `mutuallyExclusive` → returns `[value]` always (radio semantics; no toggle-off).
+    ///   - `multipleSelection`  → standard add/remove toggle.
+    static func selectionAfterTap(
+        value: String,
+        in selections: [String],
+        isMutuallyExclusive: Bool
+    ) -> [String] {
+        if isMutuallyExclusive {
+            return [value]
+        }
+        return toggle(value: value, in: selections, maxAllowed: nil)
     }
 
     static func filter(
