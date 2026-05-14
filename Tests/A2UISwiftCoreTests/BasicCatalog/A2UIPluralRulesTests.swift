@@ -178,4 +178,27 @@ struct A2UIPluralRulesTests {
         #expect(rules.select(Double.infinity) == "other")
         #expect(rules.select(-Double.infinity) == "other")
     }
+
+    // Verify ICU C API accepts both BCP-47 (hyphen) and POSIX/ICU (underscore) formats.
+    // BCP-47 comes from the server / host app (WebCore convention).
+    // ICU underscore format comes from Locale.current.identifier (Apple fallback).
+    @Test(
+        "ICU accepts both BCP-47 and POSIX locale identifiers",
+        arguments: [
+            ("en-US", "en_US", 1.0, "one"),
+            ("en-US", "en_US", 2.0, "other"),
+            ("pl",    "pl",    2.0, "few"),
+            ("pl",    "pl",    5.0, "many"),
+            ("ar",    "ar",    0.0, "zero"),
+            ("ar",    "ar",    2.0, "two"),
+            ("zh-CN", "zh_CN", 1.0, "other"),
+        ]
+    )
+    func bcp47VsIcu(bcp47: String, icu: String, number: Double, want: String) {
+        let fromBcp47 = A2UIPluralRules(localeIdentifier: bcp47).select(number)
+        let fromIcu   = A2UIPluralRules(localeIdentifier: icu).select(number)
+        #expect(fromBcp47 == want)
+        #expect(fromIcu == want)
+        #expect(fromBcp47 == fromIcu)
+    }
 }
