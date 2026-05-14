@@ -61,10 +61,11 @@ func createTestContext(
 func createTestDataContext(
     data: [String: AnyCodable] = [:],
     path: String = "/",
-    functions: [String: FunctionInvoker] = [:]
+    functions: [String: FunctionInvoker] = [:],
+    locale: String? = nil
 ) -> DataContext {
     let catalog = Catalog(id: "test-catalog", functions: functions)
-    let surface = SurfaceModel(id: "test", catalog: catalog)
+    let surface = SurfaceModel(id: "test", catalog: catalog, locale: locale)
     if !data.isEmpty {
         try! surface.dataModel.set("/", value: .dictionary(data))
     }
@@ -77,9 +78,9 @@ func createTestDataContext(
 // data-context.test.ts: creates a bare SurfaceModel pre-loaded with
 // optional data, for direct use in DataContext construction.
 
-func makeSurface(data: [String: AnyCodable] = [:]) -> SurfaceModel {
+func makeSurface(data: [String: AnyCodable] = [:], locale: String? = nil) -> SurfaceModel {
     let catalog = Catalog(id: "test-catalog")
-    let surface = SurfaceModel(id: "test", catalog: catalog)
+    let surface = SurfaceModel(id: "test", catalog: catalog, locale: locale)
     if !data.isEmpty {
         try! surface.dataModel.set("/", value: .dictionary(data))
     }

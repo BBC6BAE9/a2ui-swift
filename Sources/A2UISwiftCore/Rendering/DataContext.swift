@@ -104,6 +104,12 @@ public final class DataContext {
         self.functionInvoker = surface.catalog.invoker
     }
 
+    /// The locale for this context, inherited from the surface.
+    /// Mirrors WebCore `DataContext.locale`.
+    public var locale: String? {
+        surface.locale
+    }
+
     // MARK: - resolvePath
 
     /// Resolves a path: absolute paths pass through; relative paths are joined with the base path.

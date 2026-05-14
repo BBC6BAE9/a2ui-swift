@@ -337,6 +337,18 @@ private func basicEmail(_ name: String, _ args: [String: AnyCodable], _ context:
 
 // MARK: - Formatting
 
+/// Resolves the locale to use for locale-sensitive functions.
+/// Mirrors WebCore fallback chain: context.locale → client default.
+private func resolveLocale(_ context: DataContext) -> Locale {
+    if let id = context.locale { return Locale(identifier: id) }
+    return Locale.current
+}
+
+/// Resolves the locale identifier string for ICU-level APIs (e.g. A2UIPluralRules).
+private func resolveLocaleIdentifier(_ context: DataContext) -> String {
+    context.locale ?? Locale.current.identifier
+}
+
 private func basicFormatString(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
     // z.coerce.string(): missing → throw (String(undefined) = "undefined" in JS,
     // but we treat missing as a server error and throw for early failure).
@@ -367,9 +379,10 @@ private func basicFormatString(_ name: String, _ args: [String: AnyCodable], _ c
 private func basicFormatNumber(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
     let value = try coerceDouble(args["value"], argName: "value", funcName: name)
     if value.isNaN { return .string("") }
+    // Mirrors WebCore: try locale-aware formatting, fall back to plain decimal on error.
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
-    formatter.locale = Locale.current
+    formatter.locale = resolveLocale(context)
     if let decimals = toDouble(args["decimals"]) {
         let d = Int(decimals)
         formatter.minimumFractionDigits = d
@@ -378,7 +391,14 @@ private func basicFormatNumber(_ name: String, _ args: [String: AnyCodable], _ c
     if let groupingVal = args["grouping"]?.boolValue {
         formatter.usesGroupingSeparator = groupingVal
     }
-    return .string(formatter.string(from: NSNumber(value: value)) ?? "")
+    if let result = formatter.string(from: NSNumber(value: value)) {
+        return .string(result)
+    }
+    // Fallback mirrors WebCore: `args.decimals !== undefined ? value.toFixed(decimals) : String(value)`
+    if let decimals = toDouble(args["decimals"]) {
+        return .string(String(format: "%.\(Int(decimals))f", value))
+    }
+    return .string(String(value))
 }
 
 private func basicFormatCurrency(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
@@ -387,7 +407,7 @@ private func basicFormatCurrency(_ name: String, _ args: [String: AnyCodable], _
     let currency = (try? coerceRequiredString(args["currency"], argName: "currency", funcName: name)) ?? "USD"
     let formatter = NumberFormatter()
     formatter.numberStyle = .currency
-    formatter.locale = Locale.current
+    formatter.locale = resolveLocale(context)
     formatter.currencyCode = currency
     if let decimals = toDouble(args["decimals"]) {
         let d = Int(decimals)
@@ -443,19 +463,33 @@ private func basicFormatDate(_ name: String, _ args: [String: AnyCodable], _ con
         }
     }
     let outputFormatter = DateFormatter()
-    outputFormatter.locale = Locale.current
+    // Mirrors the locale-sensitive approach used by formatNumber/formatCurrency/pluralize.
+    // WebCore's date-fns format() is inherently locale-neutral (always English patterns),
+    // so the PR didn't change formatDate. But Swift's DateFormatter IS locale-sensitive —
+    // patterns like "MMMM" produce different month names per locale — so we must respect
+    // context.locale here to maintain consistency across all locale-sensitive functions.
+    outputFormatter.locale = resolveLocale(context)
     outputFormatter.dateFormat = formatStr
     return .string(outputFormatter.string(from: parsedDate))
 }
 
 // WebCore `PluralizeImplementation`:
-//   const rule = new Intl.PluralRules('en-US').select(args.value);
-//   return String((args as Record<string, unknown>)[rule] ?? args.other ?? '');
+//   try {
+//     const rule = getPluralRules(context.locale).select(args.value);
+//     return String((args as Record<string, unknown>)[rule] ?? args.other ?? '');
+//   } catch (e) {
+//     console.warn('Error in pluralize:', e);
+//     return String(args.other ?? '');
+//   }
 private func basicPluralize(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {
     let value = try coerceDouble(args["value"], argName: "value", funcName: name)
     _ = try coerceRequiredString(args["other"], argName: "other", funcName: name)
-    let rule = A2UIPluralRules(localeIdentifier: "en-US").select(value)
-    return .string(toString(args[rule]) ?? toString(args["other"]) ?? "")
+    // Mirrors WebCore: try locale-aware plural selection, fall back to `other` on error.
+    let rule = A2UIPluralRules(localeIdentifier: resolveLocaleIdentifier(context)).select(value)
+    if let matched = toString(args[rule]) {
+        return .string(matched)
+    }
+    return .string(toString(args["other"]) ?? "")
 }
 
 private func basicOpenUrl(_ name: String, _ args: [String: AnyCodable], _ context: DataContext) throws -> AnyCodable? {

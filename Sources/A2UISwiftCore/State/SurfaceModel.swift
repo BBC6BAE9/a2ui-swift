@@ -27,6 +27,10 @@ public final class SurfaceModel: Identifiable {
     public let catalog: Catalog
     public let theme: AnyCodable?
     public let sendDataModel: Bool
+    /// The locale to use in locale-sensitive functions (BCP 47, e.g. "en-US", "pl", "ar").
+    /// When nil, functions fall back to the client's current locale.
+    /// Mirrors WebCore `SurfaceModel.locale`.
+    public let locale: String?
 
     public let dataModel: DataModel
     public let componentsModel: SurfaceComponentsModel
@@ -51,13 +55,15 @@ public final class SurfaceModel: Identifiable {
         id: String,
         catalog: Catalog,
         theme: AnyCodable? = nil,
-        sendDataModel: Bool = false
+        sendDataModel: Bool = false,
+        locale: String? = nil
     ) {
         self.id = id
         self.catalog = catalog
         self.catalogId = catalog.id
         self.theme = theme
         self.sendDataModel = sendDataModel
+        self.locale = locale
         self.dataModel = DataModel()
         self.componentsModel = SurfaceComponentsModel()
     }
@@ -67,13 +73,15 @@ public final class SurfaceModel: Identifiable {
         id: String,
         catalogId: String = "",
         theme: AnyCodable? = nil,
-        sendDataModel: Bool = false
+        sendDataModel: Bool = false,
+        locale: String? = nil
     ) {
         self.init(
             id: id,
             catalog: Catalog(id: catalogId),
             theme: theme,
-            sendDataModel: sendDataModel
+            sendDataModel: sendDataModel,
+            locale: locale
         )
     }
 

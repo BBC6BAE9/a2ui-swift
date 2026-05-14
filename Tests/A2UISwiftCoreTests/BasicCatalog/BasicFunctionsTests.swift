@@ -20,9 +20,9 @@ import Foundation
 
 // MARK: - Test Fixtures
 
-private func makeContext() throws -> (catalog: Catalog, context: DataContext) {
+private func makeContext(locale: String? = nil) throws -> (catalog: Catalog, context: DataContext) {
     let catalog = Catalog(id: "basic", functions: BASIC_FUNCTIONS)
-    let surface = SurfaceModel(id: "s1", catalog: catalog)
+    let surface = SurfaceModel(id: "s1", catalog: catalog, locale: locale)
     try surface.dataModel.set("/", value: .dictionary(["a": .number(10), "b": .number(20)]))
     let context = DataContext(surface: surface, path: "/")
     return (catalog, context)
@@ -587,6 +587,64 @@ struct BasicFunctionsTests {
             } else {
                 Issue.record("Expected a string result from formatCurrency with invalid currency code")
             }
+        }
+
+        // MARK: - Pluralize
+
+        @Test("pluralize selects correct plural form (en-US default)")
+        func pluralizeDefault() throws {
+            let (catalog, context) = try makeContext()
+            #expect(
+                try invoke("pluralize", ["value": .number(1), "one": .string("apple"), "other": .string("apples")], catalog: catalog, context: context)
+                == .string("apple")
+            )
+            #expect(
+                try invoke("pluralize", ["value": .number(5), "one": .string("apple"), "other": .string("apples")], catalog: catalog, context: context)
+                == .string("apples")
+            )
+        }
+
+        // Mirrors WebCore test: "pluralize with Welsh locale"
+        // Welsh (cy) exercises all 6 CLDR plural categories.
+        @Test("pluralize with Welsh locale")
+        func pluralizeWelsh() throws {
+            let (catalog, context) = try makeContext(locale: "cy")
+            // Welsh for various numbers of "cat"
+            let args: [String: AnyCodable] = [
+                "zero": .string("cathod"),
+                "one": .string("gath"),
+                "two": .string("gath"),
+                "few": .string("cath"),
+                "many": .string("chath"),
+                "other": .string("cath"),
+            ]
+            #expect(try invoke("pluralize", args.merging(["value": .number(0)]) { $1 }, catalog: catalog, context: context) == .string("cathod"))
+            #expect(try invoke("pluralize", args.merging(["value": .number(1)]) { $1 }, catalog: catalog, context: context) == .string("gath"))
+            #expect(try invoke("pluralize", args.merging(["value": .number(2)]) { $1 }, catalog: catalog, context: context) == .string("gath"))
+            #expect(try invoke("pluralize", args.merging(["value": .number(3)]) { $1 }, catalog: catalog, context: context) == .string("cath"))
+            #expect(try invoke("pluralize", args.merging(["value": .number(6)]) { $1 }, catalog: catalog, context: context) == .string("chath"))
+            #expect(try invoke("pluralize", args.merging(["value": .number(4)]) { $1 }, catalog: catalog, context: context) == .string("cath"))
+        }
+
+        // Mirrors WebCore test: "pluralize fallback to other"
+        @Test("pluralize fallback to other")
+        func pluralizeFallback() throws {
+            let (catalog, context) = try makeContext()
+            // value=5 → "other" category, returns "apples"
+            #expect(
+                try invoke("pluralize", ["value": .number(5), "one": .string("apple"), "other": .string("apples")], catalog: catalog, context: context)
+                == .string("apples")
+            )
+            // value=1 → "one" category, but no "one" key → falls back to "other"
+            #expect(
+                try invoke("pluralize", ["value": .number(1), "other": .string("apples")], catalog: catalog, context: context)
+                == .string("apples")
+            )
+            // value=0 → "other" category in en-US, returns "apples"
+            #expect(
+                try invoke("pluralize", ["value": .number(0), "other": .string("apples")], catalog: catalog, context: context)
+                == .string("apples")
+            )
         }
     }
 
