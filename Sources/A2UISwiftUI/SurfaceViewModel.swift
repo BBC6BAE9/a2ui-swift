@@ -216,7 +216,7 @@ public final class SurfaceViewModel {
         migrateUIStates(node: newTree, from: oldStateMap)
 
         if let existingTree = componentTree,
-           updateTreeInPlace(existing: existingTree, from: newTree) {
+           reconcileNode(existing: existingTree, new: newTree) {
             return
         }
 
@@ -392,17 +392,49 @@ public final class SurfaceViewModel {
         return ":\((parentIndices.map(String.init) + [String(index)]).joined(separator: ":"))"
     }
 
-    // MARK: - In-place tree update (avoids full SwiftUI re-render for data-only changes)
+    // MARK: - In-place tree update (avoids full SwiftUI re-render)
 
-    private func updateTreeInPlace(existing: ComponentNode, from new: ComponentNode) -> Bool {
-        guard existing.id == new.id, existing.children.count == new.children.count else { return false }
-        existing.instance = new.instance
-        existing.weight = new.weight
-        if let newState = new.uiState, existing.uiState == nil { existing.uiState = newState }
-        for i in existing.children.indices {
-            if !updateTreeInPlace(existing: existing.children[i], from: new.children[i]) { return false }
-        }
+    /// Reconciles `existing` against `new` in place. Returns `true` when `existing`
+    /// can be reused (caller keeps the same `componentTree` reference); `false` when
+    /// the root identity or type changed and the caller must replace the tree.
+    ///
+    /// All writes to `@Observable` fields are guarded by equality so that no-op
+    /// updates do not notify SwiftUI.
+    private func reconcileNode(existing: ComponentNode, new: ComponentNode) -> Bool {
+        guard existing.id == new.id, existing.type == new.type else { return false }
+        if existing.instance != new.instance { existing.instance = new.instance }
+        if existing.weight != new.weight { existing.weight = new.weight }
+        if existing.accessibility != new.accessibility { existing.accessibility = new.accessibility }
+        if existing.uiState == nil, let s = new.uiState { existing.uiState = s }
+        reconcileChildren(existing: existing, newChildren: new.children)
         return true
+    }
+
+    /// O(n) keyed reconcile by `ComponentNode.id`. Reuses matched children (with
+    /// type check, Flutter-style), adopts new ones unchanged, drops removed ones.
+    /// `existing.children` is only reassigned when node identity or order changed.
+    private func reconcileChildren(existing: ComponentNode, newChildren: [ComponentNode]) {
+        // `uniquingKeysWith` guards the (currently impossible) case of duplicate
+        // sibling ids — keep the first so we don't lose `uiState` on a collision.
+        var oldByKey = Dictionary(
+            existing.children.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var result: [ComponentNode] = []
+        result.reserveCapacity(newChildren.count)
+        for newChild in newChildren {
+            if let old = oldByKey.removeValue(forKey: newChild.id),
+               old.type == newChild.type {
+                _ = reconcileNode(existing: old, new: newChild)
+                result.append(old)
+            } else {
+                result.append(newChild)
+            }
+        }
+        if existing.children.count != result.count ||
+            !existing.children.elementsEqual(result, by: { $0 === $1 }) {
+            existing.children = result
+        }
     }
 
     // MARK: - UI State

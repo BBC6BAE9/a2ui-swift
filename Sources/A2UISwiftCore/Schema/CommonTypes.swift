@@ -31,7 +31,7 @@ public enum FunctionCallReturnType: String, Codable, Sendable {
 
 /// A function call: `{"call":"name","args":{...},"returnType":"string"}`.
 /// Mirrors WebCore `FunctionCallSchema`.
-public struct FunctionCall: Codable, Sendable {
+public struct FunctionCall: Codable, Sendable, Equatable {
     public var call: String
     public var args: [String: AnyCodable]
     public var returnType: FunctionCallReturnType?
@@ -109,6 +109,8 @@ public enum Dynamic<T: LiteralDecodable & Sendable>: Codable, Sendable {
         }
     }
 }
+
+extension Dynamic: Equatable where T: Equatable {}
 
 // MARK: - Type aliases
 
