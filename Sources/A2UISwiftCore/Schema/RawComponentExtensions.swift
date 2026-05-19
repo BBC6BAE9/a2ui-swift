@@ -49,7 +49,7 @@ extension RawComponent {
 // MARK: - A2UIAccessibility
 
 /// Accessibility attributes for v0.9 components.
-public struct A2UIAccessibility: Sendable {
+public struct A2UIAccessibility: Sendable, Equatable {
     public var label: DynamicString?
     public var description: DynamicString?
 

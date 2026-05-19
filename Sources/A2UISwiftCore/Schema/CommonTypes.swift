@@ -31,7 +31,7 @@ public enum FunctionCallReturnType: String, Codable, Sendable {
 
 /// A function call: `{"call":"name","args":{...},"returnType":"string"}`.
 /// Mirrors WebCore `FunctionCallSchema`.
-public struct FunctionCall: Codable, Sendable {
+public struct FunctionCall: Codable, Sendable, Equatable {
     public var call: String
     public var args: [String: AnyCodable]
     public var returnType: FunctionCallReturnType?
@@ -46,7 +46,7 @@ public struct FunctionCall: Codable, Sendable {
 // MARK: - LiteralDecodable protocol
 
 /// 让泛型 Dynamic<T> 知道如何从 AnyCodable 提取字面量，以及提供默认值。
-public protocol LiteralDecodable: Codable {
+public protocol LiteralDecodable: Codable, Equatable {
     static func fromAnyCodable(_ value: AnyCodable) -> Self?
     static var defaultLiteral: Self { get }
 }
@@ -77,7 +77,7 @@ extension Array: LiteralDecodable where Element == String {
 
 /// 泛型动态值：字面量 T | 数据绑定 | 函数调用。
 /// 一份 Codable 实现覆盖 DynamicString / DynamicNumber / DynamicBoolean / DynamicStringList。
-public enum Dynamic<T: LiteralDecodable & Sendable>: Codable, Sendable {
+public enum Dynamic<T: LiteralDecodable & Sendable>: Codable, Sendable, Equatable {
     
     case literal(T)
     case dataBinding(path: String)

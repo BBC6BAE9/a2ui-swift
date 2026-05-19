@@ -157,7 +157,7 @@ public struct DeleteSurfacePayload: Codable, Sendable {
 /// The fixed fields `id`, `component`, `weight`, and `accessibility` are extracted;
 /// all remaining keys become `properties`.
 /// Mirrors WebCore `AnyComponentSchema`.
-public struct RawComponent: Sendable {
+public struct RawComponent: Sendable, Equatable {
     public var id: String
     public var component: String
     public var weight: Double?
