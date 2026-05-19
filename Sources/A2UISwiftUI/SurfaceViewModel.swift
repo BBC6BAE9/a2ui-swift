@@ -399,7 +399,7 @@ public final class SurfaceViewModel {
 
     // MARK: - In-place tree update (avoids full SwiftUI re-render)
 
-    /// Reconciles `existing` against `new` in place. Returns `true` when `existing`s `existing` against `new` in place. Returns `true` when `existing`
+    /// Reconciles `existing` against `new` in place. Returns `true` when `existing`
     /// can be reused (caller keeps the same `componentTree` reference); `false` when
     /// the root identity or type changed and the caller must replace the tree.
     ///
@@ -417,7 +417,7 @@ public final class SurfaceViewModel {
 
     /// O(n) keyed reconcile by `ComponentNode.id`. Reuses matched children (with
     /// type check, Flutter-style), adopts new ones unchanged, drops removed ones.
-    /// `existing.children` is only reassigned when the id sequence changed.
+    /// `existing.children` is only reassigned when node identity or order changed.
     private func reconcileChildren(existing: ComponentNode, newChildren: [ComponentNode]) {
         // `uniquingKeysWith` guards the (currently impossible) case of duplicate
         // sibling ids — keep the first so we don't lose `uiState` on a collision.
@@ -436,7 +436,8 @@ public final class SurfaceViewModel {
                 result.append(newChild)
             }
         }
-        if existing.children.map(\.id) != result.map(\.id) {
+        if existing.children.count != result.count ||
+            !existing.children.elementsEqual(result, by: { $0 === $1 }) {
             existing.children = result
         }
     }

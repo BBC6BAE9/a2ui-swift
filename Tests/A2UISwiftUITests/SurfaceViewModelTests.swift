@@ -578,6 +578,40 @@ struct SurfaceViewModelReconcileTests {
         #expect(root.children[1].instance == childBInstanceBefore)
     }
 
+    @Test("same-id child type change replaces that child node")
+    func sameIdChildTypeChangeReplacesChild() throws {
+        let vm = makeViewModel()
+        try vm.processMessage(makeCreateSurface())
+        try vm.processMessage(.updateComponents(UpdateComponentsPayload(
+            surfaceId: "s1",
+            components: [
+                RawComponent(id: "root", component: "Column", properties: [
+                    "children": .array([.string("child")])
+                ]),
+                RawComponent(id: "child", component: "Text", properties: ["text": .string("A")]),
+            ]
+        )))
+        let root = try #require(vm.componentTree)
+        let oldChild = try #require(root.children.first)
+
+        try vm.processMessage(.updateComponents(UpdateComponentsPayload(
+            surfaceId: "s1",
+            components: [
+                RawComponent(id: "root", component: "Column", properties: [
+                    "children": .array([.string("child")])
+                ]),
+                RawComponent(id: "child", component: "Column", properties: [
+                    "children": .array([])
+                ]),
+            ]
+        )))
+
+        let newChild = try #require(root.children.first)
+        #expect(vm.componentTree === root)
+        #expect(newChild !== oldChild)
+        #expect(newChild.type == .Column)
+    }
+
     @Test("root id changing forces full tree replacement")
     func rootReplacementOnIdChange() throws {
         let vm = makeViewModel()
