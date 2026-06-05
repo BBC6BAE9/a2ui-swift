@@ -497,11 +497,12 @@ private func basicOpenUrl(_ name: String, _ args: [String: AnyCodable], _ contex
     guard let url = URL(string: urlString) else {
         throw A2uiExpressionError("Invalid URL '\(urlString)' for '\(name)'", expression: name)
     }
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS)
     DispatchQueue.main.async { UIApplication.shared.open(url) }
 #elseif canImport(AppKit)
     NSWorkspace.shared.open(url)
 #endif
+    // watchOS has no public URL-opening API for arbitrary URLs; openUrl is a no-op there.
     return nil
 }
 

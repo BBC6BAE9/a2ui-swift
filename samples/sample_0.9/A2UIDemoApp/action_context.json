@@ -1,0 +1,58 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "main",
+      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+      "sendDataModel": true
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": "Column",
+          "children": ["title", "desc", "name_field", "email_field", "divider", "submit_btn"],
+          "align": "stretch"
+        },
+        { "id": "title", "component": "Text", "text": "Quick Contact", "variant": "h3" },
+        {
+          "id": "desc",
+          "component": "Text",
+          "text": "Fill the form and tap Send. The resolved action context will appear below.",
+          "variant": "caption"
+        },
+        { "id": "name_field", "component": "TextField", "label": "Name", "value": { "path": "/name" } },
+        { "id": "email_field", "component": "TextField", "label": "Email", "value": { "path": "/email" } },
+        { "id": "divider", "component": "Divider" },
+        { "id": "submit_label", "component": "Text", "text": "Send" },
+        {
+          "id": "submit_btn",
+          "component": "Button",
+          "child": "submit_label",
+          "variant": "primary",
+          "action": {
+            "event": {
+              "name": "submitContact",
+              "context": {
+                "userName": { "path": "/name" },
+                "userEmail": { "path": "/email" },
+                "source": "demo_app"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "main",
+      "value": { "name": "Alice", "email": "alice@example.com" }
+    }
+  }
+]

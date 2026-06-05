@@ -169,7 +169,12 @@ public final class SurfaceViewModel {
         // and SwiftUI views that read those slots re-render automatically.
         let path = payload.path ?? "/"
         try surface.dataModel.set(path, value: payload.value)
-        // Data-only update: tree structure unchanged, no rebuild needed.
+        // Re-resolve the component tree: data-driven list templates
+        // (`children: { componentId, path }`) are expanded at build time against
+        // the data model, so when a server `updateDataModel` arrives after
+        // `updateComponents` the templates must be re-expanded. `rebuildComponentTree`
+        // diffs in place, so static-data changes preserve UI state and stay cheap.
+        rebuildComponentTree()
     }
 
     private func handleDeleteSurface() {

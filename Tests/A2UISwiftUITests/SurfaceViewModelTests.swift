@@ -169,6 +169,42 @@ struct SurfaceViewModelUpdateDataModelTests {
         #expect(vm.surface.dataModel.get("/user/name") == .string("Alice"))
     }
 
+    @Test("list template re-expands when data arrives after components")
+    func templateExpandsAfterData() throws {
+        let vm = makeViewModel()
+        try vm.processMessage(makeCreateSurface())
+        // Components first: a Column whose children are a data-driven template.
+        try vm.processMessage(.updateComponents(UpdateComponentsPayload(
+            surfaceId: "s1",
+            components: [
+                RawComponent(id: "root", component: "Column", properties: [
+                    "children": .dictionary([
+                        "componentId": .string("item"),
+                        "path": .string("/items"),
+                    ])
+                ]),
+                RawComponent(id: "item", component: "Text", properties: [
+                    "text": .dictionary(["path": .string("text")])
+                ]),
+            ]
+        )))
+        // At this point data is empty → template resolves to 0 children.
+        #expect(vm.componentTree?.children.isEmpty == true)
+
+        // Data arrives after components (spec ordering) → template must re-expand.
+        try vm.processMessage(.updateDataModel(UpdateDataModelPayload(
+            surfaceId: "s1",
+            value: .dictionary([
+                "items": .array([
+                    .dictionary(["text": .string("one")]),
+                    .dictionary(["text": .string("two")]),
+                    .dictionary(["text": .string("three")]),
+                ])
+            ])
+        )))
+        #expect(vm.componentTree?.children.count == 3)
+    }
+
     @Test("updateDataModel at root path replaces data")
     func writesToRoot() throws {
         let vm = makeViewModel()
