@@ -1,0 +1,70 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "main",
+      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+      "sendDataModel": true
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "main",
+      "components": [
+        {
+          "id": "root",
+          "component": "Column",
+          "children": ["title", "desc", "date_field", "divider", "submit_btn"],
+          "align": "stretch"
+        },
+        { "id": "title", "component": "Text", "text": "Format Functions", "variant": "h3" },
+        {
+          "id": "desc",
+          "component": "Text",
+          "text": "Pick a date and tap Send. The resolved action carries both the raw ISO string and a formatted value produced by the formatDate function.",
+          "variant": "caption"
+        },
+        {
+          "id": "date_field",
+          "component": "DateTimeInput",
+          "label": "Event Date",
+          "value": { "path": "/eventDate" },
+          "enableDate": true,
+          "enableTime": true
+        },
+        { "id": "divider", "component": "Divider" },
+        { "id": "submit_label", "component": "Text", "text": "Send" },
+        {
+          "id": "submit_btn",
+          "component": "Button",
+          "child": "submit_label",
+          "variant": "primary",
+          "action": {
+            "event": {
+              "name": "sendEvent",
+              "context": {
+                "rawDate": { "path": "/eventDate" },
+                "formatted": {
+                  "call": "formatDate",
+                  "args": {
+                    "value": { "path": "/eventDate" },
+                    "format": "MMM d, yyyy h:mm a"
+                  },
+                  "returnType": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "main",
+      "value": { "eventDate": "2026-06-15T14:30:00" }
+    }
+  }
+]

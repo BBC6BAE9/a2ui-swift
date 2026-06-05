@@ -1,0 +1,74 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "default",
+      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+      "theme": { "primaryColor": "#FF5722" },
+      "sendDataModel": true
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "default",
+      "components": [
+        { "id": "root", "component": "Column", "children": ["title-heading", "item-list"], "align": "stretch" },
+        { "id": "title-heading", "component": "Text", "variant": "h1", "text": { "path": "/title" } },
+        { "id": "item-list", "component": "List", "direction": "vertical", "children": { "componentId": "item-card-template", "path": "/items" } },
+        { "id": "item-card-template", "component": "Card", "child": "card-layout" },
+        { "id": "card-layout", "component": "Row", "children": ["template-image", "card-details"] },
+        { "id": "template-image", "weight": 1, "component": "Image", "url": { "path": "imageUrl" }, "variant": "smallFeature", "fit": "cover" },
+        { "id": "card-details", "weight": 2, "component": "Column", "children": ["template-name", "template-rating", "template-detail", "template-book-button"] },
+        { "id": "template-name", "component": "Text", "variant": "h3", "text": { "path": "name" } },
+        { "id": "template-rating", "component": "Text", "variant": "h5", "text": { "path": "rating" } },
+        { "id": "template-detail", "component": "Text", "text": { "path": "detail" } },
+        { "id": "book-now-text", "component": "Text", "text": "Book Now" },
+        {
+          "id": "template-book-button",
+          "component": "Button",
+          "child": "book-now-text",
+          "variant": "primary",
+          "action": {
+            "event": {
+              "name": "book_restaurant",
+              "context": { "restaurantName": { "path": "name" }, "address": { "path": "address" } }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "default",
+      "value": {
+        "title": "Nearby Restaurants",
+        "items": [
+          {
+            "name": "Xi'an Famous Foods",
+            "rating": "★★★★☆  4.8",
+            "detail": "Spicy hand-pulled noodles and lamb burgers",
+            "imageUrl": "https://images.unsplash.com/photo-1555126634-323283e090fa?w=200&h=200&fit=crop",
+            "address": "81 St Marks Pl, New York"
+          },
+          {
+            "name": "Le Bernardin",
+            "rating": "★★★★★  4.9",
+            "detail": "World-class French seafood dining",
+            "imageUrl": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=200&fit=crop",
+            "address": "155 W 51st St, New York"
+          },
+          {
+            "name": "Joe's Pizza",
+            "rating": "★★★★☆  4.6",
+            "detail": "Classic New York slices since 1975",
+            "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200&h=200&fit=crop",
+            "address": "7 Carmine St, New York"
+          }
+        ]
+      }
+    }
+  }
+]
