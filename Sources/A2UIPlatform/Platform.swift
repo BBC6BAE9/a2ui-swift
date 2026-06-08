@@ -30,6 +30,7 @@ public typealias PlatformColor = UIColor
 public typealias PlatformFont = UIFont
 public typealias PlatformStackView = UIStackView
 public typealias PlatformLayoutGuide = UILayoutGuide
+public typealias PlatformImageView = UIImageView
 
 #elseif canImport(AppKit)
 import AppKit
@@ -39,5 +40,6 @@ public typealias PlatformColor = NSColor
 public typealias PlatformFont = NSFont
 public typealias PlatformStackView = NSStackView
 public typealias PlatformLayoutGuide = NSLayoutGuide
+public typealias PlatformImageView = NSImageView
 
 #endif

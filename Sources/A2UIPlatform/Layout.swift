@@ -42,6 +42,33 @@ extension PlatformView {
     }
 }
 
+extension PlatformView {
+
+    /// Sets a solid background color. `UIView.backgroundColor` vs
+    /// `NSView.layer.backgroundColor` is one of the small per-framework gaps,
+    /// isolated here once.
+    func a2ui_setBackground(_ color: PlatformColor) {
+        #if canImport(UIKit) && !os(watchOS)
+        backgroundColor = color
+        #elseif canImport(AppKit)
+        wantsLayer = true
+        layer?.backgroundColor = color.cgColor
+        #endif
+    }
+
+    /// Sets a corner radius (layer-backed on AppKit).
+    func a2ui_setCornerRadius(_ radius: CGFloat) {
+        #if canImport(UIKit) && !os(watchOS)
+        layer.cornerRadius = radius
+        layer.masksToBounds = true
+        #elseif canImport(AppKit)
+        wantsLayer = true
+        layer?.cornerRadius = radius
+        layer?.masksToBounds = true
+        #endif
+    }
+}
+
 /// Replaces a stack's arranged subviews with freshly-built views for `children`.
 /// Shared by every stack-backed container (Row, Column, List).
 func a2ui_populate(

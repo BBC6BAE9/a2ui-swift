@@ -51,6 +51,16 @@ public final class ComponentFactory {
             return A2UIStack(vertical: true)
         case .List:
             return A2UIList()
+        case .Divider:
+            return A2UIDivider()
+        case .Card:
+            return A2UICard()
+        case .Button:
+            return A2UIButton()
+        case .Image:
+            return A2UIImage()
+        case .Icon:
+            return A2UIIcon()
         default:
             // Slice scope: unimplemented components render as an inert placeholder
             // rather than crashing, so a partial tree still lays out.
