@@ -33,6 +33,12 @@ public final class A2UISurfaceHostView: PlatformView {
     private let factory = ComponentFactory()
     private var rootView: PlatformView?
 
+    /// Host-app extension point for rendering `custom` component types.
+    public var customCatalog: A2UICustomComponentCatalog? {
+        get { factory.customCatalog }
+        set { factory.customCatalog = newValue }
+    }
+
     private var surface: SurfaceModel?
     private var rootComponentId: String?
     private var currentRoot: ComponentNode?

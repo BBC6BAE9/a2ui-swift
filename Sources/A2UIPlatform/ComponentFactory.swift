@@ -31,14 +31,27 @@ import AppKit
 
 public final class ComponentFactory {
 
+    /// Optional host-app extension point for `custom` component types.
+    public weak var customCatalog: A2UICustomComponentCatalog?
+
     public init() {}
 
     /// Builds the platform view for `node`, binds it to `surface`, and returns it.
     /// Container components recurse via this same method for `node.children`.
     public func makeView(for node: ComponentNode, surface: SurfaceModel) -> PlatformView {
-        let component = makeComponent(for: node.type)
+        let component = resolveComponent(for: node, surface: surface)
         component.configure(node: node, surface: surface, factory: self)
         return component
+    }
+
+    private func resolveComponent(
+        for node: ComponentNode, surface: SurfaceModel
+    ) -> PlatformView & A2UIPlatformComponent {
+        if case .custom(let name) = node.type,
+           let custom = customCatalog?.makeView(typeName: name, node: node, surface: surface) {
+            return custom
+        }
+        return makeComponent(for: node.type)
     }
 
     private func makeComponent(for type: ComponentType) -> PlatformView & A2UIPlatformComponent {
