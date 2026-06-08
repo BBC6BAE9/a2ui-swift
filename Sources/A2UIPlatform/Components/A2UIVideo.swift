@@ -15,6 +15,7 @@
 #if (canImport(UIKit) && !os(watchOS)) || canImport(AppKit)
 import Foundation
 import AVFoundation
+import AVKit
 import A2UISwiftCore
 
 #if canImport(UIKit) && !os(watchOS)
@@ -23,17 +24,21 @@ import UIKit
 import AppKit
 #endif
 
-/// Spec v0.9 `Video` — a 16:9 video player.
+/// Spec v0.9 `Video` — a 16:9 player with native transport controls.
 ///
-/// Uses `AVPlayerLayer` directly (not `AVPlayerViewController`, whose view needs
-/// a parent view controller to lay out — unavailable in a pure-view renderer).
-/// Tap toggles play/pause; a play badge shows when paused.
+/// UIKit: hosts an `AVPlayerViewController` and attaches it to the nearest parent
+/// view controller once on-screen (its view needs that to lay out and play).
+/// AppKit: uses `AVPlayerView` directly. A 16:9 aspect ratio + minimum height
+/// give the player a real size inside a stack.
 final class A2UIVideo: PlatformView, A2UIPlatformComponent {
 
-    private let playerLayer = AVPlayerLayer()
-    private let playBadge = PlatformImageView()
     private var subscriptions = DataSubscriptions()
-    private var playing = false
+
+    #if canImport(UIKit) && !os(watchOS)
+    private let controller = AVPlayerViewController()
+    #elseif canImport(AppKit)
+    private let playerView = AVPlayerView()
+    #endif
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -57,67 +62,49 @@ final class A2UIVideo: PlatformView, A2UIPlatformComponent {
 
     private func setURL(_ string: String) {
         guard let url = URL(string: string), !string.isEmpty else { return }
-        playerLayer.player = AVPlayer(url: url)
-        playing = false
-        updateBadge()
-    }
-
-    @objc private func toggle() {
-        guard let player = playerLayer.player else { return }
-        playing.toggle()
-        playing ? player.play() : player.pause()
-        updateBadge()
-    }
-
-    private func updateBadge() {
-        playBadge.isHidden = playing
+        let player = AVPlayer(url: url)
         #if canImport(UIKit) && !os(watchOS)
-        playBadge.image = UIImage(systemName: "play.circle.fill")
+        controller.player = player
         #elseif canImport(AppKit)
-        playBadge.image = NSImage(systemSymbolName: "play.circle.fill", accessibilityDescription: "Play")
+        playerView.player = player
         #endif
     }
 
-    // MARK: - Platform shell
-
     private func setup() {
-        // Give the layer a real size in a stack. A 16:9 aspect ratio plus a
-        // minimum height (so it shows even before width resolves).
         translatesAutoresizingMaskIntoConstraints = false
         let aspect = heightAnchor.constraint(equalTo: widthAnchor, multiplier: 9.0 / 16.0)
         aspect.priority = .defaultHigh
         aspect.isActive = true
         heightAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
-        playerLayer.videoGravity = .resizeAspect
         a2ui_setBackground(.black)
-        playBadge.translatesAutoresizingMaskIntoConstraints = false
 
         #if canImport(UIKit) && !os(watchOS)
-        layer.addSublayer(playerLayer)
-        playBadge.tintColor = .white
-        addSubview(playBadge)
-        addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(toggle)))
+        controller.view.backgroundColor = .black
+        a2ui_pinEdges(of: controller.view)
         #elseif canImport(AppKit)
-        wantsLayer = true
-        layer?.addSublayer(playerLayer)
-        playBadge.contentTintColor = .white
-        addSubview(playBadge)
-        addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(toggle)))
+        playerView.controlsStyle = .inline
+        a2ui_pinEdges(of: playerView)
         #endif
-
-        NSLayoutConstraint.activate([
-            playBadge.centerXAnchor.constraint(equalTo: centerXAnchor),
-            playBadge.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playBadge.widthAnchor.constraint(equalToConstant: 48),
-            playBadge.heightAnchor.constraint(equalToConstant: 48),
-        ])
-        updateBadge()
     }
 
     #if canImport(UIKit) && !os(watchOS)
-    override func layoutSubviews() { super.layoutSubviews(); playerLayer.frame = bounds }
-    #elseif canImport(AppKit)
-    override func layout() { super.layout(); playerLayer.frame = bounds }
+    // Attach the player view controller to the hosting VC so its view lays out
+    // and playback controls work.
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil, controller.parent == nil, let parent = parentViewController else { return }
+        parent.addChild(controller)
+        controller.didMove(toParent: parent)
+    }
+
+    private var parentViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController { return vc }
+            responder = next
+        }
+        return nil
+    }
     #endif
 }
 

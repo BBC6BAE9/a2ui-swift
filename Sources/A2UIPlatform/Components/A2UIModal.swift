@@ -31,25 +31,36 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
     private var contentView: PlatformView?
     private var overlay: PlatformView?
     private var uiState: ModalUIState?
+    private var actionSubscription: Subscription?
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
+        actionSubscription?.unsubscribe()
         subviews.forEach { $0.removeFromSuperview() }
         uiState = node.uiState as? ModalUIState
         guard node.children.count >= 1 else { return }
 
-        let trigger = factory.makeView(for: node.children[0], surface: surface)
+        let triggerNode = node.children[0]
+        let trigger = factory.makeView(for: triggerNode, surface: surface)
         a2ui_pinEdges(of: trigger)
         if node.children.count >= 2 {
             contentView = factory.makeView(for: node.children[1], surface: surface)
         }
-        #if canImport(UIKit) && !os(watchOS)
-        trigger.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(present)))
-        trigger.isUserInteractionEnabled = true
-        #elseif canImport(AppKit)
-        trigger.addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(present)))
-        #endif
-        // Restore open state across rebuilds.
+
+        // The trigger is a normal Button (or anything actionable). When it fires
+        // its action, open the modal — no special wiring on the trigger itself.
+        let triggerIds = Self.componentIds(in: triggerNode)
+        actionSubscription = surface.onAction.subscribe { [weak self] action in
+            if triggerIds.contains(action.sourceComponentId) { self?.present() }
+        }
         if uiState?.isPresented == true { present() }
+    }
+
+    deinit { actionSubscription?.unsubscribe() }
+
+    private static func componentIds(in node: ComponentNode) -> Set<String> {
+        var ids: Set<String> = [node.baseComponentId]
+        for child in node.children { ids.formUnion(componentIds(in: child)) }
+        return ids
     }
 
     @objc private func present() {
