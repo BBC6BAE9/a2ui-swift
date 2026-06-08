@@ -15,6 +15,7 @@
 #if (canImport(UIKit) && !os(watchOS)) || canImport(AppKit)
 import Foundation
 import AVFoundation
+import AVKit
 import A2UISwiftCore
 
 #if canImport(UIKit) && !os(watchOS)
@@ -23,56 +24,60 @@ import UIKit
 import AppKit
 #endif
 
-/// Spec v0.9 `Video` — plays a remote video via AVFoundation.
-/// `AVPlayer` / `AVPlayerLayer` are cross-platform; only layer-hosting and the
-/// frame-update hook differ between UIKit and AppKit. Baseline (no transport UI).
+/// Spec v0.9 `Video` — remote video with native transport controls.
+/// Uses AVKit (`AVPlayerViewController` on UIKit, `AVPlayerView` on AppKit) so
+/// playback/scrubbing UI matches the platform, mirroring the SwiftUI renderer.
 final class A2UIVideo: PlatformView, A2UIPlatformComponent {
 
-    private let playerLayer = AVPlayerLayer()
     private var subscriptions = DataSubscriptions()
+
+    #if canImport(UIKit) && !os(watchOS)
+    private let controller = AVPlayerViewController()
+    #elseif canImport(AppKit)
+    private let playerView = AVPlayerView()
+    #endif
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        attachLayer()
+        attach()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        attachLayer()
+        attach()
     }
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
         subscriptions.unsubscribeAll()
         guard let props = try? node.typedProperties(VideoProperties.self) else { return }
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
         setURL(ctx.resolve(props.url))
         ctx.subscribeString(for: props.url) { [weak self] in self?.setURL($0) }
             .store(in: &subscriptions)
     }
 
+    deinit { subscriptions.unsubscribeAll() }
+
     private func setURL(_ string: String) {
         guard let url = URL(string: string), !string.isEmpty else { return }
-        playerLayer.player = AVPlayer(url: url)
+        let player = AVPlayer(url: url)
+        #if canImport(UIKit) && !os(watchOS)
+        controller.player = player
+        #elseif canImport(AppKit)
+        playerView.player = player
+        #endif
     }
 
-    // MARK: - Platform shell (layer hosting + frame sync)
-
-    #if canImport(UIKit) && !os(watchOS)
-    private func attachLayer() { layer.addSublayer(playerLayer) }
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        playerLayer.frame = bounds
+    private func attach() {
+        #if canImport(UIKit) && !os(watchOS)
+        controller.showsPlaybackControls = true
+        a2ui_pinEdges(of: controller.view)
+        #elseif canImport(AppKit)
+        playerView.controlsStyle = .inline
+        a2ui_pinEdges(of: playerView)
+        #endif
     }
-    #elseif canImport(AppKit)
-    private func attachLayer() {
-        wantsLayer = true
-        layer?.addSublayer(playerLayer)
-    }
-    override func layout() {
-        super.layout()
-        playerLayer.frame = bounds
-    }
-    #endif
 }
 
 #endif
