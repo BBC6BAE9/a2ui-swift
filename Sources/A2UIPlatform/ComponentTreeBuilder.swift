@@ -52,7 +52,7 @@ enum ComponentTreeBuilder {
             properties: model.properties
         )
         let children = resolveChildren(
-            surface: surface, model: model,
+            surface: surface, model: model, type: type,
             dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited
         )
 
@@ -69,24 +69,47 @@ enum ComponentTreeBuilder {
 
     // MARK: - Children
 
+    /// Type-aware child resolution — mirrors SwiftUI's `resolveNodeChildren`.
+    /// Different containers name their children differently:
+    /// Row/Column/List use `children` (static or template); Card/Button use
+    /// `child`; Tabs use `tabs[].child`; Modal uses `trigger` + `content`.
     private static func resolveChildren(
-        surface: SurfaceModel, model: ComponentModel,
+        surface: SurfaceModel, model: ComponentModel, type: ComponentType,
         dataContextPath: String, idSuffix: String, visited: Set<String>
     ) -> [ComponentNode] {
-        guard let childList = decodeChildList(model) else { return [] }
-        switch childList {
-        case .staticList(let ids):
-            // Static children inherit the parent's suffix so they stay unique
-            // inside a templated item.
-            return ids.compactMap {
-                build(surface: surface, componentId: $0,
-                      dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited)
+        func child(_ id: String?) -> [ComponentNode] {
+            guard let id else { return [] }
+            return build(surface: surface, componentId: id,
+                         dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited).map { [$0] } ?? []
+        }
+
+        switch type {
+        case .Row, .Column, .List:
+            guard let childList = decodeChildList(model) else { return [] }
+            switch childList {
+            case .staticList(let ids):
+                return ids.compactMap {
+                    build(surface: surface, componentId: $0,
+                          dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited)
+                }
+            case .template(let componentId, let path):
+                return resolveTemplate(surface: surface, componentId: componentId, path: path,
+                                       dataContextPath: dataContextPath, visited: visited)
             }
-        case .template(let componentId, let path):
-            return resolveTemplate(
-                surface: surface, componentId: componentId, path: path,
-                dataContextPath: dataContextPath, visited: visited
-            )
+
+        case .Card, .Button:
+            return child(model.properties["child"]?.stringValue)
+
+        case .Modal:
+            return child(model.properties["trigger"]?.stringValue)
+                 + child(model.properties["content"]?.stringValue)
+
+        case .Tabs:
+            guard case .array(let items)? = model.properties["tabs"] else { return [] }
+            return items.compactMap { $0.dictionaryValue?["child"]?.stringValue }.flatMap { child($0) }
+
+        default:
+            return [] // leaf components have no children
         }
     }
 

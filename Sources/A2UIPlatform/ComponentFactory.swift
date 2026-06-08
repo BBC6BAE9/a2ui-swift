@@ -67,9 +67,20 @@ public final class ComponentFactory {
             return A2UICheckBox()
         case .Slider:
             return A2UISlider()
-        default:
-            // Slice scope: unimplemented components render as an inert placeholder
-            // rather than crashing, so a partial tree still lays out.
+        case .ChoicePicker:
+            return A2UIChoicePicker()
+        case .DateTimeInput:
+            return A2UIDateTimeInput()
+        case .Tabs:
+            return A2UITabs()
+        case .Modal:
+            return A2UIModal()
+        case .Video:
+            return A2UIVideo()
+        case .AudioPlayer:
+            return A2UIAudioPlayer()
+        case .custom:
+            // Custom components are a host-app extension point — not yet wired.
             return A2UIUnsupported(type: type)
         }
     }
