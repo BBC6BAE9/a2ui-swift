@@ -61,6 +61,12 @@ public final class ComponentFactory {
             return A2UIImage()
         case .Icon:
             return A2UIIcon()
+        case .TextField:
+            return A2UITextField()
+        case .CheckBox:
+            return A2UICheckBox()
+        case .Slider:
+            return A2UISlider()
         default:
             // Slice scope: unimplemented components render as an inert placeholder
             // rather than crashing, so a partial tree still lays out.

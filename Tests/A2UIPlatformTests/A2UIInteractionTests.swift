@@ -20,13 +20,15 @@ import A2UISwiftCore
 /// Interaction / action-dispatch gate.
 final class A2UIInteractionTests: XCTestCase {
 
-    private func button(in view: PlatformView) -> A2UIButton? {
+    private func find<T: PlatformView>(_ type: T.Type, in view: PlatformView) -> T? {
         for sub in view.subviews {
-            if let b = sub as? A2UIButton { return b }
-            if let b = button(in: sub) { return b }
+            if let hit = sub as? T { return hit }
+            if let hit = find(type, in: sub) { return hit }
         }
         return nil
     }
+
+    private func button(in view: PlatformView) -> A2UIButton? { find(A2UIButton.self, in: view) }
 
     func testButtonDispatchesEventAction() throws {
         let surface = SurfaceModel(id: "surface-btn")
@@ -54,6 +56,24 @@ final class A2UIInteractionTests: XCTestCase {
         btn.handleTap()
 
         XCTAssertEqual(dispatched, ["submit"], "Tap should dispatch the event action by name")
+    }
+
+    func testTextFieldWritesBackToBoundPath() throws {
+        let surface = SurfaceModel(id: "surface-tf")
+        try surface.componentsModel.addComponent(ComponentModel(
+            id: "tf", type: "TextField",
+            properties: ["value": .dictionary(["path": .string("/name")])]
+        ))
+        _ = try surface.dataModel.set("/name", value: .string("initial"))
+
+        let host = A2UISurfaceHostView()
+        host.render(surface: surface, rootComponentId: "tf")
+        let field = try XCTUnwrap(find(A2UITextField.self, in: host))
+
+        field.simulateEditForTesting("edited")
+
+        XCTAssertEqual(surface.dataModel.get("/name")?.stringValue, "edited",
+                       "Editing should write back to the bound data path")
     }
 }
 
