@@ -90,23 +90,21 @@ final class A2UIVideo: PlatformView, A2UIPlatformComponent {
     }
 
     #if canImport(UIKit) && !os(watchOS)
-    // Attach the player view controller to the hosting VC so its view lays out
-    // and the playback controls appear.
+    // Attach/detach the player view controller to the hosting VC so its view
+    // lays out, its controls appear, and it is released on every rebuild
+    // (the view is removed from the window) — otherwise the controller leaks.
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        guard window != nil, controller.parent == nil, let parent = parentViewController else { return }
-        parent.addChild(controller)
-        a2ui_pinEdges(of: controller.view)
-        controller.didMove(toParent: parent)
-    }
-
-    private var parentViewController: UIViewController? {
-        var responder: UIResponder? = self
-        while let next = responder?.next {
-            if let vc = next as? UIViewController { return vc }
-            responder = next
+        if window != nil {
+            guard controller.parent == nil, let parent = a2ui_parentViewController else { return }
+            parent.addChild(controller)
+            a2ui_pinEdges(of: controller.view)
+            controller.didMove(toParent: parent)
+        } else {
+            controller.willMove(toParent: nil)
+            controller.view.removeFromSuperview()
+            controller.removeFromParent()
         }
-        return nil
     }
     #endif
 }

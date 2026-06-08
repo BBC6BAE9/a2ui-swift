@@ -68,7 +68,7 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
         uiState?.isPresented = true
         guard let contentView, presentedController == nil, overlay == nil else { return }
         #if canImport(UIKit) && !os(watchOS)
-        if let parent = parentViewController, parent.presentedViewController == nil {
+        if let parent = a2ui_parentViewController, parent.presentedViewController == nil {
             presentSheet(contentView, from: parent); return
         }
         #elseif canImport(AppKit)
@@ -122,15 +122,6 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
         }
         presentedController = nav
         parent.present(nav, animated: true)
-    }
-
-    private var parentViewController: UIViewController? {
-        var responder: UIResponder? = self
-        while let next = responder?.next {
-            if let vc = next as? UIViewController { return vc }
-            responder = next
-        }
-        return nil
     }
     #elseif canImport(AppKit)
     private func presentSheet(_ content: NSView, from presenter: NSViewController) {

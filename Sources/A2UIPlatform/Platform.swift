@@ -32,6 +32,18 @@ public typealias PlatformStackView = UIStackView
 public typealias PlatformLayoutGuide = UILayoutGuide
 public typealias PlatformImageView = UIImageView
 
+extension UIView {
+    /// The nearest enclosing view controller via the responder chain.
+    var a2ui_parentViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController { return vc }
+            responder = next
+        }
+        return nil
+    }
+}
+
 #elseif canImport(AppKit)
 import AppKit
 

@@ -71,11 +71,15 @@ final class A2UIAudioPlayer: PlatformView, A2UIPlatformComponent {
 
     private func setURL(_ string: String) {
         removeObserver()
+        // Stop and release the previous player so it doesn't keep playing /
+        // leak when the URL changes or is cleared.
+        player?.pause()
+        player = nil
+        playing = false
+        setTitle("Play")
         guard let url = URL(string: string), !string.isEmpty else { return }
         let player = AVPlayer(url: url)
         self.player = player
-        playing = false
-        setTitle("Play")
 
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in

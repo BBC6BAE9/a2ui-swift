@@ -59,7 +59,7 @@ final class A2UIDateTimeInput: PlatformView, A2UIPlatformComponent {
         setBounds(min: props.min.flatMap { iso.date(from: ctx.resolve($0)) },
                   max: props.max.flatMap { iso.date(from: ctx.resolve($0)) })
 
-        setDate(iso.date(from: ctx.resolve(props.value)) ?? Date(timeIntervalSince1970: 0))
+        setDate(iso.date(from: ctx.resolve(props.value)) ?? Date())
         ctx.subscribeString(for: props.value) { [weak self] in
             guard let self, let d = self.iso.date(from: $0) else { return }
             self.setDate(d)

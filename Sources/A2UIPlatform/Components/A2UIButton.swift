@@ -87,6 +87,7 @@ final class A2UIButton: PlatformView, A2UIPlatformComponent {
         layer.cornerRadius = min(bounds.height / 2, 14)
         layer.masksToBounds = true
     }
+    
     #elseif canImport(AppKit)
     override func layout() {
         super.layout()

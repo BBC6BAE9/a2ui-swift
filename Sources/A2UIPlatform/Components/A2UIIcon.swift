@@ -111,6 +111,8 @@ final class A2UIIcon: PlatformView, A2UIPlatformComponent {
     override func layoutSubviews() { super.layoutSubviews(); layoutShape() }
     #elseif canImport(AppKit)
     override func layout() { super.layout(); layoutShape() }
+    // NSView is bottom-left origin; flip so SVG paths render right-side up.
+    override var isFlipped: Bool { true }
     #endif
 
     private func setSymbol(_ name: String) {
