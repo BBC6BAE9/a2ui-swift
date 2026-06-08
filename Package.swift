@@ -80,15 +80,26 @@ let package = Package(
             dependencies: ["A2UISwiftCore"],
             path: "Sources/A2UISwiftUI"
         ),
+        // Public iOS/tvOS/visionOS renderer. Thin facade that re-exports the
+        // shared substrate; platform-only conveniences live here.
         .target(
             name: "A2UIUIKit",
-            dependencies: ["A2UISwiftCore"],
+            dependencies: ["A2UISwiftCore", "A2UIPlatform"],
             path: "Sources/A2UIUIKit"
         ),
+        // Public macOS renderer. Thin facade over the same shared substrate.
         .target(
             name: "A2UIAppKit",
-            dependencies: ["A2UISwiftCore"],
+            dependencies: ["A2UISwiftCore", "A2UIPlatform"],
             path: "Sources/A2UIAppKit"
+        ),
+        // INTERNAL shared substrate for the imperative renderers: one codebase
+        // compiled for both UIKit and AppKit via `Platform*` typealiases.
+        // Not exported as a product — consumers import A2UIUIKit / A2UIAppKit.
+        .target(
+            name: "A2UIPlatform",
+            dependencies: ["A2UISwiftCore"],
+            path: "Sources/A2UIPlatform"
         ),
         .testTarget(
             name: "PrimitivesTests",
@@ -120,6 +131,11 @@ let package = Package(
             name: "A2UIAppKitTests",
             dependencies: ["A2UISwiftCore", "A2UIAppKit"],
             path: "Tests/A2UIAppKitTests"
+        ),
+        .testTarget(
+            name: "A2UIPlatformTests",
+            dependencies: ["A2UISwiftCore", "A2UIPlatform"],
+            path: "Tests/A2UIPlatformTests"
         ),
     ]
 )
