@@ -32,6 +32,7 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
     private var dataContext: DataContext?
     private var valueBindingPath: String?
     private var multiSelect = false
+    private var chips = false
     private var options: [(label: String, value: String)] = []
     private var selected: Set<String> = []
 
@@ -51,6 +52,8 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
         multiSelect = (props.variant ?? .mutuallyExclusive) == .multipleSelection
+        chips = (props.displayStyle ?? .checkbox) == .chips
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
         options = props.options.map { (ctx.resolve($0.label), $0.value) }
         selected = Set(props.value.map { ctx.resolve($0) } ?? [])
         rebuildRows()
@@ -79,7 +82,8 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
         for option in options {
             let row = A2UIChoiceRow(
                 label: option.label,
-                isSelected: selected.contains(option.value)
+                isSelected: selected.contains(option.value),
+                chip: chips
             ) { [weak self] in self?.toggle(option.value) }
             stack.addArrangedSubview(row)
         }
@@ -90,22 +94,44 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
 private final class A2UIChoiceRow: PlatformView {
     private let action: () -> Void
 
-    init(label: String, isSelected: Bool, action: @escaping () -> Void) {
+    init(label: String, isSelected: Bool, chip: Bool, action: @escaping () -> Void) {
         self.action = action
         super.init(frame: .zero)
 
+        let text = chip ? label : (isSelected ? "\u{2713} " : "\u{2007} ") + label
         #if canImport(UIKit) && !os(watchOS)
         let field = UILabel()
-        field.text = (isSelected ? "\u{2713} " : "\u{2007} ") + label
+        field.text = text
+        if chip { field.textColor = isSelected ? .white : .label }
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
         #elseif canImport(AppKit)
-        let field = NSTextField(labelWithString: (isSelected ? "\u{2713} " : "\u{2007} ") + label)
+        let field = NSTextField(labelWithString: text)
+        if chip { field.textColor = isSelected ? .white : .labelColor }
         addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(tapped)))
         #endif
-        a2ui_pinEdges(of: field, inset: 4)
+        a2ui_pinEdges(of: field, inset: chip ? 8 : 4)
+
+        if chip {
+            // Capsule: filled tint when selected, outlined otherwise.
+            a2ui_setCornerRadius(14)
+            if isSelected {
+                a2ui_setBackground(A2UIPlatformStyle.tint)
+            } else {
+                a2ui_setBackground(.clear)
+                setBorder()
+            }
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("not supported") }
+
+    private func setBorder() {
+        #if canImport(UIKit) && !os(watchOS)
+        layer.borderWidth = 1; layer.borderColor = A2UIPlatformStyle.tint.cgColor
+        #elseif canImport(AppKit)
+        wantsLayer = true; layer?.borderWidth = 1; layer?.borderColor = A2UIPlatformStyle.tint.cgColor
+        #endif
+    }
 
     @objc private func tapped() { action() }
 }

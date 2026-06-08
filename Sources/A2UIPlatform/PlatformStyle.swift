@@ -35,12 +35,26 @@ public enum A2UIPlatformStyle {
     public static var cornerRadius: CGFloat = 8
     public static var dividerThickness: CGFloat = 1
 
+    /// Theme override for the accent color, parsed from `surface.theme`
+    /// (`primaryColor` hex) by the host. Falls back to the system tint.
+    public static var tintOverride: PlatformColor?
+
     public static var tint: PlatformColor {
+        if let tintOverride { return tintOverride }
         #if canImport(UIKit) && !os(watchOS)
         return .tintColor
         #elseif canImport(AppKit)
         return .controlAccentColor
         #endif
+    }
+
+    /// Applies a surface theme dictionary (e.g. `{"primaryColor": "#FF0000"}`).
+    public static func applyTheme(_ theme: [String: String]?) {
+        if let hex = theme?["primaryColor"], let color = PlatformColor(a2uiHex: hex) {
+            tintOverride = color
+        } else {
+            tintOverride = nil
+        }
     }
 
     public static var separator: PlatformColor {

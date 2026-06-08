@@ -64,6 +64,7 @@ public final class A2UISurfaceHostView: PlatformView {
     public func render(surface: SurfaceModel, rootComponentId: String) -> PlatformView? {
         self.surface = surface
         self.rootComponentId = rootComponentId
+        A2UIPlatformStyle.applyTheme(surface.theme?.dictionaryValue?.compactMapValues { $0.stringValue })
 
         structureSubscriptions.forEach { $0.unsubscribe() }
         structureSubscriptions = [

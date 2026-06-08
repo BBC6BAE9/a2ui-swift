@@ -75,7 +75,7 @@ final class A2UITabs: PlatformView, A2UIPlatformComponent {
 
     private func setupLayout() {
         let stack = a2ui_makeStack(vertical: true, spacing: 8)
-        stack.addArrangedSubview(segmented)
+        stack.addArrangedSubview(makeSelectorBar())
         stack.addArrangedSubview(container)
         a2ui_pinEdges(of: stack)
         #if canImport(UIKit) && !os(watchOS)
@@ -83,6 +83,50 @@ final class A2UITabs: PlatformView, A2UIPlatformComponent {
         #elseif canImport(AppKit)
         segmented.target = self
         segmented.action = #selector(segmentChanged)
+        #endif
+    }
+
+    /// Wraps the segmented control in a horizontal scroll so many tabs scroll
+    /// instead of cramping (SwiftUI switches to a scrollable bar past 5 tabs).
+    private func makeSelectorBar() -> PlatformView {
+        #if canImport(UIKit) && !os(watchOS)
+        segmented.apportionsSegmentWidthsByContent = true
+        let scroll = UIScrollView()
+        scroll.showsHorizontalScrollIndicator = false
+        scroll.addSubview(segmented)
+        segmented.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            segmented.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor),
+            segmented.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor),
+            segmented.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            segmented.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            segmented.heightAnchor.constraint(equalTo: scroll.frameLayoutGuide.heightAnchor),
+        ])
+        scroll.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        return scroll
+        #elseif canImport(AppKit)
+        segmented.segmentDistribution = .fit
+        let scroll = NSScrollView()
+        scroll.hasHorizontalScroller = false
+        scroll.drawsBackground = false
+        let doc = NSView()
+        doc.addSubview(segmented)
+        segmented.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            segmented.leadingAnchor.constraint(equalTo: doc.leadingAnchor),
+            segmented.trailingAnchor.constraint(equalTo: doc.trailingAnchor),
+            segmented.topAnchor.constraint(equalTo: doc.topAnchor),
+            segmented.bottomAnchor.constraint(equalTo: doc.bottomAnchor),
+        ])
+        scroll.documentView = doc
+        doc.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            doc.topAnchor.constraint(equalTo: scroll.contentView.topAnchor),
+            doc.bottomAnchor.constraint(equalTo: scroll.contentView.bottomAnchor),
+            doc.heightAnchor.constraint(equalTo: scroll.contentView.heightAnchor),
+        ])
+        scroll.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        return scroll
         #endif
     }
 
