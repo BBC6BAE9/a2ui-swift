@@ -73,13 +73,17 @@ public enum A2UIPlatformStyle {
         #endif
     }
 
+    /// SwiftUI's Card default background is `.background` (the page background),
+    /// so a default Card is visually invisible — just padding. Match that.
     public static var cardBackground: PlatformColor {
         #if canImport(UIKit) && !os(watchOS)
-        return .secondarySystemBackground
+        return .systemBackground
         #elseif canImport(AppKit)
-        return .controlBackgroundColor
+        return .windowBackgroundColor
         #endif
     }
+
+    public static var cardPadding: CGFloat = 16
 
     /// Maps a Text variant to a native preferred font (h1–h5 / body / caption),
     /// mirroring SwiftUI's `.largeTitle`/`.title`/… mapping.

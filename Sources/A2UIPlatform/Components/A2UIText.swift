@@ -72,17 +72,19 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
 
     deinit { subscriptions.unsubscribeAll() }
 
+    private var baseFont: PlatformFont = A2UIPlatformStyle.font(for: nil)
+    private var baseColor: PlatformColor = .a2uiLabel
+
     private func applyVariant(_ variant: TextVariant?) {
-        label.font = A2UIPlatformStyle.font(for: variant)
+        baseFont = A2UIPlatformStyle.font(for: variant)
         let secondary = (variant == .caption)
+        baseColor = secondary ? .a2uiSecondaryLabel : .a2uiLabel
+        label.font = baseFont
         #if canImport(UIKit) && !os(watchOS)
-        label.textColor = secondary ? .secondaryLabel : .label
-        if let heading = headingTraitLevel(variant) {
-            label.accessibilityTraits.insert(.header)
-            _ = heading
-        }
+        label.textColor = baseColor
+        if headingTraitLevel(variant) != nil { label.accessibilityTraits.insert(.header) }
         #elseif canImport(AppKit)
-        label.textColor = secondary ? .secondaryLabelColor : .labelColor
+        label.textColor = baseColor
         #endif
     }
 
@@ -110,10 +112,13 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
     }
 
     private func setText(_ value: String) {
+        // Auto-link emails/URLs/phones in the tint color (SwiftUI renders these
+        // as links via AttributedString markdown auto-linking).
+        let attributed = a2ui_linkedText(value, font: baseFont, color: baseColor)
         #if canImport(UIKit) && !os(watchOS)
-        label.text = value
+        label.attributedText = attributed
         #elseif canImport(AppKit)
-        label.stringValue = value
+        label.attributedStringValue = attributed
         #endif
     }
 

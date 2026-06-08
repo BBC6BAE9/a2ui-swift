@@ -38,13 +38,11 @@ final class A2UIButton: PlatformView, A2UIPlatformComponent {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupGesture()
-        a2ui_setCornerRadius(A2UIPlatformStyle.cornerRadius)
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupGesture()
-        a2ui_setCornerRadius(A2UIPlatformStyle.cornerRadius)
     }
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
@@ -54,40 +52,49 @@ final class A2UIButton: PlatformView, A2UIPlatformComponent {
         self.sourceComponentId = node.baseComponentId
         self.checks = props.checks
         self.dataContext = DataContext(surface: surface, path: node.dataContextPath)
-        applyVariant(props.variant ?? .default)
 
         hosted?.removeFromSuperview()
         guard let child = node.children.first else { hosted = nil; return }
         let view = factory.makeView(for: child, surface: surface)
-        a2ui_pinEdges(of: view, inset: A2UIPlatformStyle.leafMargin)
+        // .bordered/.borderedProminent use compact padding around the label.
+        a2ui_pinEdges(of: view, inset: 6)
         hosted = view
+        applyVariant(props.variant ?? .default, on: view)
         a2ui_applyAccessibility(node.accessibility, dataContext: dataContext!)
     }
 
-    private func applyVariant(_ variant: ButtonVariant_Enum) {
+    /// Matches SwiftUI: default = .bordered (tinted fill), primary =
+    /// .borderedProminent (solid tint), borderless = no fill. The child label
+    /// is recolored to read against the fill.
+    private func applyVariant(_ variant: ButtonVariant_Enum, on child: PlatformView) {
+        let tint = A2UIPlatformStyle.tint
+        let textColor: PlatformColor
         switch variant {
         case .primary:
-            a2ui_setBackground(A2UIPlatformStyle.tint)
-            setBorder(width: 0)
+            a2ui_setBackground(tint); textColor = .white
         case .borderless:
-            a2ui_setBackground(.clear)
-            setBorder(width: 0)
-        default: // default / unknown — outlined
-            a2ui_setBackground(.clear)
-            setBorder(width: 1, color: A2UIPlatformStyle.tint)
+            a2ui_setBackground(.clear); textColor = tint
+        default: // .bordered — translucent tinted fill
+            a2ui_setBackground(tint.withAlphaComponent(0.12)); textColor = tint
         }
+        a2ui_recolorLabels(in: child, color: textColor)
     }
 
-    private func setBorder(width: CGFloat, color: PlatformColor = .clear) {
-        #if canImport(UIKit) && !os(watchOS)
-        layer.borderWidth = width
-        layer.borderColor = color.cgColor
-        #elseif canImport(AppKit)
-        wantsLayer = true
-        layer?.borderWidth = width
-        layer?.borderColor = color.cgColor
-        #endif
+    // Capsule corners, sized to the laid-out height.
+    #if canImport(UIKit) && !os(watchOS)
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.cornerRadius = min(bounds.height / 2, 14)
+        layer.masksToBounds = true
     }
+    #elseif canImport(AppKit)
+    override func layout() {
+        super.layout()
+        wantsLayer = true
+        layer?.cornerRadius = min(bounds.height / 2, 14)
+        layer?.masksToBounds = true
+    }
+    #endif
 
     private func setupGesture() {
         #if canImport(UIKit) && !os(watchOS)

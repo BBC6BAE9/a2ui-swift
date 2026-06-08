@@ -41,7 +41,14 @@ public final class ComponentFactory {
     public func makeView(for node: ComponentNode, surface: SurfaceModel) -> PlatformView {
         let component = resolveComponent(for: node, surface: surface)
         component.configure(node: node, surface: surface, factory: self)
-        return component
+        // Every leaf gets leafMargin padding (matches SwiftUI); pure layout
+        // containers (Row/Column/List) do not — they distribute their children.
+        switch node.type {
+        case .Row, .Column, .List:
+            return component
+        default:
+            return a2ui_padded(component, inset: A2UIPlatformStyle.leafMargin)
+        }
     }
 
     private func resolveComponent(

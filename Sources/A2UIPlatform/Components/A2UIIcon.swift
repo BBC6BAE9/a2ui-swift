@@ -34,12 +34,24 @@ final class A2UIIcon: PlatformView, A2UIPlatformComponent {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        a2ui_pinEdges(of: imageView)
+        setupIconView()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        setupIconView()
+    }
+
+    private func setupIconView() {
         a2ui_pinEdges(of: imageView)
+        // SwiftUI renders icons in the primary (label) color, not the accent tint.
+        #if canImport(UIKit) && !os(watchOS)
+        imageView.tintColor = .label
+        imageView.contentMode = .scaleAspectFit
+        #elseif canImport(AppKit)
+        imageView.contentTintColor = .labelColor
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        #endif
     }
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {

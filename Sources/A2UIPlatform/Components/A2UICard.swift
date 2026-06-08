@@ -23,13 +23,14 @@ final class A2UICard: PlatformView, A2UIPlatformComponent {
     private var hosted: PlatformView?
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
+        // Default Card matches SwiftUI: page-colored background, no rounding —
+        // visually just a padded container unless a style overrides it.
         a2ui_setBackground(A2UIPlatformStyle.cardBackground)
-        a2ui_setCornerRadius(A2UIPlatformStyle.cornerRadius)
 
         hosted?.removeFromSuperview()
         guard let child = node.children.first else { hosted = nil; return }
         let view = factory.makeView(for: child, surface: surface)
-        a2ui_pinEdges(of: view, inset: A2UIPlatformStyle.leafMargin)
+        a2ui_pinEdges(of: view, inset: A2UIPlatformStyle.cardPadding)
         hosted = view
     }
 }

@@ -26,6 +26,26 @@ import UIKit
 import AppKit
 #endif
 
+/// Recursively recolors every text label under `view` — used by Button to make
+/// its child label read against the fill (SwiftUI does this via `.foregroundStyle`).
+func a2ui_recolorLabels(in view: PlatformView, color: PlatformColor) {
+    #if canImport(UIKit) && !os(watchOS)
+    if let label = view as? UILabel { label.textColor = color }
+    #elseif canImport(AppKit)
+    if let field = view as? NSTextField { field.textColor = color }
+    #endif
+    for sub in view.subviews { a2ui_recolorLabels(in: sub, color: color) }
+}
+
+/// Wraps a view in a container that insets it on all sides — the imperative
+/// equivalent of SwiftUI's `.padding(leafMargin)`, which every leaf component
+/// applies for breathing room.
+func a2ui_padded(_ view: PlatformView, inset: CGFloat) -> PlatformView {
+    let container = PlatformView()
+    container.a2ui_pinEdges(of: view, inset: inset)
+    return container
+}
+
 extension PlatformView {
 
     /// Pins all four edges of `subview` to this view, optionally inset.
