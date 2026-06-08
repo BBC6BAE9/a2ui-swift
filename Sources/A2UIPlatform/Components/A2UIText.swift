@@ -58,10 +58,14 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
         // `subscribe*` only delivers *changes*, so seed the initial value first
         // (mirrors what SwiftUI gets implicitly from `resolve()` in its body).
         applyVariant(props.variant)
+        // A bound value that hasn't arrived yet shows a skeleton (mirrors SwiftUI
+        // `.redacted`); literals never show one.
+        let isBound: Bool = { if case .literal = props.text { return false }; return true }()
         // Expression-aware: literals, data bindings, AND function-call expressions
         // all update reactively (fan-in over referenced paths).
         a2ui_observeString(props.text, dataContext: ctx, bag: &subscriptions) { [weak self] resolved in
             self?.setText(resolved)
+            self?.setSkeleton(isBound && resolved.isEmpty)
         }
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
     }
@@ -111,6 +115,18 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
         #elseif canImport(AppKit)
         label.stringValue = value
         #endif
+    }
+
+    private var skeletonHeight: NSLayoutConstraint?
+
+    /// Shows/hides a gray placeholder bar while a bound value is unresolved.
+    private func setSkeleton(_ on: Bool) {
+        a2ui_setBackground(on ? A2UIPlatformStyle.skeleton : .clear)
+        if on { a2ui_setCornerRadius(4) }
+        if skeletonHeight == nil {
+            skeletonHeight = heightAnchor.constraint(greaterThanOrEqualToConstant: 14)
+        }
+        skeletonHeight?.isActive = on
     }
 
     /// The currently displayed text. Exposed for tests / introspection.

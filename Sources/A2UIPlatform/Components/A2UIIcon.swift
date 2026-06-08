@@ -52,13 +52,54 @@ final class A2UIIcon: PlatformView, A2UIPlatformComponent {
             setSymbol(ctx.resolve(dynamicName))
             ctx.subscribeString(for: dynamicName) { [weak self] in self?.setSymbol($0) }
                 .store(in: &subscriptions)
-        case .customPath:
-            // Deferred: render the SVG path via CAShapeLayer.
-            break
+        case .customPath(let d):
+            setSVGPath(d)
         }
     }
 
     deinit { subscriptions.unsubscribeAll() }
+
+    // MARK: - Custom SVG path
+
+    private var svgPath: CGPath?
+    private let shapeLayer = CAShapeLayer()
+
+    private func setSVGPath(_ d: String) {
+        imageView.image = nil
+        svgPath = a2ui_parseSVGPath(d)
+        #if canImport(UIKit) && !os(watchOS)
+        shapeLayer.fillColor = PlatformColor.label.cgColor
+        if shapeLayer.superlayer == nil { layer.addSublayer(shapeLayer) }
+        setNeedsLayout()
+        #elseif canImport(AppKit)
+        wantsLayer = true
+        shapeLayer.fillColor = PlatformColor.labelColor.cgColor
+        if shapeLayer.superlayer == nil { layer?.addSublayer(shapeLayer) }
+        needsLayout = true
+        #endif
+        layoutShape()
+    }
+
+    /// Aspect-fits the parsed path into the view's bounds.
+    private func layoutShape() {
+        guard let svgPath else { return }
+        let box = svgPath.boundingBoxOfPath
+        guard box.width > 0, box.height > 0, bounds.width > 0, bounds.height > 0 else {
+            shapeLayer.path = svgPath; return
+        }
+        let scale = min(bounds.width / box.width, bounds.height / box.height)
+        let tx = (bounds.width - box.width * scale) / 2 - box.minX * scale
+        let ty = (bounds.height - box.height * scale) / 2 - box.minY * scale
+        var transform = CGAffineTransform(translationX: tx, y: ty).scaledBy(x: scale, y: scale)
+        shapeLayer.frame = bounds
+        shapeLayer.path = svgPath.copy(using: &transform)
+    }
+
+    #if canImport(UIKit) && !os(watchOS)
+    override func layoutSubviews() { super.layoutSubviews(); layoutShape() }
+    #elseif canImport(AppKit)
+    override func layout() { super.layout(); layoutShape() }
+    #endif
 
     private func setSymbol(_ name: String) {
         guard !name.isEmpty else { imageView.image = nil; return }

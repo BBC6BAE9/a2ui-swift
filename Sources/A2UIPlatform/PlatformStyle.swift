@@ -51,6 +51,14 @@ public enum A2UIPlatformStyle {
         #endif
     }
 
+    public static var skeleton: PlatformColor {
+        #if canImport(UIKit) && !os(watchOS)
+        return .systemGray5
+        #elseif canImport(AppKit)
+        return .quaternaryLabelColor
+        #endif
+    }
+
     public static var cardBackground: PlatformColor {
         #if canImport(UIKit) && !os(watchOS)
         return .secondarySystemBackground
