@@ -14,6 +14,8 @@
 
 #if (canImport(UIKit) && !os(watchOS)) || canImport(AppKit)
 
+import A2UISwiftCore
+
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
 #elseif canImport(AppKit)
@@ -54,6 +56,36 @@ public enum A2UIPlatformStyle {
         return .secondarySystemBackground
         #elseif canImport(AppKit)
         return .controlBackgroundColor
+        #endif
+    }
+
+    /// Maps a Text variant to a native preferred font (h1–h5 / body / caption),
+    /// mirroring SwiftUI's `.largeTitle`/`.title`/… mapping.
+    public static func font(for variant: TextVariant?) -> PlatformFont {
+        #if canImport(UIKit) && !os(watchOS)
+        let style: UIFont.TextStyle
+        switch variant {
+        case .h1: style = .largeTitle
+        case .h2: style = .title1
+        case .h3: style = .title2
+        case .h4: style = .title3
+        case .h5: style = .headline
+        case .caption: style = .caption1
+        default: style = .body
+        }
+        return UIFont.preferredFont(forTextStyle: style)
+        #elseif canImport(AppKit)
+        let style: NSFont.TextStyle
+        switch variant {
+        case .h1: style = .largeTitle
+        case .h2: style = .title1
+        case .h3: style = .title2
+        case .h4: style = .title3
+        case .h5: style = .headline
+        case .caption: style = .caption1
+        default: style = .body
+        }
+        return NSFont.preferredFont(forTextStyle: style)
         #endif
     }
 }

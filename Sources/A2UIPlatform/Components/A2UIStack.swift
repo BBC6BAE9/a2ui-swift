@@ -29,22 +29,32 @@ import AppKit
 final class A2UIStack: PlatformView, A2UIPlatformComponent {
 
     private let stack: PlatformStackView
+    private let vertical: Bool
 
     init(vertical: Bool) {
+        self.vertical = vertical
         self.stack = a2ui_makeStack(vertical: vertical)
         super.init(frame: .zero)
         a2ui_pinEdges(of: stack)
     }
 
     required init?(coder: NSCoder) {
+        self.vertical = true
         self.stack = a2ui_makeStack(vertical: true)
         super.init(coder: coder)
         a2ui_pinEdges(of: stack)
     }
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
-        // Rebuild children from the (already-expanded) node tree.
-        a2ui_populate(stack: stack, children: node.children, surface: surface, factory: factory)
+        // Row/Column share the same property shape (children/justify/align).
+        let props = try? node.typedProperties(RowProperties.self)
+        a2ui_applyAlignment(stack, align: props?.align, vertical: vertical)
+        a2ui_populateDistributed(
+            stack: stack, children: node.children, justify: props?.justify,
+            vertical: vertical, surface: surface, factory: factory
+        )
+        let dc = DataContext(surface: surface, path: node.dataContextPath)
+        a2ui_applyAccessibility(node.accessibility, dataContext: dc)
     }
 }
 

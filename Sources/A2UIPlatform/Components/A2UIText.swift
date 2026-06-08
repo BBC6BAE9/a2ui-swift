@@ -57,13 +57,40 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
 
         // `subscribe*` only delivers *changes*, so seed the initial value first
         // (mirrors what SwiftUI gets implicitly from `resolve()` in its body).
+        applyVariant(props.variant)
         setText(ctx.resolve(props.text))
         ctx.subscribeString(for: props.text) { [weak self] resolved in
             self?.setText(resolved)
         }.store(in: &subscriptions)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
     }
 
     deinit { subscriptions.unsubscribeAll() }
+
+    private func applyVariant(_ variant: TextVariant?) {
+        label.font = A2UIPlatformStyle.font(for: variant)
+        let secondary = (variant == .caption)
+        #if canImport(UIKit) && !os(watchOS)
+        label.textColor = secondary ? .secondaryLabel : .label
+        if let heading = headingTraitLevel(variant) {
+            label.accessibilityTraits.insert(.header)
+            _ = heading
+        }
+        #elseif canImport(AppKit)
+        label.textColor = secondary ? .secondaryLabelColor : .labelColor
+        #endif
+    }
+
+    private func headingTraitLevel(_ variant: TextVariant?) -> Int? {
+        switch variant {
+        case .h1: return 1
+        case .h2: return 2
+        case .h3: return 3
+        case .h4: return 4
+        case .h5: return 5
+        default: return nil
+        }
+    }
 
     // MARK: - Platform shell (the only divergent part)
 
