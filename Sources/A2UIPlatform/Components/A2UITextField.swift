@@ -52,6 +52,8 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
+        applyVariant(props.variant)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 
         if let label = props.label {
             setPlaceholder(ctx.resolve(label))
@@ -88,6 +90,19 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
         field.addTarget(self, action: #selector(editingChanged), for: .editingChanged)
         #elseif canImport(AppKit)
         field.delegate = self
+        #endif
+    }
+
+    /// Applies the text-field variant (obscured = secure, number = numeric input).
+    /// `longText` multi-line is a later refinement; AppKit secure entry needs an
+    /// NSSecureTextField swap (deferred).
+    private func applyVariant(_ variant: TextFieldVariant?) {
+        #if canImport(UIKit) && !os(watchOS)
+        switch variant {
+        case .obscured: field.isSecureTextEntry = true
+        case .number:   field.keyboardType = .decimalPad
+        default:        field.isSecureTextEntry = false
+        }
         #endif
     }
 

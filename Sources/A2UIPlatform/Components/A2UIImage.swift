@@ -41,11 +41,15 @@ final class A2UIImage: PlatformView, A2UIPlatformComponent {
         a2ui_pinEdges(of: imageView)
     }
 
+    private var sizeConstraints: [NSLayoutConstraint] = []
+
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
         subscriptions.unsubscribeAll()
         guard let props = try? node.typedProperties(ImageProperties.self) else { return }
         applyFit(props.fit ?? .contain)
+        applyVariant(props.variant)
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 
         load(ctx.resolve(props.url))
         ctx.subscribeString(for: props.url) { [weak self] in self?.load($0) }
@@ -65,6 +69,33 @@ final class A2UIImage: PlatformView, A2UIPlatformComponent {
             DispatchQueue.main.async { self?.imageView.image = image }
         }
         loadTask?.resume()
+    }
+
+    /// Maps an image variant to size constraints (and avatar circular clip),
+    /// mirroring SwiftUI's `defaultSizing(for:)`.
+    private func applyVariant(_ variant: ImageVariant?) {
+        sizeConstraints.forEach { $0.isActive = false }
+        sizeConstraints = []
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+
+        switch variant {
+        case .icon:
+            sizeConstraints = [imageView.widthAnchor.constraint(equalToConstant: 24),
+                               imageView.heightAnchor.constraint(equalToConstant: 24)]
+        case .avatar:
+            sizeConstraints = [imageView.widthAnchor.constraint(equalToConstant: 40),
+                               imageView.heightAnchor.constraint(equalToConstant: 40)]
+            imageView.a2ui_setCornerRadius(20)
+        case .smallFeature:
+            sizeConstraints = [imageView.widthAnchor.constraint(lessThanOrEqualToConstant: 100)]
+        case .largeFeature:
+            sizeConstraints = [imageView.heightAnchor.constraint(lessThanOrEqualToConstant: 400)]
+        case .header:
+            sizeConstraints = [imageView.heightAnchor.constraint(equalToConstant: 200)]
+        default:
+            break // mediumFeature / nil — unconstrained
+        }
+        sizeConstraints.forEach { $0.isActive = true }
     }
 
     private func applyFit(_ fit: ImageFit) {

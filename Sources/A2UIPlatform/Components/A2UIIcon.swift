@@ -62,10 +62,12 @@ final class A2UIIcon: PlatformView, A2UIPlatformComponent {
 
     private func setSymbol(_ name: String) {
         guard !name.isEmpty else { imageView.image = nil; return }
+        let symbol = a2ui_sfSymbolName(for: name)
         #if canImport(UIKit) && !os(watchOS)
-        imageView.image = UIImage(systemName: name)
+        imageView.image = UIImage(systemName: symbol) ?? UIImage(systemName: "questionmark.diamond")
         #elseif canImport(AppKit)
-        imageView.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        imageView.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            ?? NSImage(systemSymbolName: "questionmark.diamond", accessibilityDescription: nil)
         #endif
     }
 }

@@ -54,12 +54,39 @@ final class A2UIButton: PlatformView, A2UIPlatformComponent {
         self.sourceComponentId = node.baseComponentId
         self.checks = props.checks
         self.dataContext = DataContext(surface: surface, path: node.dataContextPath)
+        applyVariant(props.variant ?? .default)
 
         hosted?.removeFromSuperview()
         guard let child = node.children.first else { hosted = nil; return }
         let view = factory.makeView(for: child, surface: surface)
         a2ui_pinEdges(of: view, inset: A2UIPlatformStyle.leafMargin)
         hosted = view
+        a2ui_applyAccessibility(node.accessibility, dataContext: dataContext!)
+    }
+
+    private func applyVariant(_ variant: ButtonVariant_Enum) {
+        switch variant {
+        case .primary:
+            a2ui_setBackground(A2UIPlatformStyle.tint)
+            setBorder(width: 0)
+        case .borderless:
+            a2ui_setBackground(.clear)
+            setBorder(width: 0)
+        default: // default / unknown — outlined
+            a2ui_setBackground(.clear)
+            setBorder(width: 1, color: A2UIPlatformStyle.tint)
+        }
+    }
+
+    private func setBorder(width: CGFloat, color: PlatformColor = .clear) {
+        #if canImport(UIKit) && !os(watchOS)
+        layer.borderWidth = width
+        layer.borderColor = color.cgColor
+        #elseif canImport(AppKit)
+        wantsLayer = true
+        layer?.borderWidth = width
+        layer?.borderColor = color.cgColor
+        #endif
     }
 
     private func setupGesture() {
