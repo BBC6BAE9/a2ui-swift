@@ -18,6 +18,7 @@
 // `NSView`, so every constraint helper here is written ONCE for both platforms.
 
 #if (canImport(UIKit) && !os(watchOS)) || canImport(AppKit)
+import A2UISwiftCore
 
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
@@ -38,6 +39,23 @@ extension PlatformView {
             subview.topAnchor.constraint(equalTo: topAnchor, constant: inset),
             subview.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -inset),
         ])
+    }
+}
+
+/// Replaces a stack's arranged subviews with freshly-built views for `children`.
+/// Shared by every stack-backed container (Row, Column, List).
+func a2ui_populate(
+    stack: PlatformStackView,
+    children: [ComponentNode],
+    surface: SurfaceModel,
+    factory: ComponentFactory
+) {
+    for view in stack.arrangedSubviews {
+        stack.removeArrangedSubview(view)
+        view.removeFromSuperview()
+    }
+    for child in children {
+        stack.addArrangedSubview(factory.makeView(for: child, surface: surface))
     }
 }
 

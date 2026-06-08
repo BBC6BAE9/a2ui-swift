@@ -18,24 +18,26 @@ import A2UISwiftCore
 
 // MARK: - ComponentTreeBuilder
 //
-// Minimal, slice-scoped resolver: `SurfaceModel` component definitions →
-// `ComponentNode` tree. Handles ONLY static (explicit) children — enough for
-// Text / Row / Column. Template (data-array) expansion is deliberately out of
-// scope here; it belongs to the full tree runtime (mirroring SwiftUI's
-// `SurfaceViewModel.resolveTemplateChildren`) and arrives with the List work.
+// Resolves `SurfaceModel` component definitions → a `ComponentNode` tree.
+// Mirrors the relevant parts of SwiftUI's `SurfaceViewModel.buildNodeRecursive`
+// / `resolveTemplateChildren`, which live in the SwiftUI target (NOT in Core),
+// so the imperative renderers need their own (shared) copy.
 //
-// NOTE: this confirms an architecture finding — `buildNodeRecursive` lives in
-// the SwiftUI target, not in Core, so the imperative renderers need their own
-// (shared) runtime. This is the seed of it.
+// Handles static (explicit) children AND template (data-array / -dictionary)
+// expansion. Template resolution is non-reactive: when the bound data changes,
+// the tree is rebuilt — exactly as SwiftUI does it.
 
 enum ComponentTreeBuilder {
 
-    /// Builds the node subtree rooted at `componentId`, resolving static children
-    /// recursively. Returns `nil` if the id is unknown or a cycle is detected.
+    /// Builds the node subtree rooted at `componentId`.
+    /// - `dataContextPath`: JSON-Pointer scope for data bindings in this subtree.
+    /// - `idSuffix`: makes node ids unique across template expansions
+    ///   (node `id` = `componentId + idSuffix`; `baseComponentId` stays the template id).
     static func build(
         surface: SurfaceModel,
         componentId: String,
         dataContextPath: String = "/",
+        idSuffix: String = "",
         visited: Set<String> = []
     ) -> ComponentNode? {
         guard !visited.contains(componentId),
@@ -49,13 +51,13 @@ enum ComponentTreeBuilder {
             component: model.type,
             properties: model.properties
         )
-
-        let children = staticChildIds(of: model).compactMap {
-            build(surface: surface, componentId: $0, dataContextPath: dataContextPath, visited: visited)
-        }
+        let children = resolveChildren(
+            surface: surface, model: model,
+            dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited
+        )
 
         return ComponentNode(
-            id: componentId,
+            id: componentId + idSuffix,
             baseComponentId: componentId,
             type: type,
             dataContextPath: dataContextPath,
@@ -65,16 +67,70 @@ enum ComponentTreeBuilder {
         )
     }
 
-    /// Extracts explicit child ids from a `children` property. Template form
-    /// (`{componentId, path}`) returns empty — handled by the full runtime later.
-    private static func staticChildIds(of model: ComponentModel) -> [String] {
-        guard let raw = model.properties["children"] else { return [] }
-        guard let data = try? JSONEncoder().encode(raw),
-              let childList = try? JSONDecoder().decode(ChildList.self, from: data) else { return [] }
+    // MARK: - Children
+
+    private static func resolveChildren(
+        surface: SurfaceModel, model: ComponentModel,
+        dataContextPath: String, idSuffix: String, visited: Set<String>
+    ) -> [ComponentNode] {
+        guard let childList = decodeChildList(model) else { return [] }
         switch childList {
-        case .staticList(let ids): return ids
-        case .template: return []
+        case .staticList(let ids):
+            // Static children inherit the parent's suffix so they stay unique
+            // inside a templated item.
+            return ids.compactMap {
+                build(surface: surface, componentId: $0,
+                      dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited)
+            }
+        case .template(let componentId, let path):
+            return resolveTemplate(
+                surface: surface, componentId: componentId, path: path,
+                dataContextPath: dataContextPath, visited: visited
+            )
         }
+    }
+
+    /// Expands a template over the data at `path`: one child per array element
+    /// (scoped to `<fullPath>/<index>`) or per sorted dictionary key.
+    private static func resolveTemplate(
+        surface: SurfaceModel, componentId: String, path: String,
+        dataContextPath: String, visited: Set<String>
+    ) -> [ComponentNode] {
+        let dc = DataContext(surface: surface, path: dataContextPath)
+        let fullPath = dc.resolvePath(path)
+        guard let data = surface.dataModel.get(fullPath) else { return [] }
+
+        switch data {
+        case .array(let items):
+            return items.indices.compactMap { index in
+                build(surface: surface, componentId: componentId,
+                      dataContextPath: "\(fullPath)/\(index)",
+                      idSuffix: templateSuffix(dataContextPath: dataContextPath, index: index),
+                      visited: visited)
+            }
+        case .dictionary(let dict):
+            return dict.keys.sorted().compactMap { key in
+                build(surface: surface, componentId: componentId,
+                      dataContextPath: "\(fullPath)/\(key)", idSuffix: ":\(key)", visited: visited)
+            }
+        default:
+            return []
+        }
+    }
+
+    // MARK: - Helpers
+
+    private static func decodeChildList(_ model: ComponentModel) -> ChildList? {
+        guard let raw = model.properties["children"],
+              let data = try? JSONEncoder().encode(raw) else { return nil }
+        return try? JSONDecoder().decode(ChildList.self, from: data)
+    }
+
+    /// Accumulates parent array indices into the suffix so nested-template ids
+    /// stay unique (e.g. `:0:1`). Mirrors `SurfaceViewModel.templateSuffix`.
+    private static func templateSuffix(dataContextPath: String, index: Int) -> String {
+        let parentIndices = dataContextPath.split(separator: "/").filter { $0.allSatisfy(\.isNumber) }
+        return ":\((parentIndices.map(String.init) + [String(index)]).joined(separator: ":"))"
     }
 }
 

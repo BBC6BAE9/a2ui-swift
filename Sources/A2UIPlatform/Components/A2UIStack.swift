@@ -44,13 +44,7 @@ final class A2UIStack: PlatformView, A2UIPlatformComponent {
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
         // Rebuild children from the (already-expanded) node tree.
-        for view in stack.arrangedSubviews {
-            stack.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
-        for child in node.children {
-            stack.addArrangedSubview(factory.makeView(for: child, surface: surface))
-        }
+        a2ui_populate(stack: stack, children: node.children, surface: surface, factory: factory)
     }
 }
 
