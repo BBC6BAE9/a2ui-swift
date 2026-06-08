@@ -28,6 +28,8 @@ final class A2UICheckBox: PlatformView, A2UIPlatformComponent {
     private var subscriptions = DataSubscriptions()
     private var valueBindingPath: String?
     private var dataContext: DataContext?
+    private var checks: [CheckRule]?
+    private let errorLabel = A2UILabelView.makeError()
 
     #if canImport(UIKit) && !os(watchOS)
     private let toggle = UISwitch()
@@ -52,31 +54,46 @@ final class A2UICheckBox: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
+        checks = props.checks
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 
         setLabel(ctx.resolve(props.label))
         ctx.subscribeString(for: props.label) { [weak self] in self?.setLabel($0) }
             .store(in: &subscriptions)
 
         setOn(ctx.resolve(props.value))
-        ctx.subscribeBool(for: props.value) { [weak self] in self?.setOn($0) }
-            .store(in: &subscriptions)
+        ctx.subscribeBool(for: props.value) { [weak self] in
+            self?.setOn($0); self?.updateValidation()
+        }.store(in: &subscriptions)
+        updateValidation()
     }
 
     deinit { subscriptions.unsubscribeAll() }
 
+    private func updateValidation() {
+        let message = dataContext?.firstFailingCheckMessage(checks)
+        errorLabel.text = message ?? ""
+        errorLabel.isHidden = (message == nil)
+    }
+
     @objc private func toggled() {
         guard let path = valueBindingPath else { return }
         try? dataContext?.set(path, value: .bool(isOn))
+        updateValidation()
     }
 
     // MARK: - Platform shell
 
     #if canImport(UIKit) && !os(watchOS)
     private func setupControl() {
-        let stack = a2ui_makeStack(vertical: false, spacing: 8)
-        stack.addArrangedSubview(toggle)
-        stack.addArrangedSubview(label)
-        a2ui_pinEdges(of: stack)
+        let row = a2ui_makeStack(vertical: false, spacing: 8)
+        row.addArrangedSubview(toggle)
+        row.addArrangedSubview(label)
+        let column = a2ui_makeStack(vertical: true, spacing: 4)
+        column.addArrangedSubview(row)
+        column.addArrangedSubview(errorLabel)
+        errorLabel.isHidden = true
+        a2ui_pinEdges(of: column)
         toggle.addTarget(self, action: #selector(toggled), for: .valueChanged)
     }
     private var isOn: Bool { toggle.isOn }
@@ -87,7 +104,11 @@ final class A2UICheckBox: PlatformView, A2UIPlatformComponent {
         toggle.setButtonType(.switch)
         toggle.target = self
         toggle.action = #selector(toggled)
-        a2ui_pinEdges(of: toggle)
+        let column = a2ui_makeStack(vertical: true, spacing: 4)
+        column.addArrangedSubview(toggle)
+        column.addArrangedSubview(errorLabel)
+        errorLabel.isHidden = true
+        a2ui_pinEdges(of: column)
     }
     private var isOn: Bool { toggle.state == .on }
     private func setOn(_ v: Bool) { toggle.state = v ? .on : .off }

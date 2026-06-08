@@ -29,6 +29,9 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
     private var subscriptions = DataSubscriptions()
     private var valueBindingPath: String?
     private var dataContext: DataContext?
+    private var checks: [CheckRule]?
+    private var regexp: String?
+    private let errorLabel = A2UILabelView.makeError()
 
     #if canImport(UIKit) && !os(watchOS)
     private let field = UITextField()
@@ -52,6 +55,8 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
+        checks = props.checks
+        regexp = props.validationRegexp
         applyVariant(props.variant)
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 
@@ -65,7 +70,17 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
             // Don't clobber the user mid-edit.
             guard let self, !self.isEditing else { return }
             self.setText($0)
+            self.updateValidation()
         }.store(in: &subscriptions)
+        updateValidation()
+    }
+
+    private func updateValidation() {
+        guard let dataContext else { return }
+        let message = a2ui_validationMessage(
+            checks: checks, value: currentText, regexp: regexp, dataContext: dataContext)
+        errorLabel.text = message ?? ""
+        errorLabel.isHidden = (message == nil)
     }
 
     deinit { subscriptions.unsubscribeAll() }
@@ -79,12 +94,17 @@ final class A2UITextField: PlatformView, A2UIPlatformComponent {
     private func writeBack() {
         guard let path = valueBindingPath else { return }
         try? dataContext?.set(path, value: .string(currentText))
+        updateValidation()
     }
 
     // MARK: - Platform shell
 
     private func setupField() {
-        a2ui_pinEdges(of: field)
+        let stack = a2ui_makeStack(vertical: true, spacing: 4)
+        stack.addArrangedSubview(field)
+        stack.addArrangedSubview(errorLabel)
+        errorLabel.isHidden = true
+        a2ui_pinEdges(of: stack)
         #if canImport(UIKit) && !os(watchOS)
         field.borderStyle = .roundedRect
         field.addTarget(self, action: #selector(editingChanged), for: .editingChanged)

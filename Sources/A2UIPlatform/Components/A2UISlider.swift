@@ -28,6 +28,9 @@ final class A2UISlider: PlatformView, A2UIPlatformComponent {
     private var subscriptions = DataSubscriptions()
     private var valueBindingPath: String?
     private var dataContext: DataContext?
+    private var checks: [CheckRule]?
+    private let titleLabel = A2UILabelView.makeFieldLabel()
+    private let errorLabel = A2UILabelView.makeError()
 
     #if canImport(UIKit) && !os(watchOS)
     private let slider = UISlider()
@@ -51,25 +54,49 @@ final class A2UISlider: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
+        checks = props.checks
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
+
+        if let label = props.label {
+            titleLabel.isHidden = false
+            titleLabel.text = ctx.resolve(label)
+            ctx.subscribeString(for: label) { [weak self] in self?.titleLabel.text = $0 }
+                .store(in: &subscriptions)
+        } else {
+            titleLabel.isHidden = true
+        }
 
         setRange(min: props.min ?? 0, max: props.max)
         setValue(ctx.resolve(props.value) ?? props.min ?? 0)
         ctx.subscribeDouble(for: props.value) { [weak self] in
-            self?.setValue($0 ?? 0)
+            self?.setValue($0 ?? 0); self?.updateValidation()
         }.store(in: &subscriptions)
+        updateValidation()
     }
 
     deinit { subscriptions.unsubscribeAll() }
 
+    private func updateValidation() {
+        let message = dataContext?.firstFailingCheckMessage(checks)
+        errorLabel.text = message ?? ""
+        errorLabel.isHidden = (message == nil)
+    }
+
     @objc private func valueChanged() {
         guard let path = valueBindingPath else { return }
         try? dataContext?.set(path, value: .number(currentValue))
+        updateValidation()
     }
 
     // MARK: - Platform shell
 
     private func setupControl() {
-        a2ui_pinEdges(of: slider)
+        let column = a2ui_makeStack(vertical: true, spacing: 4)
+        column.addArrangedSubview(titleLabel)
+        column.addArrangedSubview(slider)
+        column.addArrangedSubview(errorLabel)
+        errorLabel.isHidden = true
+        a2ui_pinEdges(of: column)
         #if canImport(UIKit) && !os(watchOS)
         slider.addTarget(self, action: #selector(valueChanged), for: .valueChanged)
         #elseif canImport(AppKit)

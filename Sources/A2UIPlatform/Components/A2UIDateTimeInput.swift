@@ -55,6 +55,9 @@ final class A2UIDateTimeInput: PlatformView, A2UIPlatformComponent {
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
         setMode(date: props.enableDate ?? true, time: props.enableTime ?? false)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
+        setBounds(min: props.min.flatMap { iso.date(from: ctx.resolve($0)) },
+                  max: props.max.flatMap { iso.date(from: ctx.resolve($0)) })
 
         setDate(iso.date(from: ctx.resolve(props.value)) ?? Date(timeIntervalSince1970: 0))
         ctx.subscribeString(for: props.value) { [weak self] in
@@ -85,12 +88,19 @@ final class A2UIDateTimeInput: PlatformView, A2UIPlatformComponent {
     #if canImport(UIKit) && !os(watchOS)
     private var currentDate: Date { picker.date }
     private func setDate(_ d: Date) { picker.date = d }
+    private func setBounds(min: Date?, max: Date?) {
+        picker.minimumDate = min; picker.maximumDate = max
+    }
     private func setMode(date: Bool, time: Bool) {
         picker.datePickerMode = date && time ? .dateAndTime : (time ? .time : .date)
     }
     #elseif canImport(AppKit)
     private var currentDate: Date { picker.dateValue }
     private func setDate(_ d: Date) { picker.dateValue = d }
+    private func setBounds(min: Date?, max: Date?) {
+        if let min { picker.minDate = min }
+        if let max { picker.maxDate = max }
+    }
     private func setMode(date: Bool, time: Bool) {
         var elements = NSDatePicker.ElementFlags()
         if date { elements.insert(.yearMonthDay) }
