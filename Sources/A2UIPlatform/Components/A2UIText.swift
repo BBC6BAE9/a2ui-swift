@@ -58,10 +58,11 @@ final class A2UIText: PlatformView, A2UIPlatformComponent {
         // `subscribe*` only delivers *changes*, so seed the initial value first
         // (mirrors what SwiftUI gets implicitly from `resolve()` in its body).
         applyVariant(props.variant)
-        setText(ctx.resolve(props.text))
-        ctx.subscribeString(for: props.text) { [weak self] resolved in
+        // Expression-aware: literals, data bindings, AND function-call expressions
+        // all update reactively (fan-in over referenced paths).
+        a2ui_observeString(props.text, dataContext: ctx, bag: &subscriptions) { [weak self] resolved in
             self?.setText(resolved)
-        }.store(in: &subscriptions)
+        }
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
     }
 
