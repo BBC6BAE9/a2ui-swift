@@ -92,6 +92,19 @@ final class A2UIListTests: XCTestCase {
 
         XCTAssertEqual(texts(in: host).map(\.currentText), ["Apple", "Banana", "Cherry", "Date"])
     }
+
+    func testListAutoRebuildsWhenBoundArrayChanges() throws {
+        let surface = try makeSurface(items: ["Apple", "Banana"])
+        let host = A2UISurfaceHostView()
+        host.render(surface: surface, rootComponentId: "list")
+        XCTAssertEqual(texts(in: host).count, 2)
+
+        // No manual re-render: the host watches the template's data path.
+        try setItems(surface, ["Apple", "Banana", "Cherry"])
+
+        XCTAssertEqual(texts(in: host).map(\.currentText), ["Apple", "Banana", "Cherry"],
+                       "Host should rebuild automatically when the list's array changes")
+    }
 }
 
 #endif

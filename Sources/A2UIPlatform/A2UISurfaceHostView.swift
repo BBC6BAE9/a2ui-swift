@@ -21,16 +21,22 @@ import UIKit
 import AppKit
 #endif
 
-/// Top-level container that hosts a rendered A2UI surface.
+/// Top-level container that hosts a rendered A2UI surface and keeps it live.
 ///
-/// Slice scope: given a `SurfaceModel` and a root component id, it builds the
-/// node tree (static children only) and mounts the root view. The full version
-/// will own the message pipeline and reconcile on data/structure changes — the
-/// imperative counterpart of SwiftUI's `SurfaceViewModel`.
+/// The imperative counterpart of SwiftUI's `SurfaceViewModel`: builds the node
+/// tree, mounts the root view, and **rebuilds automatically** when structure
+/// changes (components created/deleted) or when a template's bound data changes.
+/// Leaf data bindings update in place via each component's own subscriptions —
+/// only template-derived structure needs a rebuild.
 public final class A2UISurfaceHostView: PlatformView {
 
     private let factory = ComponentFactory()
     private var rootView: PlatformView?
+
+    private var surface: SurfaceModel?
+    private var rootComponentId: String?
+    private var structureSubscriptions: [Subscription] = []
+    private var templateSubscriptions = DataSubscriptions()
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -40,19 +46,47 @@ public final class A2UISurfaceHostView: PlatformView {
         super.init(coder: coder)
     }
 
-    /// Mounts the component tree rooted at `rootComponentId` from `surface`.
-    /// Returns the root rendered view (also retained as a subview), or `nil` if
-    /// the id cannot be resolved.
+    deinit {
+        structureSubscriptions.forEach { $0.unsubscribe() }
+        templateSubscriptions.unsubscribeAll()
+    }
+
+    /// Mounts the surface rooted at `rootComponentId` and starts tracking it.
+    /// Returns the root rendered view, or `nil` if the id cannot be resolved.
     @discardableResult
     public func render(surface: SurfaceModel, rootComponentId: String) -> PlatformView? {
+        self.surface = surface
+        self.rootComponentId = rootComponentId
+
+        structureSubscriptions.forEach { $0.unsubscribe() }
+        structureSubscriptions = [
+            surface.componentsModel.onCreated.subscribe { [weak self] _ in self?.rebuild() },
+            surface.componentsModel.onDeleted.subscribe { [weak self] _ in self?.rebuild() },
+        ]
+        return rebuild()
+    }
+
+    @discardableResult
+    private func rebuild() -> PlatformView? {
+        guard let surface, let rootComponentId else { return nil }
+        templateSubscriptions.unsubscribeAll()
+
+        let result = ComponentTreeBuilder.buildTree(surface: surface, rootComponentId: rootComponentId)
+
         rootView?.removeFromSuperview()
-        guard let node = ComponentTreeBuilder.build(surface: surface, componentId: rootComponentId) else {
-            rootView = nil
-            return nil
-        }
+        guard let node = result.root else { rootView = nil; return nil }
         let view = factory.makeView(for: node, surface: surface)
         a2ui_pinEdges(of: view)
         rootView = view
+
+        // Watch the data paths that drive template expansion; a change there
+        // means rows were added/removed, so the tree must be rebuilt.
+        let dc = DataContext(surface: surface, path: "/")
+        for path in result.templatePaths {
+            dc.subscribeDynamicValue(.dataBinding(path: path)) { [weak self] _ in
+                self?.rebuild()
+            }.store(in: &templateSubscriptions)
+        }
         return view
     }
 }

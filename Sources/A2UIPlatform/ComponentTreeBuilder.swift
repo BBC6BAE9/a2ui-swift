@@ -19,26 +19,40 @@ import A2UISwiftCore
 // MARK: - ComponentTreeBuilder
 //
 // Resolves `SurfaceModel` component definitions → a `ComponentNode` tree.
-// Mirrors the relevant parts of SwiftUI's `SurfaceViewModel.buildNodeRecursive`
-// / `resolveTemplateChildren`, which live in the SwiftUI target (NOT in Core),
-// so the imperative renderers need their own (shared) copy.
+// Mirrors the relevant parts of SwiftUI's `SurfaceViewModel` (which lives in the
+// SwiftUI target, not Core), so the imperative renderers have their own shared copy.
 //
-// Handles static (explicit) children AND template (data-array / -dictionary)
-// expansion. Template resolution is non-reactive: when the bound data changes,
-// the tree is rebuilt — exactly as SwiftUI does it.
+// Type-aware children + template (data-array / -dictionary) expansion. Template
+// resolution is non-reactive: the runtime rebuilds the tree when a template's
+// bound data changes — `buildTree` reports those paths so the host can watch them.
 
 enum ComponentTreeBuilder {
 
+    struct Result {
+        let root: ComponentNode?
+        /// Data paths whose contents drive template expansion. The runtime
+        /// subscribes to these and rebuilds when any of them changes.
+        let templatePaths: Set<String>
+    }
+
+    static func buildTree(surface: SurfaceModel, rootComponentId: String) -> Result {
+        var templatePaths = Set<String>()
+        let root = build(surface: surface, componentId: rootComponentId,
+                         dataContextPath: "/", idSuffix: "", visited: [],
+                         templatePaths: &templatePaths)
+        return Result(root: root, templatePaths: templatePaths)
+    }
+
     /// Builds the node subtree rooted at `componentId`.
-    /// - `dataContextPath`: JSON-Pointer scope for data bindings in this subtree.
     /// - `idSuffix`: makes node ids unique across template expansions
     ///   (node `id` = `componentId + idSuffix`; `baseComponentId` stays the template id).
     static func build(
         surface: SurfaceModel,
         componentId: String,
-        dataContextPath: String = "/",
-        idSuffix: String = "",
-        visited: Set<String> = []
+        dataContextPath: String,
+        idSuffix: String,
+        visited: Set<String>,
+        templatePaths: inout Set<String>
     ) -> ComponentNode? {
         guard !visited.contains(componentId),
               let model = surface.componentsModel.get(componentId) else { return nil }
@@ -46,14 +60,11 @@ enum ComponentTreeBuilder {
         visited.insert(componentId)
 
         let type = ComponentType.from(model.type)
-        let instance = RawComponent(
-            id: model.id,
-            component: model.type,
-            properties: model.properties
-        )
+        let instance = RawComponent(id: model.id, component: model.type, properties: model.properties)
         let children = resolveChildren(
             surface: surface, model: model, type: type,
-            dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited
+            dataContextPath: dataContextPath, idSuffix: idSuffix,
+            visited: visited, templatePaths: &templatePaths
         )
 
         return ComponentNode(
@@ -70,17 +81,19 @@ enum ComponentTreeBuilder {
     // MARK: - Children
 
     /// Type-aware child resolution — mirrors SwiftUI's `resolveNodeChildren`.
-    /// Different containers name their children differently:
-    /// Row/Column/List use `children` (static or template); Card/Button use
-    /// `child`; Tabs use `tabs[].child`; Modal uses `trigger` + `content`.
     private static func resolveChildren(
         surface: SurfaceModel, model: ComponentModel, type: ComponentType,
-        dataContextPath: String, idSuffix: String, visited: Set<String>
+        dataContextPath: String, idSuffix: String, visited: Set<String>,
+        templatePaths: inout Set<String>
     ) -> [ComponentNode] {
+        var paths = templatePaths
+        defer { templatePaths = paths }
+
         func child(_ id: String?) -> [ComponentNode] {
             guard let id else { return [] }
             return build(surface: surface, componentId: id,
-                         dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited).map { [$0] } ?? []
+                         dataContextPath: dataContextPath, idSuffix: idSuffix,
+                         visited: visited, templatePaths: &paths).map { [$0] } ?? []
         }
 
         switch type {
@@ -90,11 +103,13 @@ enum ComponentTreeBuilder {
             case .staticList(let ids):
                 return ids.compactMap {
                     build(surface: surface, componentId: $0,
-                          dataContextPath: dataContextPath, idSuffix: idSuffix, visited: visited)
+                          dataContextPath: dataContextPath, idSuffix: idSuffix,
+                          visited: visited, templatePaths: &paths)
                 }
             case .template(let componentId, let path):
                 return resolveTemplate(surface: surface, componentId: componentId, path: path,
-                                       dataContextPath: dataContextPath, visited: visited)
+                                       dataContextPath: dataContextPath, visited: visited,
+                                       templatePaths: &paths)
             }
 
         case .Card, .Button:
@@ -117,10 +132,11 @@ enum ComponentTreeBuilder {
     /// (scoped to `<fullPath>/<index>`) or per sorted dictionary key.
     private static func resolveTemplate(
         surface: SurfaceModel, componentId: String, path: String,
-        dataContextPath: String, visited: Set<String>
+        dataContextPath: String, visited: Set<String>, templatePaths: inout Set<String>
     ) -> [ComponentNode] {
         let dc = DataContext(surface: surface, path: dataContextPath)
         let fullPath = dc.resolvePath(path)
+        templatePaths.insert(fullPath) // runtime watches this for changes
         guard let data = surface.dataModel.get(fullPath) else { return [] }
 
         switch data {
@@ -129,12 +145,13 @@ enum ComponentTreeBuilder {
                 build(surface: surface, componentId: componentId,
                       dataContextPath: "\(fullPath)/\(index)",
                       idSuffix: templateSuffix(dataContextPath: dataContextPath, index: index),
-                      visited: visited)
+                      visited: visited, templatePaths: &templatePaths)
             }
         case .dictionary(let dict):
             return dict.keys.sorted().compactMap { key in
                 build(surface: surface, componentId: componentId,
-                      dataContextPath: "\(fullPath)/\(key)", idSuffix: ":\(key)", visited: visited)
+                      dataContextPath: "\(fullPath)/\(key)", idSuffix: ":\(key)",
+                      visited: visited, templatePaths: &templatePaths)
             }
         default:
             return []
