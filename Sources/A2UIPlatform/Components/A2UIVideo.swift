@@ -80,7 +80,9 @@ final class A2UIVideo: PlatformView, A2UIPlatformComponent {
 
         #if canImport(UIKit) && !os(watchOS)
         controller.view.backgroundColor = .black
-        a2ui_pinEdges(of: controller.view)
+        controller.showsPlaybackControls = true
+        // The controller's view is attached in didMoveToWindow, in the correct
+        // child-VC order (addChild → addSubview → didMove) so its controls work.
         #elseif canImport(AppKit)
         playerView.controlsStyle = .inline
         a2ui_pinEdges(of: playerView)
@@ -89,11 +91,12 @@ final class A2UIVideo: PlatformView, A2UIPlatformComponent {
 
     #if canImport(UIKit) && !os(watchOS)
     // Attach the player view controller to the hosting VC so its view lays out
-    // and playback controls work.
+    // and the playback controls appear.
     override func didMoveToWindow() {
         super.didMoveToWindow()
         guard window != nil, controller.parent == nil, let parent = parentViewController else { return }
         parent.addChild(controller)
+        a2ui_pinEdges(of: controller.view)
         controller.didMove(toParent: parent)
     }
 
