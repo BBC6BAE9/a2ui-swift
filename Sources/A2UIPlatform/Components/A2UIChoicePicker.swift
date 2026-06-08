@@ -28,9 +28,14 @@ import AppKit
 /// `subscribeStringList` helper yet — reactive list reads are a later refinement).
 final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
 
-    private let stack = a2ui_makeStack(vertical: true, spacing: 4)
+    // Spec: VStack(alignment:.leading, spacing:4) { label?, options, error? }
+    private let column = a2ui_makeStack(vertical: true, spacing: 4)
+    private let titleLabel = A2UILabelView.makeFieldLabel()
+    private let rowsStack = a2ui_makeStack(vertical: true, spacing: 4)
+    private let errorLabel = A2UILabelView.makeError()
     private var dataContext: DataContext?
     private var valueBindingPath: String?
+    private var checks: [CheckRule]?
     private var multiSelect = false
     private var chips = false
     private var options: [(label: String, value: String)] = []
@@ -38,12 +43,21 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        a2ui_pinEdges(of: stack)
+        setupLayout()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        a2ui_pinEdges(of: stack)
+        setupLayout()
+    }
+
+    private func setupLayout() {
+        a2ui_applyAlignment(column, align: .start, vertical: true) // leading
+        column.addArrangedSubview(titleLabel)
+        column.addArrangedSubview(rowsStack)
+        column.addArrangedSubview(errorLabel)
+        errorLabel.isHidden = true
+        a2ui_pinEdges(of: column)
     }
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
@@ -51,12 +65,27 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
+        checks = props.checks
         multiSelect = (props.variant ?? .mutuallyExclusive) == .multipleSelection
         chips = (props.displayStyle ?? .checkbox) == .chips
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
+
+        if let label = props.label {
+            titleLabel.isHidden = false
+            titleLabel.text = ctx.resolve(label)
+        } else {
+            titleLabel.isHidden = true
+        }
         options = props.options.map { (ctx.resolve($0.label), $0.value) }
         selected = Set(props.value.map { ctx.resolve($0) } ?? [])
         rebuildRows()
+        updateValidation()
+    }
+
+    private func updateValidation() {
+        let message = dataContext?.firstFailingCheckMessage(checks)
+        errorLabel.text = message ?? ""
+        errorLabel.isHidden = (message == nil)
     }
 
     /// Test hook + row tap entry point.
@@ -68,6 +97,7 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
         }
         writeBack()
         rebuildRows()
+        updateValidation()
     }
 
     var selectedValues: Set<String> { selected }
@@ -78,14 +108,14 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
     }
 
     private func rebuildRows() {
-        for v in stack.arrangedSubviews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
+        for v in rowsStack.arrangedSubviews { rowsStack.removeArrangedSubview(v); v.removeFromSuperview() }
         for option in options {
             let row = A2UIChoiceRow(
                 label: option.label,
                 isSelected: selected.contains(option.value),
                 chip: chips
             ) { [weak self] in self?.toggle(option.value) }
-            stack.addArrangedSubview(row)
+            rowsStack.addArrangedSubview(row)
         }
     }
 }

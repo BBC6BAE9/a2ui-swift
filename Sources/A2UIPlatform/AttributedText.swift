@@ -42,26 +42,57 @@ extension PlatformColor {
 
 // MARK: - Auto-linked text
 
-/// Builds an attributed string with the base font/color, then tints any
-/// detected URLs, emails, and phone numbers — matching SwiftUI's markdown
-/// auto-linking of bare links.
+/// Renders text the way SwiftUI's A2UIText does: parse inline Markdown
+/// (**bold** / *italic* / [links]) onto the variant's base font/color, then tint
+/// any bare URLs/emails. Phone numbers stay plain.
 func a2ui_linkedText(_ string: String, font: PlatformFont, color: PlatformColor) -> NSAttributedString {
-    let attributed = NSMutableAttributedString(
-        string: string,
-        attributes: [.font: font, .foregroundColor: color]
-    )
-    // Only URLs/emails are auto-linked (SwiftUI leaves phone numbers as plain text).
-    guard !string.isEmpty,
-          let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
-        return attributed
+    // 1. Parse inline Markdown (falls back to plain text on failure).
+    let attributed: NSMutableAttributedString
+    if let parsed = try? NSAttributedString(
+        markdown: string,
+        options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+        attributed = NSMutableAttributedString(attributedString: parsed)
+    } else {
+        attributed = NSMutableAttributedString(string: string)
     }
-    let full = NSRange(string.startIndex..., in: string)
-    detector.enumerateMatches(in: string, options: [], range: full) { match, _, _ in
-        if let range = match?.range {
-            attributed.addAttribute(.foregroundColor, value: A2UIPlatformStyle.tint, range: range)
+
+    let full = NSRange(location: 0, length: attributed.length)
+    // 2. Re-base every run onto the variant font (preserving bold/italic traits)
+    //    and color, since Markdown parsing uses the system default font.
+    // (runs without a font attribute report value == nil and get the base font)
+    attributed.enumerateAttribute(.font, in: full) { value, range, _ in
+        let runFont = value as? PlatformFont
+        attributed.addAttribute(.font, value: a2ui_mergeTraits(of: runFont, onto: font), range: range)
+    }
+    attributed.addAttribute(.foregroundColor, value: color, range: full)
+
+    // 3. Tint bare URLs/emails.
+    let plain = attributed.string
+    if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+        let r = NSRange(plain.startIndex..., in: plain)
+        detector.enumerateMatches(in: plain, options: [], range: r) { match, _, _ in
+            if let range = match?.range {
+                attributed.addAttribute(.foregroundColor, value: A2UIPlatformStyle.tint, range: range)
+            }
         }
     }
     return attributed
+}
+
+/// Applies a run's bold/italic symbolic traits onto the base font at its size.
+private func a2ui_mergeTraits(of runFont: PlatformFont?, onto base: PlatformFont) -> PlatformFont {
+    guard let runFont else { return base }
+    #if canImport(UIKit) && !os(watchOS)
+    let traits = runFont.fontDescriptor.symbolicTraits.intersection([.traitBold, .traitItalic])
+    guard !traits.isEmpty,
+          let descriptor = base.fontDescriptor.withSymbolicTraits(traits) else { return base }
+    return UIFont(descriptor: descriptor, size: base.pointSize)
+    #elseif canImport(AppKit)
+    let traits = runFont.fontDescriptor.symbolicTraits.intersection([.bold, .italic])
+    guard !traits.isEmpty else { return base }
+    let descriptor = base.fontDescriptor.withSymbolicTraits(traits)
+    return NSFont(descriptor: descriptor, size: base.pointSize) ?? base
+    #endif
 }
 
 #endif

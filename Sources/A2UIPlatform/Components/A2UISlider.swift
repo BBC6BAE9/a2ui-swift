@@ -30,6 +30,8 @@ final class A2UISlider: PlatformView, A2UIPlatformComponent {
     private var dataContext: DataContext?
     private var checks: [CheckRule]?
     private let titleLabel = A2UILabelView.makeFieldLabel()
+    private let valueLabel = A2UILabelView.makeValue()
+    private let labelRow = a2ui_makeStack(vertical: false, spacing: 4)
     private let errorLabel = A2UILabelView.makeError()
 
     #if canImport(UIKit) && !os(watchOS)
@@ -58,20 +60,26 @@ final class A2UISlider: PlatformView, A2UIPlatformComponent {
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 
         if let label = props.label {
-            titleLabel.isHidden = false
+            labelRow.isHidden = false
             titleLabel.text = ctx.resolve(label)
             ctx.subscribeString(for: label) { [weak self] in self?.titleLabel.text = $0 }
                 .store(in: &subscriptions)
         } else {
-            titleLabel.isHidden = true
+            labelRow.isHidden = true
         }
 
         setRange(min: props.min ?? 0, max: props.max)
         setValue(ctx.resolve(props.value) ?? props.min ?? 0)
+        refreshValueLabel()
         ctx.subscribeDouble(for: props.value) { [weak self] in
-            self?.setValue($0 ?? 0); self?.updateValidation()
+            self?.setValue($0 ?? 0); self?.refreshValueLabel(); self?.updateValidation()
         }.store(in: &subscriptions)
         updateValidation()
+    }
+
+    private func refreshValueLabel() {
+        let v = currentValue
+        valueLabel.text = (v == v.rounded()) ? String(Int(v)) : String(format: "%.1f", v)
     }
 
     deinit { subscriptions.unsubscribeAll() }
@@ -85,14 +93,21 @@ final class A2UISlider: PlatformView, A2UIPlatformComponent {
     @objc private func valueChanged() {
         guard let path = valueBindingPath else { return }
         try? dataContext?.set(path, value: .number(currentValue))
+        refreshValueLabel()
         updateValidation()
     }
 
     // MARK: - Platform shell
 
     private func setupControl() {
+        // Label row: title on the left, current value (monospaced) on the right.
+        let spacer = a2ui_makeSpacer(vertical: false)
+        labelRow.addArrangedSubview(titleLabel)
+        labelRow.addArrangedSubview(spacer)
+        labelRow.addArrangedSubview(valueLabel)
+
         let column = a2ui_makeStack(vertical: true, spacing: 4)
-        column.addArrangedSubview(titleLabel)
+        column.addArrangedSubview(labelRow)
         column.addArrangedSubview(slider)
         column.addArrangedSubview(errorLabel)
         errorLabel.isHidden = true

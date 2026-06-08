@@ -75,6 +75,20 @@ final class A2UILabelView: PlatformView {
         #endif
     }
 
+    /// Convenience: a monospaced-digit secondary value label (e.g. Slider value).
+    static func makeValue() -> A2UILabelView {
+        let size: CGFloat
+        #if canImport(UIKit) && !os(watchOS)
+        size = UIFont.preferredFont(forTextStyle: .body).pointSize
+        return A2UILabelView(font: .monospacedDigitSystemFont(ofSize: size, weight: .regular),
+                             color: .secondaryLabel)
+        #elseif canImport(AppKit)
+        size = NSFont.preferredFont(forTextStyle: .body).pointSize
+        return A2UILabelView(font: .monospacedDigitSystemFont(ofSize: size, weight: .regular),
+                             color: .secondaryLabelColor)
+        #endif
+    }
+
     /// Convenience: a secondary caption label for field titles.
     static func makeFieldLabel() -> A2UILabelView {
         #if canImport(UIKit) && !os(watchOS)
