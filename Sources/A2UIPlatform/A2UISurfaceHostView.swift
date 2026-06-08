@@ -35,6 +35,7 @@ public final class A2UISurfaceHostView: PlatformView {
 
     private var surface: SurfaceModel?
     private var rootComponentId: String?
+    private var currentRoot: ComponentNode?
     private var structureSubscriptions: [Subscription] = []
     private var templateSubscriptions = DataSubscriptions()
 
@@ -72,6 +73,12 @@ public final class A2UISurfaceHostView: PlatformView {
         templateSubscriptions.unsubscribeAll()
 
         let result = ComponentTreeBuilder.buildTree(surface: surface, rootComponentId: rootComponentId)
+
+        // Carry stateful view state (Tabs selection, Modal open) across rebuilds.
+        if let old = currentRoot, let new = result.root {
+            ComponentTreeBuilder.migrateUIState(from: old, to: new)
+        }
+        currentRoot = result.root
 
         rootView?.removeFromSuperview()
         guard let node = result.root else { rootView = nil; return nil }

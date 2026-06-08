@@ -29,6 +29,7 @@ final class A2UITabs: PlatformView, A2UIPlatformComponent {
     private let container = PlatformView()
     private var panels: [PlatformView] = []
     private var selectedIndex = 0
+    private var uiState: TabsUIState?
 
     #if canImport(UIKit) && !os(watchOS)
     private let segmented = UISegmentedControl()
@@ -49,16 +50,20 @@ final class A2UITabs: PlatformView, A2UIPlatformComponent {
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
         guard let props = try? node.typedProperties(TabsProperties.self) else { return }
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
+        uiState = node.uiState as? TabsUIState
 
         panels = node.children.map { factory.makeView(for: $0, surface: surface) }
         setTitles(props.tabs.map { ctx.resolve($0.title) })
-        select(0)
+        a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
+        // Restore persisted selection (survives rebuilds via node.uiState).
+        select(uiState?.selectedIndex ?? 0)
     }
 
     /// Test hook + selection entry point.
     func select(_ index: Int) {
         guard index >= 0, index < panels.count else { return }
         selectedIndex = index
+        uiState?.selectedIndex = index
         container.subviews.forEach { $0.removeFromSuperview() }
         container.a2ui_pinEdges(of: panels[index])
         syncSegmentSelection(index)

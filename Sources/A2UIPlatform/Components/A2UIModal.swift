@@ -30,9 +30,11 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
 
     private var contentView: PlatformView?
     private var overlay: PlatformView?
+    private var uiState: ModalUIState?
 
     func configure(node: ComponentNode, surface: SurfaceModel, factory: ComponentFactory) {
         subviews.forEach { $0.removeFromSuperview() }
+        uiState = node.uiState as? ModalUIState
         guard node.children.count >= 1 else { return }
 
         let trigger = factory.makeView(for: node.children[0], surface: surface)
@@ -46,9 +48,12 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
         #elseif canImport(AppKit)
         trigger.addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(present)))
         #endif
+        // Restore open state across rebuilds.
+        if uiState?.isPresented == true { present() }
     }
 
     @objc private func present() {
+        uiState?.isPresented = true
         guard let contentView, overlay == nil else { return }
         #if canImport(UIKit) && !os(watchOS)
         let host: PlatformView = window ?? self
@@ -68,6 +73,7 @@ final class A2UIModal: PlatformView, A2UIPlatformComponent {
     }
 
     @objc private func dismiss() {
+        uiState?.isPresented = false
         overlay?.removeFromSuperview()
         overlay = nil
     }

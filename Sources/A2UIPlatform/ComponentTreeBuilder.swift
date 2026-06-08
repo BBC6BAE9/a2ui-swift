@@ -74,8 +74,39 @@ enum ComponentTreeBuilder {
             dataContextPath: dataContextPath,
             weight: model.properties["weight"]?.numberValue,
             instance: instance,
-            children: children
+            children: children,
+            uiState: defaultUIState(for: type)
         )
+    }
+
+    /// Stateful components carry view state on the node so it survives rebuilds
+    /// (the host migrates it by id). Mirrors SwiftUI's `createDefaultUIState`.
+    private static func defaultUIState(for type: ComponentType) -> (any ComponentUIState)? {
+        switch type {
+        case .Tabs: return TabsUIState()
+        case .Modal: return ModalUIState()
+        default: return nil
+        }
+    }
+
+    /// Copies persisted view state from an old tree onto a freshly-built one,
+    /// matched by node id + state type. Mirrors SwiftUI's migrateUIStates.
+    static func migrateUIState(from old: ComponentNode, to new: ComponentNode) {
+        var map: [String: any ComponentUIState] = [:]
+        collectUIState(old, into: &map)
+        applyUIState(new, from: map)
+    }
+
+    private static func collectUIState(_ node: ComponentNode, into map: inout [String: any ComponentUIState]) {
+        if let state = node.uiState { map[node.id] = state }
+        for child in node.children { collectUIState(child, into: &map) }
+    }
+
+    private static func applyUIState(_ node: ComponentNode, from map: [String: any ComponentUIState]) {
+        if let old = map[node.id], let new = node.uiState, type(of: old) == type(of: new) {
+            node.uiState = old
+        }
+        for child in node.children { applyUIState(child, from: map) }
     }
 
     // MARK: - Children
