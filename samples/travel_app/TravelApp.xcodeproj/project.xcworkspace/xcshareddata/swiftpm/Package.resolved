@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c72d6ffd374f2ff86f7bc2bd7251f2432b4415dbebc1ee9dd11a330ab3f0c00",
+  "originHash" : "121a46088255fc16eb1c3740c986a928b6f1a13c061580c00c17d3b858c67cef",
   "pins" : [
     {
       "identity" : "a2a-swift",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "62a2b556143cd1954cc5bbc733feaa4e0689bf1f",
         "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "icu-mirror",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-foundation-icu.git",
+      "state" : {
+        "branch" : "swift-6.3.1-RELEASE",
+        "revision" : "2e2854eee567589ed44c5f3c85c7343e6d91978d"
       }
     },
     {

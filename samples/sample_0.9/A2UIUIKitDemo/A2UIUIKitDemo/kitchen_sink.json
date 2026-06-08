@@ -1,0 +1,62 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "kitchen",
+      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+      "sendDataModel": true
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "kitchen",
+      "components": [
+        { "id": "root", "component": "Column",
+          "children": ["title", "sliderLabel", "slider", "dateLabel", "date",
+                       "videoLabel", "video", "audioLabel", "audio",
+                       "modalLabel", "modal", "tabsLabel", "tabs"] },
+
+        { "id": "title", "component": "Text", "text": "Kitchen Sink — all components", "variant": "h3" },
+
+        { "id": "sliderLabel", "component": "Text", "text": "Slider", "variant": "h5" },
+        { "id": "slider", "component": "Slider", "label": "Volume", "max": 100, "value": { "path": "/volume" } },
+
+        { "id": "dateLabel", "component": "Text", "text": "DateTimeInput", "variant": "h5" },
+        { "id": "date", "component": "DateTimeInput", "label": "Pick a date", "enableDate": true, "value": { "path": "/when" } },
+
+        { "id": "videoLabel", "component": "Text", "text": "Video", "variant": "h5" },
+        { "id": "video", "component": "Video", "url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4" },
+
+        { "id": "audioLabel", "component": "Text", "text": "AudioPlayer", "variant": "h5" },
+        { "id": "audio", "component": "AudioPlayer", "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", "description": "Sample track" },
+
+        { "id": "modalLabel", "component": "Text", "text": "Modal", "variant": "h5" },
+        { "id": "modal", "component": "Modal", "trigger": "modalTrigger", "content": "modalContent" },
+        { "id": "modalTrigger", "component": "Button", "variant": "primary", "child": "modalTriggerLabel", "action": { "event": { "name": "openModal" } } },
+        { "id": "modalTriggerLabel", "component": "Text", "text": "Open Modal" },
+        { "id": "modalContent", "component": "Card", "child": "modalInner" },
+        { "id": "modalInner", "component": "Column", "children": ["modalText", "modalDismissHint"] },
+        { "id": "modalText", "component": "Text", "text": "Modal content", "variant": "h3" },
+        { "id": "modalDismissHint", "component": "Text", "text": "Tap the dim area to dismiss", "variant": "caption" },
+
+        { "id": "tabsLabel", "component": "Text", "text": "Tabs", "variant": "h5" },
+        { "id": "tabs", "component": "Tabs", "tabs": [
+          { "title": "One", "child": "tab1" },
+          { "title": "Two", "child": "tab2" },
+          { "title": "Three", "child": "tab3" }
+        ] },
+        { "id": "tab1", "component": "Text", "text": "Content of tab one" },
+        { "id": "tab2", "component": "Text", "text": "Content of tab two" },
+        { "id": "tab3", "component": "Text", "text": "Content of tab three" }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "kitchen",
+      "value": { "volume": 50, "when": "2026-06-08T12:00:00Z" }
+    }
+  }
+]

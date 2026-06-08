@@ -1,0 +1,89 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "contact_form",
+      "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+      "sendDataModel": true
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "contact_form",
+      "components": [
+        { "id": "root", "component": "Card", "child": "form_container" },
+        {
+          "id": "form_container",
+          "component": "Column",
+          "children": ["header_row", "name_row", "email_field", "phone_field", "pref_picker", "divider_1", "newsletter_checkbox", "submit_button"],
+          "align": "stretch"
+        },
+        { "id": "header_row", "component": "Row", "children": ["header_icon", "header_text"], "align": "center" },
+        { "id": "header_icon", "component": "Icon", "name": "mail" },
+        { "id": "header_text", "component": "Text", "text": "Contact Us", "variant": "h2" },
+        { "id": "name_row", "component": "Row", "children": ["first_name_field", "last_name_field"], "justify": "spaceBetween" },
+        { "id": "first_name_field", "weight": 1, "component": "TextField", "label": "First name", "value": { "path": "/firstName" } },
+        { "id": "last_name_field", "weight": 1, "component": "TextField", "label": "Last name", "value": { "path": "/lastName" } },
+        {
+          "id": "email_field",
+          "component": "TextField",
+          "label": "Email",
+          "value": { "path": "/email" },
+          "variant": "shortText",
+          "validationRegexp": "^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$"
+        },
+        { "id": "phone_field", "component": "TextField", "label": "Phone", "value": { "path": "/phone" }, "variant": "number" },
+        {
+          "id": "pref_picker",
+          "component": "ChoicePicker",
+          "label": "Preferred contact method",
+          "value": { "path": "/preference" },
+          "variant": "mutuallyExclusive",
+          "displayStyle": "chips",
+          "options": [
+            { "label": "Email", "value": "email" },
+            { "label": "Phone", "value": "phone" },
+            { "label": "SMS", "value": "sms" }
+          ]
+        },
+        { "id": "divider_1", "component": "Divider" },
+        { "id": "newsletter_checkbox", "component": "CheckBox", "label": "Subscribe to our newsletter", "value": { "path": "/newsletter" } },
+        { "id": "submit_label", "component": "Text", "text": "Submit" },
+        {
+          "id": "submit_button",
+          "component": "Button",
+          "child": "submit_label",
+          "variant": "primary",
+          "action": {
+            "event": {
+              "name": "submitForm",
+              "context": {
+                "firstName": { "path": "/firstName" },
+                "lastName": { "path": "/lastName" },
+                "email": { "path": "/email" },
+                "phone": { "path": "/phone" },
+                "preference": { "path": "/preference" },
+                "newsletter": { "path": "/newsletter" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "contact_form",
+      "value": {
+        "firstName": "Alex",
+        "lastName": "Jordan",
+        "email": "alex.jordan@example.com",
+        "phone": "4151711080",
+        "preference": "email",
+        "newsletter": true
+      }
+    }
+  }
+]

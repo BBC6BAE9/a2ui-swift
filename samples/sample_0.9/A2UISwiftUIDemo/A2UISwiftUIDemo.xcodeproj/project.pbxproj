@@ -11,22 +11,28 @@
 		F1143E6F2F51B70000370004 /* A2UISwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = F1143E6F2F51B70000370003 /* A2UISwiftUI */; };
 		F11A75462F783999005270A2 /* A2UISwiftCore in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75462F783999005270A1 /* A2UISwiftCore */; };
 		F11A75462F783999005270A4 /* A2UISwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = F11A75462F783999005270A3 /* A2UISwiftUI */; };
+		F14320FD2FD6F07D00C58BC4 /* A2UISwiftCore in Frameworks */ = {isa = PBXBuildFile; productRef = F14320FC2FD6F07D00C58BC4 /* A2UISwiftCore */; };
+		F14320FF2FD6F07D00C58BC4 /* A2UISwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = F14320FE2FD6F07D00C58BC4 /* A2UISwiftUI */; };
+		F14321012FD6F07D00C58BC4 /* Primitives in Frameworks */ = {isa = PBXBuildFile; productRef = F14321002FD6F07D00C58BC4 /* Primitives */; };
+		F14321042FD6F09C00C58BC4 /* A2UISwiftCore in Frameworks */ = {isa = PBXBuildFile; productRef = F14321032FD6F09C00C58BC4 /* A2UISwiftCore */; };
+		F14321062FD6F09C00C58BC4 /* A2UISwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = F14321052FD6F09C00C58BC4 /* A2UISwiftUI */; };
+		F14321082FD6F09C00C58BC4 /* Primitives in Frameworks */ = {isa = PBXBuildFile; productRef = F14321072FD6F09C00C58BC4 /* Primitives */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F1143E392F51B6CD0037701E /* A2UIDemoWatchApp Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "A2UIDemoWatchApp Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F1FAD1872F4DA60400BE5C9D /* A2UIDemoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = A2UIDemoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1FAD1872F4DA60400BE5C9D /* A2UISwiftUIDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = A2UISwiftUIDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F1143E3D2F51B6CD0037701E /* A2UIDemoWatchApp */ = {
+		F1143E3D2F51B6CD0037701E /* A2UISwiftUIDemoWatchApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = A2UIDemoWatchApp;
+			path = A2UISwiftUIDemoWatchApp;
 			sourceTree = "<group>";
 		};
-		F1FAD1892F4DA60400BE5C9D /* A2UIDemoApp */ = {
+		F1FAD1892F4DA60400BE5C9D /* A2UISwiftUIDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = A2UIDemoApp;
+			path = A2UISwiftUIDemo;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -46,7 +52,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11A75462F783999005270A2 /* A2UISwiftCore in Frameworks */,
+				F14321012FD6F07D00C58BC4 /* Primitives in Frameworks */,
+				F14321062FD6F09C00C58BC4 /* A2UISwiftUI in Frameworks */,
+				F14320FD2FD6F07D00C58BC4 /* A2UISwiftCore in Frameworks */,
 				F11A75462F783999005270A4 /* A2UISwiftUI in Frameworks */,
+				F14321042FD6F09C00C58BC4 /* A2UISwiftCore in Frameworks */,
+				F14321082FD6F09C00C58BC4 /* Primitives in Frameworks */,
+				F14320FF2FD6F07D00C58BC4 /* A2UISwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,8 +68,8 @@
 		F1FAD17E2F4DA60400BE5C9D = {
 			isa = PBXGroup;
 			children = (
-				F1FAD1892F4DA60400BE5C9D /* A2UIDemoApp */,
-				F1143E3D2F51B6CD0037701E /* A2UIDemoWatchApp */,
+				F1FAD1892F4DA60400BE5C9D /* A2UISwiftUIDemo */,
+				F1143E3D2F51B6CD0037701E /* A2UISwiftUIDemoWatchApp */,
 				F1FAD1882F4DA60400BE5C9D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,7 +77,7 @@
 		F1FAD1882F4DA60400BE5C9D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F1FAD1872F4DA60400BE5C9D /* A2UIDemoApp.app */,
+				F1FAD1872F4DA60400BE5C9D /* A2UISwiftUIDemo.app */,
 				F1143E392F51B6CD0037701E /* A2UIDemoWatchApp Watch App.app */,
 			);
 			name = Products;
@@ -87,7 +99,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F1143E3D2F51B6CD0037701E /* A2UIDemoWatchApp */,
+				F1143E3D2F51B6CD0037701E /* A2UISwiftUIDemoWatchApp */,
 			);
 			name = "A2UIDemoWatchApp Watch App";
 			packageProductDependencies = (
@@ -98,9 +110,9 @@
 			productReference = F1143E392F51B6CD0037701E /* A2UIDemoWatchApp Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
-		F1FAD1862F4DA60400BE5C9D /* A2UIDemoApp */ = {
+		F1FAD1862F4DA60400BE5C9D /* A2UISwiftUIDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F1FAD1A82F4DA60500BE5C9D /* Build configuration list for PBXNativeTarget "A2UIDemoApp" */;
+			buildConfigurationList = F1FAD1A82F4DA60500BE5C9D /* Build configuration list for PBXNativeTarget "A2UISwiftUIDemo" */;
 			buildPhases = (
 				F1FAD1832F4DA60400BE5C9D /* Sources */,
 				F1FAD1842F4DA60400BE5C9D /* Frameworks */,
@@ -111,15 +123,21 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F1FAD1892F4DA60400BE5C9D /* A2UIDemoApp */,
+				F1FAD1892F4DA60400BE5C9D /* A2UISwiftUIDemo */,
 			);
-			name = A2UIDemoApp;
+			name = A2UISwiftUIDemo;
 			packageProductDependencies = (
 				F11A75462F783999005270A1 /* A2UISwiftCore */,
 				F11A75462F783999005270A3 /* A2UISwiftUI */,
+				F14320FC2FD6F07D00C58BC4 /* A2UISwiftCore */,
+				F14320FE2FD6F07D00C58BC4 /* A2UISwiftUI */,
+				F14321002FD6F07D00C58BC4 /* Primitives */,
+				F14321032FD6F09C00C58BC4 /* A2UISwiftCore */,
+				F14321052FD6F09C00C58BC4 /* A2UISwiftUI */,
+				F14321072FD6F09C00C58BC4 /* Primitives */,
 			);
 			productName = A2UIDemoApp;
-			productReference = F1FAD1872F4DA60400BE5C9D /* A2UIDemoApp.app */;
+			productReference = F1FAD1872F4DA60400BE5C9D /* A2UISwiftUIDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -140,7 +158,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F1FAD1822F4DA60400BE5C9D /* Build configuration list for PBXProject "A2UIDemoApp" */;
+			buildConfigurationList = F1FAD1822F4DA60400BE5C9D /* Build configuration list for PBXProject "A2UISwiftUIDemo" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -150,14 +168,14 @@
 			mainGroup = F1FAD17E2F4DA60400BE5C9D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../.." */,
+				F14321022FD6F09C00C58BC4 /* XCLocalSwiftPackageReference "../../../../a2ui-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F1FAD1882F4DA60400BE5C9D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F1FAD1862F4DA60400BE5C9D /* A2UIDemoApp */,
+				F1FAD1862F4DA60400BE5C9D /* A2UISwiftUIDemo */,
 				F1143E382F51B6CD0037701E /* A2UIDemoWatchApp Watch App */,
 			);
 		};
@@ -386,7 +404,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = A2UIDemoApp/A2UIDemoApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = A2UISwiftUIDemo/A2UIDemoApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2JSKY93FHH;
@@ -436,7 +454,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = A2UIDemoApp/A2UIDemoApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = A2UISwiftUIDemo/A2UIDemoApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2JSKY93FHH;
@@ -493,7 +511,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F1FAD1822F4DA60400BE5C9D /* Build configuration list for PBXProject "A2UIDemoApp" */ = {
+		F1FAD1822F4DA60400BE5C9D /* Build configuration list for PBXProject "A2UISwiftUIDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F1FAD1A62F4DA60500BE5C9D /* Debug */,
@@ -502,7 +520,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F1FAD1A82F4DA60500BE5C9D /* Build configuration list for PBXNativeTarget "A2UIDemoApp" */ = {
+		F1FAD1A82F4DA60500BE5C9D /* Build configuration list for PBXNativeTarget "A2UISwiftUIDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F1FAD1A92F4DA60500BE5C9D /* Debug */,
@@ -514,9 +532,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		F11A75452F78399900527023 /* XCLocalSwiftPackageReference "../.." */ = {
+		F14321022FD6F09C00C58BC4 /* XCLocalSwiftPackageReference "../../../../a2ui-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../..";
+			relativePath = "../../../../a2ui-swift";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -536,6 +554,30 @@
 		F11A75462F783999005270A3 /* A2UISwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = A2UISwiftUI;
+		};
+		F14320FC2FD6F07D00C58BC4 /* A2UISwiftCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UISwiftCore;
+		};
+		F14320FE2FD6F07D00C58BC4 /* A2UISwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UISwiftUI;
+		};
+		F14321002FD6F07D00C58BC4 /* Primitives */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Primitives;
+		};
+		F14321032FD6F09C00C58BC4 /* A2UISwiftCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UISwiftCore;
+		};
+		F14321052FD6F09C00C58BC4 /* A2UISwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = A2UISwiftUI;
+		};
+		F14321072FD6F09C00C58BC4 /* Primitives */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Primitives;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

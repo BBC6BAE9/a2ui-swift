@@ -1,0 +1,27 @@
+name: A2UIUIKitDemo
+options:
+  bundleIdPrefix: com.demo
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  A2UI:
+    path: ../../..
+targets:
+  A2UIUIKitDemo:
+    type: application
+    platform: iOS
+    sources:
+      - path: A2UIUIKitDemo
+    dependencies:
+      - package: A2UI
+        product: A2UIUIKit
+      - package: A2UI
+        product: A2UISwiftCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.demo.A2UIUIKitDemo
+        INFOPLIST_FILE: A2UIUIKitDemo/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"

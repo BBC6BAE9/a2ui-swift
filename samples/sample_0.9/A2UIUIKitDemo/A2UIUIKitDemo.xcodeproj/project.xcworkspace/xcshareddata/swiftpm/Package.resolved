@@ -1,0 +1,15 @@
+{
+  "originHash" : "78e293cf77322b36117ac831839baa4a9c20d261b9c0fdb3cab52a873a9a336f",
+  "pins" : [
+    {
+      "identity" : "icu-mirror",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-foundation-icu.git",
+      "state" : {
+        "branch" : "swift-6.3.1-RELEASE",
+        "revision" : "2e2854eee567589ed44c5f3c85c7343e6d91978d"
+      }
+    }
+  ],
+  "version" : 3
+}
