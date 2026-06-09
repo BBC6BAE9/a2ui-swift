@@ -17,6 +17,7 @@
 
 import Testing
 import Foundation
+import Observation
 @testable import A2UISwiftCore
 @testable import A2UISwiftUI
 
@@ -405,6 +406,44 @@ struct SurfaceViewModelReconcileTests {
         #expect(root.children.map(\.id) == childrenArray.map(\.id))
     }
 
+    /// `reconcileNode` assigns `instance`/`weight`/`accessibility` unconditionally
+    /// and relies on the `@Observable` macro skipping notification for equal
+    /// `Equatable` values — a toolchain behavior (Swift 6.2+ / Xcode 26). This test
+    /// fails if the package is built with a toolchain that lacks that dedup.
+    @Test("no-op updateComponents does not notify observers of node fields")
+    func noOpDoesNotNotify() throws {
+        let payload = UpdateComponentsPayload(
+            surfaceId: "s1",
+            components: [
+                RawComponent(id: "root", component: "Column", properties: [
+                    "children": .array([.string("a"), .string("b")])
+                ]),
+                RawComponent(id: "a", component: "Text", properties: ["text": .string("A")]),
+                RawComponent(id: "b", component: "Text", properties: ["text": .string("B")]),
+            ]
+        )
+        let vm = makeViewModel()
+        try vm.processMessage(makeCreateSurface())
+        try vm.processMessage(.updateComponents(payload))
+        let root = try #require(vm.componentTree)
+        let childA = try #require(root.children.first)
+
+        let flag = ObservationFlag()
+        withObservationTracking {
+            _ = root.instance
+            _ = root.weight
+            _ = root.accessibility
+            _ = root.children
+            _ = childA.instance
+        } onChange: { [flag] in
+            flag.triggered = true
+        }
+
+        // Replay identical components — no tracked field may notify.
+        try vm.processMessage(.updateComponents(payload))
+        #expect(flag.triggered == false)
+    }
+
     @Test("list growing by one item preserves the original children's identity")
     func listGrowsPreservesIdentity() throws {
         let vm = try makeListSetup(["x", "y", "z"])
@@ -633,4 +672,9 @@ struct SurfaceViewModelReconcileTests {
         #expect(newRoot !== oldRoot)
         #expect(newRoot.type == .Column)
     }
+}
+
+/// Sendable wrapper for observation testing.
+private final class ObservationFlag: @unchecked Sendable {
+    var triggered = false
 }

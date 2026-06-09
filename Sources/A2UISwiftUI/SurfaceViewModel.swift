@@ -403,13 +403,14 @@ public final class SurfaceViewModel {
     /// can be reused (caller keeps the same `componentTree` reference); `false` when
     /// the root identity or type changed and the caller must replace the tree.
     ///
-    /// All writes to `@Observable` fields are guarded by equality so that no-op
-    /// updates do not notify SwiftUI.
+    /// No-op writes to the `Equatable` `@Observable` fields below do not notify
+    /// SwiftUI: the `@Observable` macro skips notification when the new value
+    /// compares equal (requires a Swift 6.2+ / Xcode 26 toolchain).
     private func reconcileNode(existing: ComponentNode, new: ComponentNode) -> Bool {
         guard existing.id == new.id, existing.type == new.type else { return false }
-        if existing.instance != new.instance { existing.instance = new.instance }
-        if existing.weight != new.weight { existing.weight = new.weight }
-        if existing.accessibility != new.accessibility { existing.accessibility = new.accessibility }
+        existing.instance = new.instance
+        existing.weight = new.weight
+        existing.accessibility = new.accessibility
         if existing.uiState == nil, let s = new.uiState { existing.uiState = s }
         reconcileChildren(existing: existing, newChildren: new.children)
         return true
@@ -429,8 +430,7 @@ public final class SurfaceViewModel {
         result.reserveCapacity(newChildren.count)
         for newChild in newChildren {
             if let old = oldByKey.removeValue(forKey: newChild.id),
-               old.type == newChild.type {
-                _ = reconcileNode(existing: old, new: newChild)
+               reconcileNode(existing: old, new: newChild) {
                 result.append(old)
             } else {
                 result.append(newChild)
