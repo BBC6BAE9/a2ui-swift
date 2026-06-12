@@ -1,85 +1,138 @@
+<div align="center">
+
 # A2UI-Swift
+
+**Let your AI agent draw native Apple UI — SwiftUI, UIKit, and AppKit.**
 
 ![a2ui](./a2ui.png)
 
-## What is A2UI-Swift?
+[![Swift](https://img.shields.io/badge/Swift-5.9+-F05138?logo=swift&logoColor=white)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS-007AFF?logo=apple)](#requirements)
+[![SPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen)](#installation)
+[![A2UI Spec](https://img.shields.io/badge/A2UI%20spec-v0.9-8A2BE2)](https://github.com/google/A2UI)
+[![License](https://img.shields.io/github/license/BBC6BAE9/a2ui-swift)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/BBC6BAE9/a2ui-swift?style=social)](https://github.com/BBC6BAE9/a2ui-swift/stargazers)
 
-[A2UI](https://github.com/google/A2UI) is an open protocol that lets AI agents generate rich, interactive user interfaces through a declarative JSON format — not executable code. An agent describes *what* to render; the renderer decides *how* using native platform controls. 
+</div>
 
-A2UI-Swift is a Swift-based renderer for A2UI that supports all Apple UI frameworks. The `SwiftUI` implementation is feature-complete, while `UIKit` and `AppKit` support are currently under active development. Listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/).
+[A2UI](https://github.com/google/A2UI) is an open protocol from Google that lets AI agents generate rich, interactive user interfaces through declarative JSON — not executable code. The agent describes **what** to render; the renderer decides **how**, using real native platform controls.
+
+**A2UI-Swift** is the Swift renderer for the entire Apple ecosystem, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/).
 
 ```
-Agent → JSON payload → A2UISurfaceView / A2UIRendererView → Native UI
+Agent  ──▶  JSON payload  ──▶  A2UI-Swift  ──▶  Native Apple UI
 ```
 
-## Installation
+## ✨ Highlights
 
-Add this package to your project via Swift Package Manager:
+- 🧩 **Three native renderers, one protocol** — SwiftUI (`A2UISurfaceView`), UIKit (iOS / tvOS / visionOS), and AppKit (macOS), all aligned to A2UI spec v0.9 with matching feature sets.
+- 📦 **17 built-in components** — Text, Image, Icon, Button, TextField, CheckBox, Slider, ChoicePicker, DateTimeInput, Row/Column Stacks, List, Card, Tabs, Modal, Divider, AudioPlayer, and Video.
+- 🔌 **Extensible by design** — register your own components through the custom catalog (`A2UIUIKitComponent` / `A2UIAppKitComponent`) and mix them freely with the built-ins.
+- 🔄 **Live two-way data binding** — expression bindings, input write-back, and template-driven lists react to streaming agent updates in place.
+- 🛡️ **Safe by construction** — agents send data, never code. Everything renders through vetted native controls.
+- 🌍 **Localization built in** — ICU-backed number, currency, date formatting, and pluralization.
+- ✅ **Battle-tested** — 300+ tests across the schema, data model, expression engine, and all three renderers.
 
-**In `Package.swift`:**
+## 🚀 Quick Start
 
-```swift
-dependencies: [
-    .package(url: "https://github.com/BBC6BAE9/a2ui-swift", from: "0.1.0"),
-],
-```
-
-## Modules
-
-The package is organized into six independent library products:
-
-| Module | Purpose |
-|--------|---------|
-| **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
-| **A2UISwiftCore** | v0.9 shared protocol layer — schema, data model, catalog system, expression parser, transport |
-| **A2UISwiftUI** | v0.9 SwiftUI renderer via `A2UISurfaceView` with `SurfaceViewModel` |
-| **A2UIUIKit** | v0.9 UIKit renderer — iOS, tvOS, visionOS (community extension point via `A2UIUIKitComponent`) |
-| **A2UIAppKit** | v0.9 AppKit renderer — macOS (community extension point via `A2UIAppKitComponent`) |
-| ~~**v_08**~~ | ⚠️ **Deprecated** — v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
-
-## Quick Start
-
-### v0.9 — `A2UISurfaceView` (recommended)
+### SwiftUI
 
 ```swift
 import A2UISwiftUI
 
 @State var vm = SurfaceViewModel(catalog: basicCatalog)
 
-// Process messages from your agent transport:
+// Feed messages from your agent transport:
 try vm.processMessages(messages)
 
-// Render:
-A2UISurfaceView(viewModel: vm)
-
-// With action handler:
+// Render — with an optional action handler:
 A2UISurfaceView(viewModel: vm) { action in
     print("Action: \(action.name)")
 }
 ```
 
-## Sample Apps
+### UIKit / AppKit
 
-### sample_0.8
+```swift
+import A2UISwiftCore
+import A2UIUIKit        // or: import A2UIAppKit on macOS
 
-The original demo app for the v0.8 renderer. Open `samples/sample_0.8/A2UIDemoApp.xcodeproj` in Xcode.
+let host = A2UISurfaceHostView()
 
-Includes static JSON demos (no agent required) and live A2A agent connections. Each page has an **info inspector** explaining what it demonstrates; action-triggering pages display a **Resolved Action log** showing the full context payload.
+let processor = MessageProcessor(catalogs: [catalog]) { action in
+    print("Action: \(action.name)")
+}
+processor.processMessages(messages)
+
+if let surface = processor.model.getSurface(surfaceId) {
+    host.render(surface: surface, rootComponentId: "root")
+}
+```
+
+## 📦 Installation
+
+Add the package via Swift Package Manager:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/BBC6BAE9/a2ui-swift", from: "0.3.0"),
+],
+```
+
+### Requirements
+
+| Platform | Minimum version |
+|----------|-----------------|
+| iOS / tvOS | 17.0 |
+| macOS | 14.0 |
+| watchOS | 10.0 |
+| visionOS | 1.0 |
+
+## 🧱 Modules
+
+The package ships six independent library products — pull in only what you need:
+
+| Module | Purpose |
+|--------|---------|
+| **A2UISwiftCore** | v0.9 shared protocol layer — schema, data model, catalog system, expression parser, transport |
+| **A2UISwiftUI** | v0.9 SwiftUI renderer via `A2UISurfaceView` + `SurfaceViewModel` |
+| **A2UIUIKit** | v0.9 UIKit renderer for iOS, tvOS, and visionOS via `A2UISurfaceHostView` |
+| **A2UIAppKit** | v0.9 AppKit renderer for macOS via `A2UISurfaceHostView` |
+| **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
+| ~~**v_08**~~ | ⚠️ **Deprecated** — v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
+
+## 📱 Sample Apps
+
+### travel_app — generative AI, end to end
+
+A full-featured travel app showing the v0.9 renderer with AI client integration, custom catalog components, and real generative AI interactions. The A2A protocol client lives in its own package — [a2a-swift](https://github.com/BBC6BAE9/a2a-swift) — consumed as a remote SPM dependency.
+
+### sample_0.9 — one demo per renderer
+
+Minimal demos for each framework, side by side: `samples/sample_0.9/A2UISwiftUIDemo`, `A2UIUIKitDemo`, and `A2UIAppKitDemo`. The fastest way to see the same JSON payload rendered by SwiftUI, UIKit, and AppKit.
+
+### sample_0.8 — the original demo (legacy)
+
+Demo app for the deprecated v0.8 renderer: `samples/sample_0.8/A2UIDemoApp.xcodeproj`. Includes static JSON demos and live A2A agent connections; each page has an **info inspector**, and action-triggering pages show a **Resolved Action log** with the full context payload.
 
 |                             info                             |                          action log                          |                            genui                             |
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="https://github.com/user-attachments/assets/1cefe139-3266-4b57-8f2e-d4d2046b3ae6" height="200"/> | <img src="https://github.com/user-attachments/assets/f65a68a3-78a7-4542-8bf4-868ce0e91ec4" height="200"/> | <img src="https://github.com/user-attachments/assets/3b38f7c5-3b7e-4910-9222-bfa2c7cf236b" height="200"/> |
 
-> Live agent demo is included in the app — no external dependency required.
-
-### travel_app
-
-A full-featured travel app sample demonstrating the v0.9 renderer with AI client integration, custom catalog components, and real generative AI interactions.
-
-The A2A protocol client has been extracted into its own package — [a2a-swift](https://github.com/BBC6BAE9/a2a-swift) — and is consumed here as a remote Swift Package Manager dependency.
-
-## Testing
+## 🧪 Testing
 
 ```bash
 swift test
 ```
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome — whether it's a new catalog component, a renderer fix, or a sample app. If A2UI-Swift helps you ship, a ⭐️ goes a long way.
+
+## 📄 License
+
+[MIT](LICENSE)
+
+<div align="center">
+<sub>Built for the <a href="https://github.com/google/A2UI">A2UI</a> ecosystem · Swift on every Apple platform</sub>
+</div>
