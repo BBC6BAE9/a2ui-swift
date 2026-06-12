@@ -9,6 +9,7 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9+-F05138?logo=swift&logoColor=white)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS-007AFF?logo=apple)](#requirements)
 [![SPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen)](#installation)
+[![Documentation](https://img.shields.io/badge/DocC-documentation-blue?logo=swift&logoColor=white)](https://bbc6bae9.github.io/a2ui-swift/documentation/)
 [![A2UI Spec](https://img.shields.io/badge/A2UI%20spec-v0.9-8A2BE2)](https://github.com/google/A2UI)
 [![License](https://img.shields.io/github/license/BBC6BAE9/a2ui-swift)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/BBC6BAE9/a2ui-swift?style=social)](https://github.com/BBC6BAE9/a2ui-swift/stargazers)
@@ -100,6 +101,8 @@ The package ships six independent library products — pull in only what you nee
 | **A2UIAppKit** | v0.9 AppKit renderer for macOS via `A2UISurfaceHostView` |
 | **Primitives** | Shared primitive types — `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition`, etc. |
 | ~~**v_08**~~ | ⚠️ **Deprecated** — v0.8 renderer via `A2UIRendererView` with `SurfaceManager` |
+
+Full API reference for every module is published at the [DocC documentation site](https://bbc6bae9.github.io/a2ui-swift/documentation/).
 
 ## 📱 Sample Apps
 

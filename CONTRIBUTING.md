@@ -16,9 +16,9 @@ Thank you for your interest in contributing. This guide covers everything you ne
 ## Getting Started
 
 ```bash
-git clone https://github.com/BBC6BAE9/a2ui-swiftui.git
-cd a2ui-swiftui
-open A2UIDemoApp/A2UIDemoApp.xcodeproj  # optional: run the demo app
+git clone https://github.com/BBC6BAE9/a2ui-swift.git
+cd a2ui-swift
+open samples/sample_0.9/A2UISwiftUIDemo/A2UISwiftUIDemo.xcodeproj  # optional: run the demo app
 ```
 
 No dependencies beyond the Swift toolchain. The package resolves entirely from the standard library and Apple SDKs.

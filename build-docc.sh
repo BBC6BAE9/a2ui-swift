@@ -24,7 +24,7 @@ elif [ "$ARCHIVE_COUNT" -eq 1 ]; then
     xcrun docc process-archive transform-for-static-hosting \
         "$ARCHIVE" \
         --output-path ".docs" \
-        --hosting-base-path "a2ui-swiftui"
+        --hosting-base-path "a2ui-swift"
 else
     # Multiple archives: merge first, then transform (requires Xcode 15+ / docc 5.9+)
     MERGED="$PWD/.derivedData/A2UI-merged.doccarchive"
@@ -33,7 +33,7 @@ else
     xcrun docc process-archive transform-for-static-hosting \
         "$MERGED" \
         --output-path ".docs" \
-        --hosting-base-path "a2ui-swiftui"
+        --hosting-base-path "a2ui-swift"
 fi
 
-echo '<script>window.location.href += "/documentation/a2uiswiftui"</script>' > .docs/index.html
+echo '<script>window.location.href += "/documentation"</script>' > .docs/index.html

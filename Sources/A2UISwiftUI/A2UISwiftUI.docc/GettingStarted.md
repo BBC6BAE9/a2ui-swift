@@ -21,7 +21,7 @@ Add A2UI to your project via Swift Package Manager.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/BBC6BAE9/a2ui-swiftui", from: "0.1.0"),
+    .package(url: "https://github.com/BBC6BAE9/a2ui-swift", from: "0.3.0"),
 ],
 targets: [
     .target(name: "YourApp", dependencies: ["A2UISwiftUI"]),
