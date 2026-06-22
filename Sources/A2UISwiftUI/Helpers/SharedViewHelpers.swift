@@ -192,9 +192,13 @@ final class SharedPlayerController {
     #if os(iOS) || os(tvOS) || os(visionOS)
     let playerViewController: AVPlayerViewController = {
         let vc = AVPlayerViewController()
+        // Gate each setter to the platforms that declare it: both are unavailable on
+        // tvOS, and allowsVideoFrameAnalysis is also unavailable on visionOS.
+        #if os(iOS) || os(visionOS)
         vc.entersFullScreenWhenPlaybackBegins = false
-        #if os(iOS) || os(tvOS)
-        if #available(iOS 16.0, tvOS 16.0, visionOS 1.0, *) {
+        #endif
+        #if os(iOS)
+        if #available(iOS 16.0, *) {
             vc.allowsVideoFrameAnalysis = false
         }
         #endif
