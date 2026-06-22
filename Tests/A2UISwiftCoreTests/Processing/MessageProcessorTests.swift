@@ -402,4 +402,55 @@ struct MessageProcessorTests {
     // getClientCapabilities 生成 JSON Schema（基于 Zod schema、REF: 语法转换等），
     // 这是 TypeScript 服务端专属能力，用于向 LLM 描述可用组件结构。
     // Swift 实现作为纯客户端渲染器，不负责生成 capabilities，无对应实现。
+
+    // MARK: Version compatibility (v0.9 / v0.9.1)
+    // v0.9.1 is a backward-compatible refinement of v0.9; schemas accept both
+    // version strings. See specification/v0_9_1/docs/evolution_guide.md.
+
+    @Test("accepts v0.9 version string")
+    func acceptsV09Version() throws {
+        let json = #"{"version":"v0.9","deleteSurface":{"surfaceId":"s1"}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        if case .deleteSurface(let payload) = msg {
+            #expect(payload.surfaceId == "s1")
+        } else {
+            Issue.record("expected deleteSurface message")
+        }
+    }
+
+    @Test("accepts v0.9.1 version string")
+    func acceptsV091Version() throws {
+        let json = #"{"version":"v0.9.1","deleteSurface":{"surfaceId":"s1"}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        if case .deleteSurface(let payload) = msg {
+            #expect(payload.surfaceId == "s1")
+        } else {
+            Issue.record("expected deleteSurface message")
+        }
+    }
+
+    @Test("rejects unsupported version string")
+    func rejectsUnsupportedVersion() {
+        let json = #"{"version":"v0.8","deleteSurface":{"surfaceId":"s1"}}"#
+        #expect(throws: Error.self) {
+            let _ = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        }
+    }
+
+    // MARK: surfaceId uniqueness relaxation (v0.9.1)
+    // The lifetime-global uniqueness constraint was removed: a surfaceId may be
+    // reused once its surface is deleted. Re-creating a *live* surface is still
+    // an error. See specification/v0_9_1/docs/evolution_guide.md §2.2.
+
+    @Test("allows reusing a surfaceId after the surface is deleted")
+    func reusesSurfaceIdAfterDelete() {
+        let processor = makeProcessor()
+        processor.processMessages([createSurfaceMsg(surfaceId: "s1")])
+        processor.processMessages([.deleteSurface(DeleteSurfacePayload(surfaceId: "s1"))])
+        #expect(processor.model.getSurface("s1") == nil)
+
+        let errors = processor.processMessages([createSurfaceMsg(surfaceId: "s1")])
+        #expect(errors.isEmpty)
+        #expect(processor.model.getSurface("s1") != nil)
+    }
 }

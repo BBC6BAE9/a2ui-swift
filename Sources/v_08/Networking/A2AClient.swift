@@ -41,7 +41,13 @@ public final class A2AClient: Sendable {
     private let session: URLSession
 
     private static let extensionHeader = "https://a2ui.org/a2a-extension/a2ui/v0.8"
+    // Outgoing parts use the v0.8 media type. The official SDKs select the send
+    // MIME by version — v0.8/v0.9 emit the legacy type, only v0.9.1+ emit the
+    // canonical one — and this client implements the v0.8 A2A extension.
     private static let a2uiMimeType = "application/json+a2ui"
+    // Canonical IANA media type (v0.9.1+). Accepted on receive for forward
+    // compatibility (mirrors the official SDKs accepting both on receive).
+    private static let canonicalA2uiMimeType = "application/a2ui+json"
     private static let standardCatalogId = "https://a2ui.org/specification/v0_8/standard_catalog_definition.json"
 
     /// Create a client that sends directly to `endpointURL`.
@@ -454,7 +460,7 @@ public final class A2AClient: Sendable {
             guard let kind = part["kind"] as? String, kind == "data",
                   let metadata = part["metadata"] as? [String: Any],
                   let mimeType = metadata["mimeType"] as? String,
-                  mimeType == Self.a2uiMimeType,
+                  mimeType == Self.a2uiMimeType || mimeType == Self.canonicalA2uiMimeType,
                   let payload = part["data"] else {
                 continue
             }

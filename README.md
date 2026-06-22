@@ -10,13 +10,13 @@
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS-007AFF?logo=apple)](#requirements)
 [![SPM](https://img.shields.io/badge/SwiftPM-compatible-brightgreen)](#installation)
 [![Documentation](https://img.shields.io/badge/DocC-documentation-blue?logo=swift&logoColor=white)](https://bbc6bae9.github.io/a2ui-swift/documentation/)
-[![A2UI Spec](https://img.shields.io/badge/A2UI%20spec-v0.9-8A2BE2)](https://github.com/google/A2UI)
+[![A2UI Spec](https://img.shields.io/badge/A2UI%20spec-v0.9-8A2BE2)](https://github.com/a2ui-project/a2ui)
 [![License](https://img.shields.io/github/license/BBC6BAE9/a2ui-swift)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/BBC6BAE9/a2ui-swift?style=social)](https://github.com/BBC6BAE9/a2ui-swift/stargazers)
 
 </div>
 
-[A2UI](https://github.com/google/A2UI) is an open protocol from Google that lets AI agents generate rich, interactive user interfaces through declarative JSON — not executable code. The agent describes **what** to render; the renderer decides **how**, using real native platform controls.
+[A2UI](https://github.com/a2ui-project/a2ui) is an open protocol from Google that lets AI agents generate rich, interactive user interfaces through declarative JSON — not executable code. The agent describes **what** to render; the renderer decides **how**, using real native platform controls.
 
 **A2UI-Swift** is the Swift renderer for the entire Apple ecosystem, listed on the [official A2UI ecosystem page](https://a2ui.org/ecosystem/renderers/).
 
@@ -137,5 +137,5 @@ Issues and pull requests are welcome — whether it's a new catalog component, a
 [MIT](LICENSE)
 
 <div align="center">
-<sub>Built for the <a href="https://github.com/google/A2UI">A2UI</a> ecosystem · Swift on every Apple platform</sub>
+<sub>Built for the <a href="https://github.com/a2ui-project/a2ui">A2UI</a> ecosystem · Swift on every Apple platform</sub>
 </div>
