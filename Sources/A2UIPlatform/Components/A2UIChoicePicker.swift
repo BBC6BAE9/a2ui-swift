@@ -66,7 +66,7 @@ final class A2UIChoicePicker: PlatformView, A2UIPlatformComponent {
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
         checks = props.checks
-        multiSelect = (props.variant ?? .mutuallyExclusive) == .multipleSelection
+        multiSelect = props.variant == .multipleSelection
         chips = (props.displayStyle ?? .checkbox) == .chips
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
 

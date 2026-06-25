@@ -114,12 +114,8 @@ struct ChoicePickerContent: View {
 
     private var isChips: Bool { properties.displayStyle == .chips }
 
-    /// Spec default: `mutuallyExclusive` when `variant` is absent.
-    /// All v0.9 reference renderers apply this default (Lit/React/Angular via
-    /// Zod `.default()`, Flutter via field-level check). Swift renderer applies
-    /// it explicitly here since the schema validation layer was removed.
     private var isMutuallyExclusive: Bool {
-        switch properties.variant ?? .mutuallyExclusive {
+        switch properties.variant {
         case .mutuallyExclusive: return true
         case .multipleSelection: return false
         case .unknown: return true  // unknown values default to spec default

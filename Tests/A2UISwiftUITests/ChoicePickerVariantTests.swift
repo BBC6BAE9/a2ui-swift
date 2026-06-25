@@ -65,12 +65,12 @@ struct ChoicePickerVariantDecodingTests {
         #expect(props.variant == .multipleSelection)
     }
 
-    @Test("variant is nil when absent (renderer applies spec default)")
-    func variantNilWhenAbsent() throws {
+    @Test("variant defaults to mutuallyExclusive when absent")
+    func variantDefaultsToMutuallyExclusiveWhenAbsent() throws {
         let props = try decode(#"""
         {"options": [{"label": "A", "value": "a"}]}
         """#)
-        #expect(props.variant == nil)
+        #expect(props.variant == .mutuallyExclusive)
     }
 
     @Test("unknown values decode to .unknown for forward-compat")
