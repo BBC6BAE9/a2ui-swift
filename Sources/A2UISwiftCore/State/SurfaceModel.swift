@@ -25,7 +25,9 @@ public final class SurfaceModel: Identifiable {
     public let catalogId: String
     /// The catalog this surface was created with. Used by DataContext for function invocation.
     public let catalog: Catalog
-    public let theme: AnyCodable?
+    /// v1.0: surface properties parsed from `createSurface.surfaceProperties` (replaces `theme`).
+    /// The legacy `theme` field is accepted for backward compatibility with v0.9 messages.
+    public let surfaceProperties: AnyCodable?
     public let sendDataModel: Bool
     /// The locale to use in locale-sensitive functions (BCP 47, e.g. "en-US", "pl", "ar").
     /// When nil, functions fall back to the client's current locale.
@@ -37,6 +39,8 @@ public final class SurfaceModel: Identifiable {
 
     private let _onAction = EventEmitter<A2uiClientAction>()
     private let _onError = EventEmitter<A2uiClientError>()
+    /// v1.0: fires when an `actionResponse` message arrives for an action from this surface.
+    private let _onActionResponse = EventEmitter<ActionResponsePayload>()
 
     /// Fires whenever an action is dispatched from this surface.
     /// Mirrors WebCore `onAction: EventSource<A2uiClientAction>`.
@@ -46,6 +50,9 @@ public final class SurfaceModel: Identifiable {
     /// Mirrors WebCore `onError: EventSource<any>`.
     public var onError: some EventSource<A2uiClientError> { _onError }
 
+    /// v1.0: fires whenever an `actionResponse` is received for this surface.
+    public var onActionResponse: some EventSource<ActionResponsePayload> { _onActionResponse }
+
     private var disposed = false
 
     // MARK: - Init
@@ -54,14 +61,14 @@ public final class SurfaceModel: Identifiable {
     public init(
         id: String,
         catalog: Catalog,
-        theme: AnyCodable? = nil,
+        surfaceProperties: AnyCodable? = nil,
         sendDataModel: Bool = false,
         locale: String? = nil
     ) {
         self.id = id
         self.catalog = catalog
         self.catalogId = catalog.id
-        self.theme = theme
+        self.surfaceProperties = surfaceProperties
         self.sendDataModel = sendDataModel
         self.locale = locale
         self.dataModel = DataModel()
@@ -72,14 +79,14 @@ public final class SurfaceModel: Identifiable {
     public convenience init(
         id: String,
         catalogId: String = "",
-        theme: AnyCodable? = nil,
+        surfaceProperties: AnyCodable? = nil,
         sendDataModel: Bool = false,
         locale: String? = nil
     ) {
         self.init(
             id: id,
             catalog: Catalog(id: catalogId),
-            theme: theme,
+            surfaceProperties: surfaceProperties,
             sendDataModel: sendDataModel,
             locale: locale
         )
@@ -95,7 +102,9 @@ public final class SurfaceModel: Identifiable {
     public func dispatchAction(
         name: String,
         sourceComponentId: String,
-        context: [String: AnyCodable] = [:]
+        context: [String: AnyCodable] = [:],
+        wantResponse: Bool = false,
+        actionId: String? = nil
     ) {
         guard !disposed else { return }
         let action = A2uiClientAction(
@@ -103,7 +112,9 @@ public final class SurfaceModel: Identifiable {
             surfaceId: id,
             sourceComponentId: sourceComponentId,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            context: context
+            context: context,
+            wantResponse: wantResponse,
+            actionId: actionId
         )
         _onAction.emit(action)
     }
@@ -128,6 +139,15 @@ public final class SurfaceModel: Identifiable {
         _onError.emit(error)
     }
 
+    // MARK: - Action Response (v1.0)
+
+    /// Delivers an `actionResponse` from the server to any listeners on this surface.
+    /// Mirrors WebCore `surface.handleActionResponse(payload)`.
+    public func deliverActionResponse(_ payload: ActionResponsePayload) {
+        guard !disposed else { return }
+        _onActionResponse.emit(payload)
+    }
+
     // MARK: - Dispose
 
     /// Clears all state and stops dispatching.
@@ -135,6 +155,7 @@ public final class SurfaceModel: Identifiable {
         disposed = true
         _onAction.dispose()
         _onError.dispose()
+        _onActionResponse.dispose()
         dataModel.dispose()
         componentsModel.dispose()
     }

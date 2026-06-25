@@ -86,7 +86,7 @@ struct MessageProcessorTests {
 
         let dm = processor.getClientDataModel()
         #expect(dm != nil)
-        #expect(dm?.version == "v0.9")
+        #expect(dm?.version == "v1.0")
         #expect(dm?.surfaces["s1"] != nil)
         #expect(dm?.surfaces["s2"] == nil)
     }
@@ -226,7 +226,7 @@ struct MessageProcessorTests {
         // デコード失敗（DecodingError）として捕捉される。
         let json = """
         {
-            "version": "v0.9",
+            "version": "v1.0",
             "updateComponents": { "surfaceId": "s1", "components": [] },
             "updateDataModel": { "surfaceId": "s1", "path": "/" }
         }
@@ -323,7 +323,7 @@ struct MessageProcessorTests {
         // 两者结果等价（均阻止无效组件被创建），但错误类型不同。
         let json = """
         [{
-            "version": "v0.9",
+            "version": "v1.0",
             "updateComponents": {
                 "surfaceId": "s1",
                 "components": [{ "component": "Button" }]
@@ -407,6 +407,10 @@ struct MessageProcessorTests {
     // v0.9.1 is a backward-compatible refinement of v0.9; schemas accept both
     // version strings. See specification/v0_9_1/docs/evolution_guide.md.
 
+    // MARK: Version compatibility (v0.9 / v0.9.1 / v1.0)
+    // v0.9.1 is a backward-compatible refinement of v0.9; v1.0 is the current release candidate.
+    // All three version strings are accepted by the decoder.
+
     @Test("accepts v0.9 version string")
     func acceptsV09Version() throws {
         let json = #"{"version":"v0.9","deleteSurface":{"surfaceId":"s1"}}"#
@@ -429,6 +433,17 @@ struct MessageProcessorTests {
         }
     }
 
+    @Test("accepts v1.0 version string")
+    func acceptsV10Version() throws {
+        let json = #"{"version":"v1.0","deleteSurface":{"surfaceId":"s1"}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        if case .deleteSurface(let payload) = msg {
+            #expect(payload.surfaceId == "s1")
+        } else {
+            Issue.record("expected deleteSurface message")
+        }
+    }
+
     @Test("rejects unsupported version string")
     func rejectsUnsupportedVersion() {
         let json = #"{"version":"v0.8","deleteSurface":{"surfaceId":"s1"}}"#
@@ -437,10 +452,8 @@ struct MessageProcessorTests {
         }
     }
 
-    // MARK: surfaceId uniqueness relaxation (v0.9.1)
-    // The lifetime-global uniqueness constraint was removed: a surfaceId may be
-    // reused once its surface is deleted. Re-creating a *live* surface is still
-    // an error. See specification/v0_9_1/docs/evolution_guide.md §2.2.
+    // MARK: surfaceId uniqueness (v1.0)
+    // surfaceId must be globally unique; re-creating a live surface is still an error.
 
     @Test("allows reusing a surfaceId after the surface is deleted")
     func reusesSurfaceIdAfterDelete() {
@@ -452,5 +465,132 @@ struct MessageProcessorTests {
         let errors = processor.processMessages([createSurfaceMsg(surfaceId: "s1")])
         #expect(errors.isEmpty)
         #expect(processor.model.getSurface("s1") != nil)
+    }
+
+    // MARK: - v1.0 New Features
+
+    @Test("accepts theme backward compat in createSurface (v0.9)")
+    func acceptsThemeBackwardCompat() throws {
+        let json = #"{"version":"v0.9","createSurface":{"surfaceId":"s1","catalogId":"test-catalog","theme":{"agentDisplayName":"My Agent"}}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        guard case .createSurface(let payload) = msg else {
+            Issue.record("expected createSurface"); return
+        }
+        // Both 'theme' (v0.9) and 'surfaceProperties' (v1.0) are decoded into surfaceProperties.
+        #expect(payload.surfaceProperties != nil)
+    }
+
+    @Test("accepts surfaceProperties in createSurface (v1.0)")
+    func acceptsSurfaceProperties() throws {
+        let json = #"{"version":"v1.0","createSurface":{"surfaceId":"s1","catalogId":"test-catalog","surfaceProperties":{"agentDisplayName":"My Agent"}}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        guard case .createSurface(let payload) = msg else {
+            Issue.record("expected createSurface"); return
+        }
+        #expect(payload.surfaceProperties != nil)
+    }
+
+    @Test("inline createSurface with components and dataModel")
+    func inlineCreateSurface() throws {
+        let processor = makeProcessor()
+        let json = """
+        {
+          "version": "v1.0",
+          "createSurface": {
+            "surfaceId": "s1",
+            "catalogId": "test-catalog",
+            "dataModel": { "greeting": "Hello" },
+            "components": [
+              { "id": "root", "component": "Text", "text": "Hello" }
+            ]
+          }
+        }
+        """
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        let errors = processor.processMessages([msg])
+        #expect(errors.isEmpty)
+        let surface = processor.model.getSurface("s1")
+        #expect(surface != nil)
+        #expect(surface?.dataModel.get("/greeting") == .string("Hello"))
+        #expect(surface?.componentsModel.get("root") != nil)
+    }
+
+    @Test("actionResponse message decoded correctly")
+    func actionResponseDecoded() throws {
+        let json = #"{"version":"v1.0","actionId":"act-1","actionResponse":{"value":"done"}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        guard case .actionResponse(let payload) = msg else {
+            Issue.record("expected actionResponse"); return
+        }
+        #expect(payload.actionId == "act-1")
+        #expect(payload.value == .string("done"))
+    }
+
+    @Test("callFunction message decoded correctly")
+    func callFunctionDecoded() throws {
+        let json = #"{"version":"v1.0","functionCallId":"fc-1","wantResponse":true,"callFunction":{"call":"add","args":{"a":1,"b":2}}}"#
+        let msg = try JSONDecoder().decode(A2uiMessage.self, from: json.data(using: .utf8)!)
+        guard case .callFunction(let payload) = msg else {
+            Issue.record("expected callFunction"); return
+        }
+        #expect(payload.functionCallId == "fc-1")
+        #expect(payload.wantResponse == true)
+        #expect(payload.call.call == "add")
+    }
+
+    @Test("updateDataModel null value deletes key (v1.0 semantics)")
+    func nullValueDeletesKey() {
+        let processor = makeProcessor()
+        processor.processMessages([createSurfaceMsg(surfaceId: "s1")])
+        processor.processMessages([
+            .updateDataModel(UpdateDataModelPayload(surfaceId: "s1", path: "/foo", value: .string("bar")))
+        ])
+        #expect(processor.model.getSurface("s1")?.dataModel.get("/foo") == .string("bar"))
+
+        // Setting to explicit null should delete the key.
+        processor.processMessages([
+            .updateDataModel(UpdateDataModelPayload(surfaceId: "s1", path: "/foo", value: .null))
+        ])
+        #expect(processor.model.getSurface("s1")?.dataModel.get("/foo") == nil)
+    }
+
+    @Test("functionResponse round-trips correctly")
+    func functionResponseRoundTrip() throws {
+        let response = A2uiFunctionResponse(
+            functionCallId: "fc-1",
+            call: "add",
+            value: .number(3)
+        )
+        let msg = A2uiClientMessage.functionResponse(response)
+        let data = try JSONEncoder().encode(msg)
+        let jsonString = try #require(String(data: data, encoding: .utf8))
+        #expect(jsonString.contains("\"version\":\"v1.0\""))
+        #expect(jsonString.contains("\"functionCallId\":\"fc-1\""))
+
+        let decoded = try JSONDecoder().decode(A2uiClientMessage.self, from: data)
+        guard case .functionResponse(let decodedFR) = decoded else {
+            Issue.record("Expected .functionResponse"); return
+        }
+        #expect(decodedFR.functionCallId == "fc-1")
+        #expect(decodedFR.call == "add")
+        #expect(decodedFR.value == .number(3))
+    }
+
+    @Test("action with wantResponse and actionId")
+    func actionWithWantResponse() throws {
+        let action = A2uiClientAction(
+            name: "submit",
+            surfaceId: "s1",
+            sourceComponentId: "btn1",
+            timestamp: "2026-01-01T00:00:00Z",
+            context: [:],
+            wantResponse: true,
+            actionId: "action-uuid-1"
+        )
+        let msg = A2uiClientMessage.action(action)
+        let data = try JSONEncoder().encode(msg)
+        let jsonString = try #require(String(data: data, encoding: .utf8))
+        #expect(jsonString.contains("\"wantResponse\":true"))
+        #expect(jsonString.contains("\"actionId\":\"action-uuid-1\""))
     }
 }

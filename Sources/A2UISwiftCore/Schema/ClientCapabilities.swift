@@ -26,17 +26,21 @@ public struct FunctionDefinition: Codable {
     /// JSON Schema object describing the function's parameters.
     public let parameters: AnyCodable
     public let returnType: FunctionCallReturnType
+    /// v1.0: Restricts where this function may be invoked.
+    public let callableFrom: CallableFrom?
 
     public init(
         name: String,
         description: String? = nil,
         parameters: AnyCodable = .dictionary([:]),
-        returnType: FunctionCallReturnType
+        returnType: FunctionCallReturnType,
+        callableFrom: CallableFrom? = nil
     ) {
         self.name = name
         self.description = description
         self.parameters = parameters
         self.returnType = returnType
+        self.callableFrom = callableFrom
     }
 }
 
@@ -49,19 +53,23 @@ public struct InlineCatalog: Codable {
     /// Map of component names to their JSON Schema definitions.
     public let components: [String: AnyCodable]?
     public let functions: [FunctionDefinition]?
-    /// Map of theme parameter names to their JSON Schema definitions.
-    public let theme: [String: AnyCodable]?
+    /// v1.0: replaces `theme`. Surface property schema definitions.
+    public let surfaceProperties: [String: AnyCodable]?
+    /// v1.0: Optional Markdown instructions for AI agents.
+    public let instructions: String?
 
     public init(
         catalogId: String,
         components: [String: AnyCodable]? = nil,
         functions: [FunctionDefinition]? = nil,
-        theme: [String: AnyCodable]? = nil
+        surfaceProperties: [String: AnyCodable]? = nil,
+        instructions: String? = nil
     ) {
         self.catalogId = catalogId
         self.components = components
         self.functions = functions
-        self.theme = theme
+        self.surfaceProperties = surfaceProperties
+        self.instructions = instructions
     }
 }
 
@@ -71,7 +79,7 @@ public struct InlineCatalog: Codable {
 /// Mirrors WebCore `A2uiClientCapabilities`.
 public struct A2uiClientCapabilities: Codable {
 
-    public struct V09Capabilities: Codable {
+    public struct V10Capabilities: Codable {
         public let supportedCatalogIds: [String]
         public let inlineCatalogs: [InlineCatalog]?
 
@@ -81,14 +89,14 @@ public struct A2uiClientCapabilities: Codable {
         }
     }
 
-    public let v09: V09Capabilities
+    public let v10: V10Capabilities
 
     private enum CodingKeys: String, CodingKey {
-        case v09 = "v0.9"
+        case v10 = "v1.0"
     }
 
-    public init(v09: V09Capabilities) {
-        self.v09 = v09
+    public init(v10: V10Capabilities) {
+        self.v10 = v10
     }
 
     /// Creates a capabilities object from an array of catalogs.
@@ -104,7 +112,7 @@ public struct A2uiClientCapabilities: Codable {
         inlineCatalogs: [InlineCatalog]? = nil
     ) -> A2uiClientCapabilities {
         A2uiClientCapabilities(
-            v09: V09Capabilities(
+            v10: V10Capabilities(
                 supportedCatalogIds: catalogs.map(\.id),
                 inlineCatalogs: inlineCatalogs
             )

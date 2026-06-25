@@ -47,7 +47,7 @@ struct ClientToServerTests {
 
         // Verify the encoded JSON carries the required version field.
         let jsonString = try #require(String(data: data, encoding: .utf8))
-        #expect(jsonString.contains("\"version\":\"v0.9\""))
+        #expect(jsonString.contains("\"version\":\"v1.0\""))
 
         // Verify the round-trip: decoding must succeed and reconstruct an action.
         let decoded = try decoder.decode(A2uiClientMessage.self, from: data)
@@ -77,7 +77,7 @@ struct ClientToServerTests {
 
         // Verify version field is present in the encoded JSON.
         let jsonString = try #require(String(data: data, encoding: .utf8))
-        #expect(jsonString.contains("\"version\":\"v0.9\""))
+        #expect(jsonString.contains("\"version\":\"v1.0\""))
 
         // Verify round-trip.
         let decoded = try decoder.decode(A2uiClientMessage.self, from: data)
@@ -105,7 +105,7 @@ struct ClientToServerTests {
 
         // Verify version field is present in the encoded JSON.
         let jsonString = try #require(String(data: data, encoding: .utf8))
-        #expect(jsonString.contains("\"version\":\"v0.9\""))
+        #expect(jsonString.contains("\"version\":\"v1.0\""))
 
         // Verify round-trip.
         let decoded = try decoder.decode(A2uiClientMessage.self, from: data)
@@ -132,7 +132,7 @@ struct ClientToServerTests {
         let data = try encoder.encode(original)
         let decoded = try decoder.decode(A2uiClientDataModel.self, from: data)
 
-        #expect(decoded.version == "v0.9")
+        #expect(decoded.version == "v1.0")
         #expect(decoded.surfaces["s1"] != nil)
         #expect(decoded.surfaces["s2"] != nil)
     }

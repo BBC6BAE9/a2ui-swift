@@ -508,7 +508,25 @@ private func basicOpenUrl(_ name: String, _ args: [String: AnyCodable], _ contex
 
 // MARK: - BASIC_FUNCTIONS dictionary
 
-/// All 26 Basic Catalog function implementations, keyed by name.
+// MARK: - v1.0 @index built-in
+
+/// v1.0: Returns the 0-based iteration index of the current template item, adjusted by `offset`.
+/// MUST only be called within a list template scope (a DataContext whose path ends with a numeric segment).
+/// Mirrors WebCore `@index` system function.
+private func systemIndex(_ name: String, _ args: [String: AnyCodable], _ context: DataContext?) throws -> AnyCodable? {
+    guard let context = context else {
+        throw A2uiExpressionError("@index called outside of a DataContext (no template scope)", expression: name)
+    }
+    // The current item path ends with a numeric segment, e.g. "/items/2".
+    let segments = context.path.split(separator: "/", omittingEmptySubsequences: true)
+    guard let lastSegment = segments.last, let index = Int(lastSegment) else {
+        throw A2uiExpressionError("@index must be called within a list template scope (path '\(context.path)' has no numeric tail)", expression: name)
+    }
+    let offset = args["offset"]?.numberValue.map { Int($0) } ?? 0
+    return .number(Double(index + offset))
+}
+
+/// All 27 Basic Catalog function implementations, keyed by name (v1.0 adds `@index`).
 /// Mirrors WebCore `BASIC_FUNCTIONS` in basic_catalog/functions/basic_functions.ts.
 public nonisolated(unsafe) let BASIC_FUNCTIONS: [String: FunctionInvoker] = [
     "add":              basicAdd,
@@ -540,4 +558,5 @@ public nonisolated(unsafe) let BASIC_FUNCTIONS: [String: FunctionInvoker] = [
     "now": { _, _, _ in
         .string(ISO8601DateFormatter().string(from: Date()))
     },
+    "@index":           systemIndex,
 ]

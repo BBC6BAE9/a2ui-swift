@@ -20,12 +20,16 @@ import Foundation
 /// Mirrors WebCore `A2uiMessage`.
 ///
 /// Each case maps to one top-level JSON key.
-/// Encoding always includes `"version":"v0.9"`.
+/// Encoding defaults to `"version":"v1.0"`.
 public enum A2uiMessage: Codable, Sendable {
     case createSurface(CreateSurfacePayload)
     case updateComponents(UpdateComponentsPayload)
     case updateDataModel(UpdateDataModelPayload)
     case deleteSurface(DeleteSurfacePayload)
+    /// v1.0: server-initiated function call to a client-registered function.
+    case callFunction(CallFunctionPayload)
+    /// v1.0: server response to a client action that had `wantResponse: true`.
+    case actionResponse(ActionResponsePayload)
 
     private enum CodingKeys: String, CodingKey {
         case version
@@ -33,25 +37,36 @@ public enum A2uiMessage: Codable, Sendable {
         case updateComponents
         case updateDataModel
         case deleteSurface
+        case callFunction
+        case actionResponse
+        case actionId
+        case functionCallId
+        case wantResponse
 
         var stringValue: String { rawValue }
     }
+
+    /// Accepted protocol version strings. v0.9 / v0.9.1 are backward-compatible
+    /// refinements; v1.0 is the current release candidate.
+    public static let acceptedVersions: Set<String> = ["v0.9", "v0.9.1", "v1.0"]
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         let version = try container.decode(String.self, forKey: .version)
-        // v0.9.1 is a backward-compatible refinement of v0.9; schemas accept both.
-        guard version == "v0.9" || version == "v0.9.1" else {
+        guard Self.acceptedVersions.contains(version) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .version,
                 in: container,
-                debugDescription: #"A2UI message version must be "v0.9" or "v0.9.1"."#
+                debugDescription: #"A2UI message version must be "v0.9", "v0.9.1", or "v1.0"."#
             )
         }
 
         // Validate: only one update-type key is allowed per message.
-        let updateTypeKeys: [CodingKeys] = [.createSurface, .updateComponents, .updateDataModel, .deleteSurface]
+        let updateTypeKeys: [CodingKeys] = [
+            .createSurface, .updateComponents, .updateDataModel,
+            .deleteSurface, .callFunction, .actionResponse
+        ]
         let presentKeys = updateTypeKeys.filter { container.contains($0) }
         if presentKeys.count > 1 {
             let names = presentKeys.map(\.stringValue).joined(separator: ", ")
@@ -69,22 +84,44 @@ public enum A2uiMessage: Codable, Sendable {
             self = .updateDataModel(payload)
         } else if let payload = try container.decodeIfPresent(DeleteSurfacePayload.self, forKey: .deleteSurface) {
             self = .deleteSurface(payload)
+        } else if container.contains(.callFunction) {
+            let functionCallId = try container.decode(String.self, forKey: .functionCallId)
+            let wantResponse = try container.decodeIfPresent(Bool.self, forKey: .wantResponse) ?? false
+            let callPayload = try container.decode(FunctionCall.self, forKey: .callFunction)
+            self = .callFunction(CallFunctionPayload(
+                functionCallId: functionCallId,
+                wantResponse: wantResponse,
+                call: callPayload
+            ))
+        } else if container.contains(.actionResponse) {
+            let actionId = try container.decode(String.self, forKey: .actionId)
+            let responsePayload = try container.decode(ActionResponsePayload.self, forKey: .actionResponse)
+            var payload = responsePayload
+            payload.actionId = actionId
+            self = .actionResponse(payload)
         } else {
             throw DecodingError.dataCorrupted(.init(
                 codingPath: decoder.codingPath,
-                debugDescription: "Message must contain one of: createSurface, updateComponents, updateDataModel, deleteSurface."
+                debugDescription: "Message must contain one of: createSurface, updateComponents, updateDataModel, deleteSurface, callFunction, actionResponse."
             ))
         }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode("v0.9", forKey: .version)
+        try container.encode("v1.0", forKey: .version)
         switch self {
-        case .createSurface(let payload):   try container.encode(payload, forKey: .createSurface)
+        case .createSurface(let payload):    try container.encode(payload, forKey: .createSurface)
         case .updateComponents(let payload): try container.encode(payload, forKey: .updateComponents)
-        case .updateDataModel(let payload): try container.encode(payload, forKey: .updateDataModel)
-        case .deleteSurface(let payload):   try container.encode(payload, forKey: .deleteSurface)
+        case .updateDataModel(let payload):  try container.encode(payload, forKey: .updateDataModel)
+        case .deleteSurface(let payload):    try container.encode(payload, forKey: .deleteSurface)
+        case .callFunction(let payload):
+            try container.encode(payload.functionCallId, forKey: .functionCallId)
+            try container.encode(payload.wantResponse, forKey: .wantResponse)
+            try container.encode(payload.call, forKey: .callFunction)
+        case .actionResponse(let payload):
+            try container.encode(payload.actionId, forKey: .actionId)
+            try container.encode(payload, forKey: .actionResponse)
         }
     }
 }
@@ -94,31 +131,55 @@ public enum A2uiMessage: Codable, Sendable {
 public struct CreateSurfacePayload: Codable, Sendable {
     public var surfaceId: String
     public var catalogId: String
-    public var theme: AnyCodable?
+    /// v1.0: replaces `theme`. Accepts both `surfaceProperties` (v1.0) and
+    /// `theme` (v0.9/v0.9.1) for backward compatibility, preferring `surfaceProperties`.
+    public var surfaceProperties: AnyCodable?
     public var sendDataModel: Bool
+    /// v1.0: optional initial component definitions included in the create payload.
+    public var components: [RawComponent]?
+    /// v1.0: optional initial data model included in the create payload.
+    public var dataModel: AnyCodable?
 
     public init(
         surfaceId: String,
         catalogId: String,
-        theme: AnyCodable? = nil,
-        sendDataModel: Bool = false
+        surfaceProperties: AnyCodable? = nil,
+        sendDataModel: Bool = false,
+        components: [RawComponent]? = nil,
+        dataModel: AnyCodable? = nil
     ) {
         self.surfaceId = surfaceId
         self.catalogId = catalogId
-        self.theme = theme
+        self.surfaceProperties = surfaceProperties
         self.sendDataModel = sendDataModel
+        self.components = components
+        self.dataModel = dataModel
     }
 
     private enum CodingKeys: String, CodingKey {
-        case surfaceId, catalogId, theme, sendDataModel
+        case surfaceId, catalogId, surfaceProperties, theme, sendDataModel, components, dataModel
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         surfaceId = try container.decode(String.self, forKey: .surfaceId)
         catalogId = try container.decode(String.self, forKey: .catalogId)
-        theme = try container.decodeIfPresent(AnyCodable.self, forKey: .theme)
+        // Accept both v1.0 `surfaceProperties` and v0.9 `theme` (prefer v1.0).
+        surfaceProperties = try container.decodeIfPresent(AnyCodable.self, forKey: .surfaceProperties)
+            ?? container.decodeIfPresent(AnyCodable.self, forKey: .theme)
         sendDataModel = try container.decodeIfPresent(Bool.self, forKey: .sendDataModel) ?? false
+        components = try container.decodeIfPresent([RawComponent].self, forKey: .components)
+        dataModel = try container.decodeIfPresent(AnyCodable.self, forKey: .dataModel)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(surfaceId, forKey: .surfaceId)
+        try container.encode(catalogId, forKey: .catalogId)
+        try container.encodeIfPresent(surfaceProperties, forKey: .surfaceProperties)
+        try container.encode(sendDataModel, forKey: .sendDataModel)
+        try container.encodeIfPresent(components, forKey: .components)
+        try container.encodeIfPresent(dataModel, forKey: .dataModel)
     }
 }
 
@@ -177,6 +238,71 @@ public struct RawComponent: Sendable, Equatable {
         self.weight = weight
         self.accessibility = accessibility
         self.properties = properties
+    }
+}
+
+// MARK: - v1.0 New Payloads
+
+/// v1.0: Server-initiated function call to a client-registered function.
+/// Mirrors WebCore `CallFunctionMessage`.
+public struct CallFunctionPayload: Sendable {
+    /// Unique identifier for this function call instance. Must be echoed back in `functionResponse`.
+    public var functionCallId: String
+    /// If true, the client must send a `functionResponse` with the result.
+    public var wantResponse: Bool
+    /// The function to invoke.
+    public var call: FunctionCall
+
+    public init(functionCallId: String, wantResponse: Bool = false, call: FunctionCall) {
+        self.functionCallId = functionCallId
+        self.wantResponse = wantResponse
+        self.call = call
+    }
+}
+
+/// v1.0: Server response to a client-initiated action that specified `wantResponse: true`.
+/// Mirrors WebCore `ActionResponseMessage`.
+public struct ActionResponsePayload: Codable, Sendable {
+    /// The `actionId` of the originating client action.
+    public var actionId: String
+    /// The return value of the action (mutually exclusive with `error`).
+    public var value: AnyCodable?
+    /// An error that occurred during the action (mutually exclusive with `value`).
+    public var error: ActionResponseError?
+
+    public init(actionId: String, value: AnyCodable? = nil, error: ActionResponseError? = nil) {
+        self.actionId = actionId
+        self.value = value
+        self.error = error
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case value, error
+    }
+
+    public init(from decoder: Decoder) throws {
+        // actionId is decoded at the message level and injected separately.
+        self.actionId = ""
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        value = try container.decodeIfPresent(AnyCodable.self, forKey: .value)
+        error = try container.decodeIfPresent(ActionResponseError.self, forKey: .error)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(value, forKey: .value)
+        try container.encodeIfPresent(error, forKey: .error)
+    }
+}
+
+/// v1.0: An error returned inside an `actionResponse`.
+public struct ActionResponseError: Codable, Sendable {
+    public var code: String
+    public var message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
     }
 }
 

@@ -28,6 +28,10 @@ public final class Catalog {
     /// Named function implementations, keyed by function name.
     public let functions: [String: FunctionInvoker]
 
+    /// v1.0: Optional Markdown instructions for AI agents, replacing the external `rules.txt`.
+    /// Mirrors WebCore `Catalog.instructions`.
+    public let instructions: String?
+
     /// A ready-to-use FunctionInvoker that delegates to this catalog's registered functions.
     /// Mirrors WebCore `Catalog.invoker`.
     public var invoker: FunctionInvoker {
@@ -43,10 +47,25 @@ public final class Catalog {
     public init(
         id: String,
         componentNames: Set<String> = [],
-        functions: [String: FunctionInvoker] = [:]
+        functions: [String: FunctionInvoker] = [:],
+        instructions: String? = nil
     ) {
         self.id = id
         self.componentNames = componentNames
         self.functions = functions
+        self.instructions = instructions
     }
+}
+
+// MARK: - CallableFrom (v1.0)
+
+/// v1.0: Restricts where a catalog function may be invoked.
+/// Mirrors WebCore `CallableFrom` enum.
+public enum CallableFrom: String, Codable, Sendable {
+    /// The function can only be called from the client (local execution).
+    case clientOnly
+    /// The function can only be called from the server via `callFunction`.
+    case remoteOnly
+    /// The function can be called from either client or server.
+    case clientOrRemote
 }

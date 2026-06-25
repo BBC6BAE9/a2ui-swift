@@ -134,13 +134,15 @@ public struct A2UIStyle: Equatable, Sendable {
         self.leafMargin = leafMargin
     }
 
-    /// Build from the raw `[String: String]` dictionary provided by `beginRendering`.
+    /// Build from the raw `[String: String]` dictionary provided by `surfaceProperties`
+    /// (v1.0) or `theme` (v0.9, backward compatible).
+    ///
+    /// v1.0 removes `primaryColor` from the protocol; this property still exists on
+    /// `A2UIStyle` for app-level customization but is no longer parsed from surface data.
     public init(from styles: [String: String]) {
-        if let hex = styles["primaryColor"] {
-            self.primaryColor = Color(hex: hex)
-        } else {
-            self.primaryColor = .accentColor
-        }
+        // v0.9 backward compat: `primaryColor` was part of theme; v1.0 removed it.
+        // App developers should set primaryColor directly on A2UIStyle instead.
+        self.primaryColor = .accentColor
         self.fontFamily = styles["font"]
         self.iconUrl = styles["iconUrl"]
         self.agentDisplayName = styles["agentDisplayName"]

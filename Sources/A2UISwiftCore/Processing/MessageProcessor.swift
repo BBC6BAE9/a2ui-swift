@@ -65,7 +65,7 @@ public final class MessageProcessor {
             surfaces[surface.id] = surface.dataModel.get("/")
         }
         guard !surfaces.isEmpty else { return nil }
-        return A2uiClientDataModel(version: "v0.9", surfaces: surfaces)
+        return A2uiClientDataModel(version: "v1.0", surfaces: surfaces)
     }
 
     /// Returns the client capabilities for this renderer, populated from the loaded catalogs.
@@ -123,6 +123,10 @@ public final class MessageProcessor {
             try processUpdateDataModel(payload)
         case .deleteSurface(let payload):
             processDeleteSurface(payload)
+        case .callFunction(let payload):
+            try processCallFunction(payload)
+        case .actionResponse(let payload):
+            processActionResponse(payload)
         }
     }
 
@@ -140,10 +144,24 @@ public final class MessageProcessor {
         let surface = SurfaceModel(
             id: payload.surfaceId,
             catalog: catalog,
-            theme: payload.theme,
+            surfaceProperties: payload.surfaceProperties,
             sendDataModel: payload.sendDataModel
         )
         model.addSurface(surface)
+
+        // v1.0: inline createSurface — apply initial dataModel before components
+        // so that data bindings in components can resolve during tree construction.
+        if let initialData = payload.dataModel {
+            try surface.dataModel.set("/", value: initialData)
+        }
+
+        // v1.0: inline createSurface — apply initial components.
+        if let components = payload.components, !components.isEmpty {
+            try processUpdateComponents(UpdateComponentsPayload(
+                surfaceId: payload.surfaceId,
+                components: components
+            ))
+        }
     }
 
     private func processDeleteSurface(_ payload: DeleteSurfacePayload) {
@@ -198,5 +216,76 @@ public final class MessageProcessor {
 
         let path = payload.path ?? "/"
         try surface.dataModel.set(path, value: payload.value)
+    }
+
+    // MARK: - v1.0 Handlers
+
+    /// v1.0: Processes a server-initiated function call.
+    /// Looks up the function in the catalog, executes it, and emits a `functionResponse`
+    /// if `wantResponse` is true.
+    /// Rejects calls to unregistered functions with an error.
+    private func processCallFunction(_ payload: CallFunctionPayload) throws {
+        let functionName = payload.call.call
+
+        // Find the catalog that owns this function. Use the first loaded catalog that has it.
+        guard let catalog = catalogs.first(where: { $0.functions[functionName] != nil }) else {
+            // Emit error via first surface, or as a stand-alone function error.
+            if let surface = model.surfacesMap.values.first {
+                surface.dispatchError(
+                    code: "INVALID_FUNCTION_CALL",
+                    message: "Function '\(functionName)' not found in any loaded catalog.",
+                    details: ["functionCallId": .string(payload.functionCallId)]
+                )
+            }
+            return
+        }
+
+        // Use the first available surface to build a DataContext.
+        // Functions called remotely have no inherent surface binding; the first
+        // surface's context is used as a best-effort execution environment.
+        let surface = model.surfacesMap.values.first
+        let context = surface.map { DataContext(surface: $0, path: "/") }
+
+        let result: AnyCodable?
+        do {
+            if let context = context, let fn = catalog.functions[functionName] {
+                result = try fn(functionName, payload.call.args, context)
+            } else {
+                throw A2uiExpressionError("No DataContext available for remote function call", expression: functionName)
+            }
+        } catch {
+            surface?.dispatchError(
+                code: "FUNCTION_EXECUTION_ERROR",
+                message: "Error executing function '\(functionName)': \(error.localizedDescription)",
+                details: ["functionCallId": .string(payload.functionCallId)]
+            )
+            if payload.wantResponse {
+                model.emitFunctionResponse(A2uiFunctionResponse(
+                    functionCallId: payload.functionCallId,
+                    call: functionName,
+                    value: .string(error.localizedDescription)
+                ))
+            }
+            return
+        }
+
+        if payload.wantResponse {
+            model.emitFunctionResponse(A2uiFunctionResponse(
+                functionCallId: payload.functionCallId,
+                call: functionName,
+                value: result ?? .null
+            ))
+        }
+    }
+
+    /// v1.0: Routes an `actionResponse` to the surface that originated the action.
+    /// The surface is looked up via the `actionId` prefix (surfaceId is embedded
+    /// in the action when dispatched). Since the spec doesn't include surfaceId in
+    /// `actionResponse`, we route to the surface that has a matching pending action.
+    private func processActionResponse(_ payload: ActionResponsePayload) {
+        // Route the response to all surfaces; each surface ignores actionIds not in its queue.
+        for surface in model.surfacesMap.values {
+            surface.deliverActionResponse(payload)
+        }
     }
 }

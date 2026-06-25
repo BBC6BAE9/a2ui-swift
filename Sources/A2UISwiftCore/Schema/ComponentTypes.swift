@@ -424,7 +424,8 @@ public struct IconProperties: Codable {
     public var name: IconNameValue
 }
 
-/// v0.9 Icon.name: either an enum string or `{"path":"M10 20..."}` for custom SVG.
+/// v1.0 Icon.name: either an enum string or `{"path":"M10 20..."}` for custom SVG.
+/// The `path` key replaces the v0.9 `svgPath` key. Both are accepted for backward compatibility.
 public enum IconNameValue: Codable {
     case standard(DynamicString)
     case customPath(String)
@@ -435,8 +436,10 @@ public enum IconNameValue: Codable {
         case .string(let s):
             self = .standard(.literal(s))
         case .dictionary(let dict):
-            if dict.count == 1,
-               let pathStr = dict["path"]?.stringValue,
+            // v1.0: `path` key; backward compat: also accept v0.9 `svgPath` key.
+            let pathKey = dict["path"]?.stringValue ?? dict["svgPath"]?.stringValue
+            if dict.count <= 2,
+               let pathStr = pathKey,
                Self.looksLikeSVGPath(pathStr) {
                 self = .customPath(pathStr)
             } else {
@@ -470,6 +473,8 @@ public enum IconNameValue: Codable {
 
 public struct VideoProperties: Codable {
     public var url: DynamicString
+    /// v1.0: optional preview image URL displayed before playback begins.
+    public var posterUrl: DynamicString?
 }
 
 public struct AudioPlayerProperties: Codable {
@@ -535,6 +540,8 @@ public struct TextFieldProperties: Codable {
     public var variant: TextFieldVariant?
     public var validationRegexp: String?
     public var checks: [CheckRule]?
+    /// v1.0: optional placeholder text shown when the field is empty.
+    public var placeholder: DynamicString?
 }
 
 public struct CheckBoxProperties: Codable {
@@ -549,6 +556,8 @@ public struct SliderProperties: Codable {
     public var min: Double?
     public var max: Double
     public var checks: [CheckRule]?
+    /// v1.0: optional step size that snaps the slider value to discrete intervals.
+    public var steps: Double?
 }
 
 public struct DateTimeInputProperties: Codable {

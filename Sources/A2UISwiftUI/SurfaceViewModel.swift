@@ -128,7 +128,7 @@ public final class SurfaceViewModel {
     public func getClientDataModel() -> A2uiClientDataModel? {
         guard surface.sendDataModel else { return nil }
         return A2uiClientDataModel(
-            version: "v0.9",
+            version: "v1.0",
             surfaces: [surface.id: surface.dataModel.get("/") ?? .null]
         )
     }
@@ -144,14 +144,27 @@ public final class SurfaceViewModel {
     // MARK: - Message Handlers
 
     private func handleCreateSurface(_ payload: CreateSurfacePayload) {
-        if let theme = payload.theme, case .dictionary(let themeDict) = theme {
+        if let props = payload.surfaceProperties, case .dictionary(let propsDict) = props {
             var styles: [String: String] = [:]
-            for (key, value) in themeDict {
+            for (key, value) in propsDict {
                 if let s = value.stringValue { styles[key] = s }
             }
             a2uiStyle = A2UIStyle(from: styles)
         }
-        rebuildComponentTree()
+
+        // v1.0: apply inline data model before components so bindings can resolve.
+        if let initialData = payload.dataModel {
+            try? surface.dataModel.set("/", value: initialData)
+        }
+
+        if let inlineComponents = payload.components, !inlineComponents.isEmpty {
+            try? handleUpdateComponents(UpdateComponentsPayload(
+                surfaceId: payload.surfaceId,
+                components: inlineComponents
+            ))
+        } else {
+            rebuildComponentTree()
+        }
     }
 
     private func handleUpdateComponents(_ payload: UpdateComponentsPayload) throws {

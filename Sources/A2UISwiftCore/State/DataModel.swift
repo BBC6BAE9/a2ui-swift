@@ -240,10 +240,11 @@ public final class DataModel {
     ) throws -> AnyCodable {
         switch container {
         case .dictionary(var dict):
-            if let value = value {
-                dict[segment] = value
-            } else {
+            // v1.0: explicit `null` or Swift `nil` both delete the key.
+            if value == nil || value == .null {
                 dict.removeValue(forKey: segment)
+            } else {
+                dict[segment] = value!
             }
             return .dictionary(dict)
 

@@ -14,11 +14,11 @@
 
 import Foundation
 
-/// The catalog ID for the basic catalog.
-/// Mirrors Flutter's `basicCatalogId` from `primitives/constants.dart` and v0.9
+/// The catalog ID for the basic catalog (v1.0).
+/// Mirrors Flutter's `basicCatalogId` from `primitives/constants.dart` and v1.0
 /// spec examples (`createSurface.catalogId`).
 public let basicCatalogId =
-    "https://a2ui.org/specification/v0_9/basic_catalog.json"
+    "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"
 
 /// The ready-to-use Basic Catalog instance.
 ///
@@ -26,7 +26,7 @@ public let basicCatalogId =
 /// Pass this to `SurfaceViewModel`, `MessageProcessor`, or `A2UISurfaceView`.
 ///
 /// Mirrors the React renderer's `basicCatalog` singleton in
-/// `renderers/react/src/v0_9/catalog/basic/index.ts`.
+/// `renderers/react/src/v1_0/catalog/basic/index.ts`.
 ///
 /// # Usage
 /// ```swift

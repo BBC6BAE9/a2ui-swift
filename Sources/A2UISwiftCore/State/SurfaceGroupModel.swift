@@ -26,6 +26,8 @@ public final class SurfaceGroupModel {
     private let _onSurfaceCreated = EventEmitter<SurfaceModel>()
     private let _onSurfaceDeleted = EventEmitter<String>()
     private let _onAction = EventEmitter<A2uiClientAction>()
+    /// v1.0: fires when a `functionResponse` needs to be sent to the server.
+    private let _onFunctionResponse = EventEmitter<A2uiFunctionResponse>()
 
     /// Fires when a new surface is added.
     /// Mirrors WebCore `onSurfaceCreated: EventSource<SurfaceModel>`.
@@ -38,6 +40,9 @@ public final class SurfaceGroupModel {
     /// Fires when an action is dispatched from ANY surface in the group.
     /// Mirrors WebCore `onAction: EventSource<A2uiClientAction>`.
     public var onAction: some EventSource<A2uiClientAction> { _onAction }
+
+    /// v1.0: fires when a function response needs to be sent to the server.
+    public var onFunctionResponse: some EventSource<A2uiFunctionResponse> { _onFunctionResponse }
 
     public init() {}
 
@@ -85,6 +90,11 @@ public final class SurfaceGroupModel {
         surfaces
     }
 
+    /// v1.0: Emits a function response event (from `processCallFunction`).
+    internal func emitFunctionResponse(_ response: A2uiFunctionResponse) {
+        _onFunctionResponse.emit(response)
+    }
+
     /// Disposes of the group and all its surfaces.
     public func dispose() {
         for id in Array(surfaces.keys) {
@@ -93,5 +103,6 @@ public final class SurfaceGroupModel {
         _onSurfaceCreated.dispose()
         _onSurfaceDeleted.dispose()
         _onAction.dispose()
+        _onFunctionResponse.dispose()
     }
 }

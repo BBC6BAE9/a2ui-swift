@@ -19,7 +19,7 @@ import Foundation
 // MARK: - A2uiClientAction
 
 /// Reports a user-initiated action from a component.
-/// Matches 'action' in specification/v0_9/json/client_to_server.json.
+/// Matches 'action' in specification/v1_0/json/client_to_server.json.
 /// Mirrors WebCore `A2uiClientAction`.
 public struct A2uiClientAction: Codable, Equatable {
     /// The name of the action, taken from the component's action.event.name property.
@@ -32,87 +32,124 @@ public struct A2uiClientAction: Codable, Equatable {
     public let timestamp: String
     /// Key-value pairs from the component's action.event.context, after resolving all data bindings.
     public let context: [String: AnyCodable]
+    /// v1.0: If true, the client expects an `actionResponse` from the server.
+    public let wantResponse: Bool
+    /// v1.0: Unique ID for this action call. Required when `wantResponse` is true.
+    public let actionId: String?
 
     public init(
         name: String,
         surfaceId: String,
         sourceComponentId: String,
         timestamp: String = ISO8601DateFormatter().string(from: Date()),
-        context: [String: AnyCodable] = [:]
+        context: [String: AnyCodable] = [:],
+        wantResponse: Bool = false,
+        actionId: String? = nil
     ) {
         self.name = name
         self.surfaceId = surfaceId
         self.sourceComponentId = sourceComponentId
         self.timestamp = timestamp
         self.context = context
+        self.wantResponse = wantResponse
+        self.actionId = actionId
     }
 }
 
 // MARK: - A2uiClientError
 
 /// Reports a client-side error.
-/// Matches 'error' in specification/v0_9/json/client_to_server.json.
+/// Matches 'error' in specification/v1_0/json/client_to_server.json.
 /// Mirrors WebCore `A2uiClientError`.
 public struct A2uiClientError: Codable, Equatable {
     /// Error code. "VALIDATION_FAILED" for validation errors; other strings for generic errors.
     public let code: String
-    /// The id of the surface where the error occurred.
-    public let surfaceId: String
+    /// The id of the surface where the error occurred. Mutually exclusive with `functionCallId`.
+    public let surfaceId: String?
     /// A short description of why the error occurred.
     public let message: String
     /// For VALIDATION_FAILED: JSON pointer to the field that failed (e.g. '/components/0/text').
     public let path: String?
     /// Optional additional details about the error.
     public let details: [String: AnyCodable]?
+    /// v1.0: The functionCallId when reporting a function execution error.
+    /// Mutually exclusive with `surfaceId`.
+    public let functionCallId: String?
 
     public init(
         code: String,
-        surfaceId: String,
+        surfaceId: String? = nil,
         message: String,
         path: String? = nil,
-        details: [String: AnyCodable]? = nil
+        details: [String: AnyCodable]? = nil,
+        functionCallId: String? = nil
     ) {
         self.code = code
         self.surfaceId = surfaceId
         self.message = message
         self.path = path
         self.details = details
+        self.functionCallId = functionCallId
+    }
+}
+
+// MARK: - A2uiFunctionResponse (v1.0)
+
+/// v1.0: The client's response to a server-initiated `callFunction` message.
+/// Matches 'functionResponse' in specification/v1_0/json/client_to_server.json.
+public struct A2uiFunctionResponse: Codable, Equatable {
+    /// The unique ID of the function call, copied verbatim from `CallFunctionPayload.functionCallId`.
+    public let functionCallId: String
+    /// The name of the function that was called (for logging).
+    public let call: String
+    /// The return value of the function invocation.
+    public let value: AnyCodable
+
+    public init(functionCallId: String, call: String, value: AnyCodable) {
+        self.functionCallId = functionCallId
+        self.call = call
+        self.value = value
     }
 }
 
 // MARK: - A2uiClientMessage
 
 /// A message sent from the A2UI client to the server.
-/// Matches specification/v0_9/json/client_to_server.json.
+/// Matches specification/v1_0/json/client_to_server.json.
 /// Mirrors WebCore `A2uiClientMessage`.
 public enum A2uiClientMessage: Codable {
     case action(A2uiClientAction)
     case error(A2uiClientError)
+    /// v1.0: response to a server-initiated `callFunction` message.
+    case functionResponse(A2uiFunctionResponse)
 
     private enum CodingKeys: String, CodingKey {
-        case version, action, error
+        case version, action, error, functionResponse
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let action = try container.decodeIfPresent(A2uiClientAction.self, forKey: .action) {
             self = .action(action)
+        } else if let fr = try container.decodeIfPresent(A2uiFunctionResponse.self, forKey: .functionResponse) {
+            self = .functionResponse(fr)
         } else if let error = try container.decodeIfPresent(A2uiClientError.self, forKey: .error) {
             self = .error(error)
         } else {
             throw DecodingError.dataCorrupted(.init(
                 codingPath: decoder.codingPath,
-                debugDescription: "A2uiClientMessage must contain 'action' or 'error'."
+                debugDescription: "A2uiClientMessage must contain 'action', 'functionResponse', or 'error'."
             ))
         }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode("v0.9", forKey: .version)
+        try container.encode("v1.0", forKey: .version)
         switch self {
-        case .action(let a): try container.encode(a, forKey: .action)
-        case .error(let e): try container.encode(e, forKey: .error)
+        case .action(let a):           try container.encode(a, forKey: .action)
+        case .error(let e):            try container.encode(e, forKey: .error)
+        case .functionResponse(let r): try container.encode(r, forKey: .functionResponse)
         }
     }
 }
@@ -120,14 +157,14 @@ public enum A2uiClientMessage: Codable {
 // MARK: - A2uiClientDataModel
 
 /// Schema for the client data model synchronization.
-/// Matches specification/v0_9/json/client_data_model.json.
+/// Matches specification/v1_0/json/client_data_model.json.
 /// Mirrors WebCore `A2uiClientDataModel`.
 public struct A2uiClientDataModel: Codable, Equatable {
     public let version: String
     /// A map of surface IDs to their current data models.
     public let surfaces: [String: AnyCodable]
 
-    public init(version: String = "v0.9", surfaces: [String: AnyCodable]) {
+    public init(version: String = "v1.0", surfaces: [String: AnyCodable]) {
         self.version = version
         self.surfaces = surfaces
     }
