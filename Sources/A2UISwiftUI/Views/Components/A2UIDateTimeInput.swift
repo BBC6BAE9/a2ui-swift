@@ -41,69 +41,70 @@ struct A2UIDateTimeInput: View {
     var body: some View {
         if let props = try? node.typedProperties(DateTimeInputProperties.self) {
             let dc = DataContext(surface: surface, path: dataContextPath)
-            // ③ Spec v0.9 defaults: enableDate and enableTime are both false when omitted.
-            let enableDate = props.enableDate ?? false
-            let enableTime = props.enableTime ?? false
+            let enableDate = props.enableDate
+            let enableTime = props.enableTime
+            if !enableDate && !enableTime {
+                EmptyView()
+            } else {
 
-            let labelText: String = {
-                if let labelValue = props.label {
-                    return dc.resolve(labelValue)
-                }
-                if enableDate && enableTime { return "Date & Time" }
-                if enableDate { return "Date" }
-                if enableTime { return "Time" }
-                return "Date & Time"
-            }()
-
-            let dtStyle = style.dateTimeInputStyle
-
-            // ② Resolve optional min/max ISO 8601 bounds.
-            let minDate: Date? = props.min.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
-            let maxDate: Date? = props.max.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
-
-            let checksError = dc.firstFailingCheckMessage(props.checks)
-            VStack(alignment: .leading, spacing: 4) {
-                Group {
-                    #if os(tvOS)
-                    VStack(alignment: .leading) {
-                        Text(labelText)
-                            .font(dtStyle.labelFont)
-                            .foregroundStyle(dtStyle.labelColor ?? .primary)
-                        Text(dc.resolve(props.value))
-                            .foregroundStyle(.secondary)
+                let labelText: String = {
+                    if let labelValue = props.label {
+                        return dc.resolve(labelValue)
                     }
-                    #else
-                    let components: DatePicker.Components = {
-                        var c: DatePicker.Components = []
-                        if enableDate { c.insert(.date) }
-                        if enableTime { c.insert(.hourAndMinute) }
-                        if c.isEmpty { c = [.date, .hourAndMinute] }
-                        return c
-                    }()
+                    if enableDate && enableTime { return "Date & Time" }
+                    if enableDate { return "Date" }
+                    return "Time"
+                }()
 
-                    // ② Wire min/max to DatePicker's `in:` range.
-                    datePickerView(
-                        selection: a2uiDateBinding(for: props.value, dataContext: dc),
-                        minDate: minDate,
-                        maxDate: maxDate,
-                        components: components,
-                        label: {
+                let dtStyle = style.dateTimeInputStyle
+
+                // ② Resolve optional min/max ISO 8601 bounds.
+                let minDate: Date? = props.min.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
+                let maxDate: Date? = props.max.map { dc.resolve($0) }.flatMap { parseISO8601($0) }
+
+                let checksError = dc.firstFailingCheckMessage(props.checks)
+                VStack(alignment: .leading, spacing: 4) {
+                    Group {
+                        #if os(tvOS)
+                        VStack(alignment: .leading) {
                             Text(labelText)
                                 .font(dtStyle.labelFont)
                                 .foregroundStyle(dtStyle.labelColor ?? .primary)
+                            Text(dc.resolve(props.value))
+                                .foregroundStyle(.secondary)
                         }
-                    )
-                    .tint(dtStyle.tintColor)
-                    #endif
+                        #else
+                        let components: DatePicker.Components = {
+                            var c: DatePicker.Components = []
+                            if enableDate { c.insert(.date) }
+                            if enableTime { c.insert(.hourAndMinute) }
+                            return c
+                        }()
+
+                        // ② Wire min/max to DatePicker's `in:` range.
+                        datePickerView(
+                            selection: a2uiDateBinding(for: props.value, dataContext: dc),
+                            minDate: minDate,
+                            maxDate: maxDate,
+                            components: components,
+                            label: {
+                                Text(labelText)
+                                    .font(dtStyle.labelFont)
+                                    .foregroundStyle(dtStyle.labelColor ?? .primary)
+                            }
+                        )
+                        .tint(dtStyle.tintColor)
+                        #endif
+                    }
+                    if let msg = checksError {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
-                if let msg = checksError {
-                    Text(msg)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+                .a2uiAccessibility(node.accessibility, dataContext: dc)
+                .padding(style.leafMargin)
             }
-            .a2uiAccessibility(node.accessibility, dataContext: dc)
-            .padding(style.leafMargin)
         }
     }
 

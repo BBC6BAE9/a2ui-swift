@@ -54,7 +54,13 @@ final class A2UIDateTimeInput: PlatformView, A2UIPlatformComponent {
         let ctx = DataContext(surface: surface, path: node.dataContextPath)
         dataContext = ctx
         valueBindingPath = a2ui_bindingPath(props.value)
-        setMode(date: props.enableDate ?? true, time: props.enableTime ?? false)
+        guard props.enableDate || props.enableTime else {
+            picker.isHidden = true
+            a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
+            return
+        }
+        picker.isHidden = false
+        setMode(date: props.enableDate, time: props.enableTime)
         a2ui_applyAccessibility(node.accessibility, dataContext: ctx)
         setBounds(min: props.min.flatMap { iso.date(from: ctx.resolve($0)) },
                   max: props.max.flatMap { iso.date(from: ctx.resolve($0)) })

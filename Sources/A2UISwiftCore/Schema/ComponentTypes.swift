@@ -553,12 +553,45 @@ public struct SliderProperties: Codable {
 
 public struct DateTimeInputProperties: Codable {
     public var value: DynamicString
-    public var enableDate: Bool?
-    public var enableTime: Bool?
+    public var enableDate: Bool
+    public var enableTime: Bool
     public var min: DynamicString?
     public var max: DynamicString?
     public var label: DynamicString?
     public var checks: [CheckRule]?
+
+    enum CodingKeys: String, CodingKey {
+        case value, enableDate, enableTime, min, max, label, checks
+    }
+
+    public init(
+        value: DynamicString,
+        enableDate: Bool = false,
+        enableTime: Bool = false,
+        min: DynamicString? = nil,
+        max: DynamicString? = nil,
+        label: DynamicString? = nil,
+        checks: [CheckRule]? = nil
+    ) {
+        self.value = value
+        self.enableDate = enableDate
+        self.enableTime = enableTime
+        self.min = min
+        self.max = max
+        self.label = label
+        self.checks = checks
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.value = try container.decode(DynamicString.self, forKey: .value)
+        self.enableDate = try container.decodeIfPresent(Bool.self, forKey: .enableDate) ?? false
+        self.enableTime = try container.decodeIfPresent(Bool.self, forKey: .enableTime) ?? false
+        self.min = try container.decodeIfPresent(DynamicString.self, forKey: .min)
+        self.max = try container.decodeIfPresent(DynamicString.self, forKey: .max)
+        self.label = try container.decodeIfPresent(DynamicString.self, forKey: .label)
+        self.checks = try container.decodeIfPresent([CheckRule].self, forKey: .checks)
+    }
 }
 
 public struct ChoicePickerOption: Codable {
