@@ -25,7 +25,7 @@ import Observation
 /// Mirrors WebCore's internal per-path Signal (not exported from data-model.ts).
 @Observable
 final class PathSlot {
-    internal(set) var value: AnyCodable?
+    var value: AnyCodable?
 
     /// Synchronous notification emitter — fired whenever the slot's value changes.
     /// Used by `DataContext.subscribeDynamicValue` to deliver reactive updates immediately.
