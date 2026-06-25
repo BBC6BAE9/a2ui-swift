@@ -45,7 +45,7 @@ public struct FunctionCall: Codable, Sendable, Equatable {
 
 // MARK: - LiteralDecodable protocol
 
-/// 让泛型 Dynamic<T> 知道如何从 AnyCodable 提取字面量，以及提供默认值。
+/// Lets generic Dynamic<T> extract literals from AnyCodable and provide a default value.
 public protocol LiteralDecodable: Codable {
     static func fromAnyCodable(_ value: AnyCodable) -> Self?
     static var defaultLiteral: Self { get }
@@ -75,8 +75,8 @@ extension Array: LiteralDecodable where Element == String {
 
 // MARK: - Dynamic<T>
 
-/// 泛型动态值：字面量 T | 数据绑定 | 函数调用。
-/// 一份 Codable 实现覆盖 DynamicString / DynamicNumber / DynamicBoolean / DynamicStringList。
+/// Generic dynamic value: literal T | data binding | function call.
+/// One Codable implementation covers DynamicString / DynamicNumber / DynamicBoolean / DynamicStringList.
 public enum Dynamic<T: LiteralDecodable & Sendable>: Codable, Sendable {
     
     case literal(T)
@@ -144,7 +144,7 @@ enum DynamicDictResolver {
 // MARK: - DynamicValue
 
 /// A generic dynamic value: any literal | DataBinding | FunctionCall.
-/// 不适合泛型（多种字面量类型），保持独立 enum。
+/// Not suitable for the generic form because it supports multiple literal types, so it stays as a separate enum.
 /// Mirrors WebCore `DynamicValueSchema`.
 public enum DynamicValue: Codable, Sendable {
     case string(String)

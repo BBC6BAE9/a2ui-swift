@@ -29,7 +29,7 @@ private let testData: [String: AnyCodable] = [
 @Suite("DataContext")
 struct DataContextTests {
 
-    // MARK: - resolveDynamicValue (路径解析)
+    // MARK: - resolveDynamicValue (path resolution)
 
     @Test("resolves relative paths")
     func resolvesRelativePaths() {
@@ -91,7 +91,7 @@ struct DataContextTests {
         sub.unsubscribe()
     }
 
-    // MARK: - resolveDynamicValue (字面量)
+    // MARK: - resolveDynamicValue (literals)
 
     @Test("resolves using resolveDynamicValue with literals")
     func resolvesLiterals() {
@@ -124,7 +124,7 @@ struct DataContextTests {
         sub.unsubscribe()
     }
 
-    // MARK: - 函数调用
+    // MARK: - Function calls
 
     @Test("resolves function calls synchronously")
     func resolvesFunctionCallSync() {
@@ -167,7 +167,7 @@ struct DataContextTests {
         #expect(dispatchedError?.code == "EXPRESSION_ERROR")
     }
 
-    // MARK: - 对象不递归解析
+    // MARK: - Objects are not resolved recursively
 
     @Test("does not resolve arbitrary objects recursively")
     func doesNotResolveArbitraryObjectsRecursively() {
@@ -221,7 +221,7 @@ struct DataContextTests {
             DynamicValue.functionCall(FunctionCall(call: "getPi", args: [:]))
         ) { _ in called = true }
 
-        // 初始值正确，但不因无关数据变化而重新调用
+        // The initial value is correct, but unrelated data changes do not invoke the callback again.
         #expect(sub.value == .number(Double.pi))
         #expect(called == false)
         sub.unsubscribe()
@@ -243,9 +243,9 @@ struct DataContextTests {
         if case .dictionary(let outer) = result,
            case .dictionary(let event) = outer["event"],
            case .dictionary(let context) = event["context"] {
-            // data binding 被解析
+            // The data binding is resolved.
             #expect(context["id"] == .string("Alice"))
-            // 数字字面量原样保留
+            // The numeric literal is preserved as-is.
             #expect(context["count"] == .number(42))
         } else {
             Issue.record("resolveAction did not return expected shape")
@@ -322,10 +322,10 @@ struct DataContextTests {
         #expect(dispatchedError?.code == "EXPRESSION_ERROR")
     }
 
-    // NOTE: WebCore 中 "translates ZodError into A2uiExpressionError" 测试
-    // 以及 signal/computed 响应式错误传播测试（"handles errors thrown during reactive
-    // argument resolution" 等）仅适用于 TypeScript 实现：
-    // - ZodError 是 Zod 验证库专属，Swift 端用 Codable/类型系统替代；
-    // - signal/computed 的响应式错误传播是 @preact/signals-core 专属机制，
-    //   Swift 端通过 PathSlot + @Observable 实现，错误在同步调用时即被捕获。
+    // NOTE: WebCore tests such as "translates ZodError into A2uiExpressionError"
+    // and signal/computed reactive error propagation tests ("handles errors thrown during
+    // reactive argument resolution", etc.) apply only to the TypeScript implementation:
+    // - ZodError is specific to the Zod validation library; Swift uses Codable/the type system instead.
+    // - signal/computed reactive error propagation is specific to @preact/signals-core;
+    //   Swift uses PathSlot + @Observable, and errors are caught during the synchronous call.
 }

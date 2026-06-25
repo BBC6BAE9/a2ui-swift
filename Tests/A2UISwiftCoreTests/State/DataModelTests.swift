@@ -126,9 +126,9 @@ struct DataModelSetTests {
         #expect(user?.keys.contains("name") == false)
     }
 
-    // NOTE: WebCore 同时测试了订阅者在 root 替换时触发一次（callCount == 1），
-    // 以及 get("") 等价 get("/")。Swift 将订阅行为独立放在 Subscriptions suite，
-    // 这里只验证数据写入正确，保持 Updates suite 职责单一。
+    // NOTE: WebCore also tests that subscribers fire once when the root is replaced (callCount == 1),
+    // and that get("") is equivalent to get("/"). Swift keeps subscription behavior in the Subscriptions suite,
+    // so this test only verifies data writes and keeps the Updates suite focused.
     @Test("replaces root object on root update")
     func replaceRoot() throws {
         let model = makeModel()
@@ -382,23 +382,23 @@ struct DataModelSubscriptionTests {
         #expect(callCount == 1)
     }
 
-    // NOTE: WebCore 测试 "throws when path is null or undefined" 以及
-    // "calculates descendants against root path" 在 Swift 中不适用：
-    // Swift 类型系统在编译期禁止传 nil 给 String 参数，不存在需要运行时抛错的场景；
-    // isDescendant 是内部实现细节，测试私有方法在 Swift 中需破坏封装，不适用。
+    // NOTE: WebCore tests "throws when path is null or undefined" and
+    // "calculates descendants against root path" do not apply in Swift:
+    // Swift's type system prevents passing nil to String parameters at compile time, so there is no runtime error case;
+    // isDescendant is an internal implementation detail, and testing private methods would break encapsulation in Swift.
 }
 
-// MARK: - PathSlot Observation (Swift 专属)
+// MARK: - PathSlot Observation (Swift-specific)
 
-/// Swift 专属：PathSlot 是对 WebCore DataModel.subscribe() 返回的订阅对象的 Swift 封装，
-/// 额外支持 @Observable 宏，使 SwiftUI View 可以直接读取 slot.value 并在数据变更时
-/// 自动重新渲染，无需手动管理回调。这些测试验证 PathSlot 的 @Observable 行为符合预期。
+/// Swift-specific: PathSlot is Swift's wrapper for the subscription object returned by WebCore DataModel.subscribe().
+/// It additionally supports the @Observable macro, allowing SwiftUI views to read slot.value directly and
+/// automatically re-render when data changes without manual callback management. These tests verify PathSlot's @Observable behavior.
 @Suite("PathSlot Observation")
 struct DataModelSlotObservationTests {
 
-    /// 验证 slot 是懒创建且被缓存的——对同一路径多次调用 slot(for:) 返回同一实例。
-    /// SwiftUI View 可能在 body 中多次读取同一路径的 slot，若每次创建新实例则会
-    /// 丢失已订阅的 onChange 监听，导致视图失去响应性。
+    /// Verifies that slots are created lazily and cached: repeated slot(for:) calls for the same path return the same instance.
+    /// SwiftUI views may read the same path's slot multiple times in body; if each read created a new instance,
+    /// the subscribed onChange listener would be lost and the view would stop responding.
     @Test("slot is lazily created and cached")
     func slotIdentity() {
         let model = makeModel()
@@ -407,8 +407,8 @@ struct DataModelSlotObservationTests {
         #expect(slot1 === slot2)
     }
 
-    /// 验证 @Observable 的细粒度精度：只有被访问路径的 slot 变化才会触发 onChange，
-    /// 与该路径无关的 slot 不应触发，确保 SwiftUI View 不会因不相关数据变化而重渲染。
+    /// Verifies @Observable's fine-grained precision: only changes to the accessed path's slot should trigger onChange.
+    /// Slots unrelated to that path should not trigger, ensuring SwiftUI views do not re-render for unrelated data changes.
     @Test("observation only triggers for the accessed slot")
     func observationGranularity() throws {
         let model = makeModel()

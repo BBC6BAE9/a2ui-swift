@@ -48,15 +48,15 @@ struct EventsTests {
         #expect(lastValue == "hello")  // unchanged
     }
 
-    // NOTE: WebCore 测试 "handles errors thrown by listeners" 在 Swift 中不适用。
-    // WebCore（TypeScript）的 listener 是无类型约束的，运行时可能抛出任意异常，
-    // 因此 EventEmitter.emit 需要 try-catch 捕获并通过 console.error 记录。
-    // Swift 的类型系统要求 listener 闭包声明为 (T) -> Void（不可抛出），
-    // listener 内部使用 throw 是编译期错误，不存在需要运行时捕获的场景。
+    // NOTE: WebCore's "handles errors thrown by listeners" test does not apply in Swift.
+    // WebCore (TypeScript) listeners are not constrained by the type system and can throw arbitrary runtime exceptions,
+    // so EventEmitter.emit needs try-catch handling and logs through console.error.
+    // Swift's type system requires listener closures to be declared as (T) -> Void (non-throwing);
+    // throwing inside a listener is a compile-time error, so there is no runtime case to catch.
 
-    /// Swift 专属：验证 EventEmitter 的多播（multi-cast）语义——所有订阅者均收到同一事件。
-    /// WebCore 各层代码隐式依赖此行为（如 onUpdated 可被多个视图订阅），但未单独断言。
-    /// Swift 需明确验证，以防止误将实现改为单播（单一 listener 覆盖）。
+    /// Swift-specific: verifies EventEmitter's multi-cast semantics: all subscribers receive the same event.
+    /// WebCore layers implicitly depend on this behavior, such as onUpdated being subscribable by multiple views, but do not assert it separately.
+    /// Swift verifies it explicitly to prevent accidentally changing the implementation to unicast, where one listener overwrites another.
     @Test("multiple subscribers all receive emitted value")
     func multipleSubscribers() {
         let emitter = EventEmitter<Int>()
@@ -68,9 +68,9 @@ struct EventsTests {
         #expect(results == [5, 10])
     }
 
-    /// Swift 专属：验证 dispose() 可一次性移除所有 listener，之后不再触发任何回调。
-    /// WebCore 通过 GC 隐式管理生命周期，无需 dispose。
-    /// Swift 需要主动调用 dispose() 清理订阅以释放内存、防止回调泄漏。
+    /// Swift-specific: verifies dispose() removes all listeners at once and prevents future callbacks.
+    /// WebCore manages lifetimes implicitly through GC and does not need dispose.
+    /// Swift needs explicit dispose() calls to clean up subscriptions, release memory, and prevent callback leaks.
     @Test("dispose removes all listeners")
     func disposeRemovesAll() {
         let emitter = EventEmitter<Int>()
@@ -83,10 +83,10 @@ struct EventsTests {
         #expect(count == 0)
     }
 
-    /// Swift 专属：验证迭代快照（emit-time snapshot）机制的正确性。
-    /// EventEmitter 在 emit 前应先对 listener 列表做快照再迭代，
-    /// 从而保证 listener 内部再次调用 emit 不会造成无限递归或崩溃。
-    /// WebCore 的实现有相同保证，但未通过测试明确约束；Swift 端需显式验证。
+    /// Swift-specific: verifies the correctness of the emit-time snapshot mechanism.
+    /// EventEmitter should snapshot the listener list before iterating during emit,
+    /// ensuring that calling emit again from inside a listener does not cause infinite recursion or crashes.
+    /// WebCore provides the same guarantee but does not pin it with a test; Swift verifies it explicitly.
     @Test("emit during iteration does not crash")
     func emitDuringIteration() {
         let emitter = EventEmitter<Int>()
@@ -102,10 +102,10 @@ struct EventsTests {
         #expect(count == 2)
     }
 
-    /// Swift 专属：验证快照机制确保在 emit 执行期间新注册的 listener
-    /// 不会接收到当次 emit 的事件。
-    /// 快照在 emit 开始时拍摄，新 listener 只出现在下一次 emit 的快照中，
-    /// 避免同一事件被意外重复处理。
+    /// Swift-specific: verifies the snapshot mechanism prevents listeners added during emit
+    /// from receiving the current event.
+    /// The snapshot is taken when emit starts, so new listeners only appear in the next emit snapshot,
+    /// preventing the same event from being processed unexpectedly more than once.
     @Test("new subscriber added during emit does not receive current emit")
     func subscribeDuringEmit() {
         let emitter = EventEmitter<Int>()
