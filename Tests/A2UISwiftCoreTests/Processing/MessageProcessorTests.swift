@@ -221,9 +221,9 @@ struct MessageProcessorTests {
 
     @Test("throws on message with multiple update types")
     func throwsMultipleUpdateTypes() {
-        // NOTE: WebCore は JSON の型システム上 as any でキャストして渡すが、
-        // Swift では JSON デコード時点で enum の排他性が保証されるため、
-        // デコード失敗（DecodingError）として捕捉される。
+        // NOTE: WebCore casts this as any under JSON's type system,
+        // but Swift guarantees enum exclusivity during JSON decoding,
+        // so this is caught as a decoding failure (DecodingError).
         let json = """
         {
             "version": "v0.9",
@@ -317,10 +317,10 @@ struct MessageProcessorTests {
 
     @Test("throws when component is missing id")
     func throwsComponentMissingId() {
-        // WebCore 在运行时检查 missing 'id' 并抛出 A2uiValidationError。
-        // Swift 中 RawComponent 的 id 字段是必需的 Codable 属性，
-        // missing id 在 JSON 解码阶段就会产生 DecodingError，
-        // 两者结果等价（均阻止无效组件被创建），但错误类型不同。
+        // WebCore checks for a missing 'id' at runtime and throws A2uiValidationError.
+        // In Swift, RawComponent.id is a required Codable property,
+        // so a missing id produces DecodingError during JSON decoding.
+        // The result is equivalent because both prevent creating the invalid component, but the error type differs.
         let json = """
         [{
             "version": "v0.9",
@@ -398,10 +398,10 @@ struct MessageProcessorTests {
         #expect(processor.resolvePath("foo") == "/foo")
     }
 
-    // NOTE: WebCore 的 getClientCapabilities 测试在 Swift 中不适用。
-    // getClientCapabilities 生成 JSON Schema（基于 Zod schema、REF: 语法转换等），
-    // 这是 TypeScript 服务端专属能力，用于向 LLM 描述可用组件结构。
-    // Swift 实现作为纯客户端渲染器，不负责生成 capabilities，无对应实现。
+    // NOTE: WebCore's getClientCapabilities test does not apply in Swift.
+    // getClientCapabilities generates JSON Schema based on Zod schemas, REF: syntax conversion, and related TypeScript-only machinery.
+    // This is a TypeScript server-side capability used to describe available component structures to an LLM.
+    // The Swift implementation is a pure client renderer and does not generate capabilities, so there is no corresponding implementation.
 
     // MARK: Version compatibility (v0.9 / v0.9.1)
     // v0.9.1 is a backward-compatible refinement of v0.9; schemas accept both

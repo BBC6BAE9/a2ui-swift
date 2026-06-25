@@ -19,7 +19,7 @@ import Observation
 @Suite("ComponentModel")
 struct ComponentModelTests {
 
-    // -- 初始化 --
+    // -- Initialization --
 
     @Test("initializes properties")
     func initialization() {
@@ -31,7 +31,7 @@ struct ComponentModelTests {
         #expect(comp.properties["label"] == .string("Click Me"))
     }
 
-    // -- 属性更新 --
+    // -- Property updates --
 
     @Test("updates properties")
     func updateProperties() {
@@ -86,11 +86,11 @@ struct ComponentModelTests {
         #expect(tree["label"] == .string("Click Me"))
     }
 
-    // -- @Observable (Swift 专属) --
+    // -- @Observable (Swift-specific) --
 
-    /// Swift 专属：验证 @Observable 宏在属性整体替换时触发 observation，
-    /// 使 SwiftUI View 能正确重新渲染。WebCore 通过响应式信号系统（Preact signals）
-    /// 实现细粒度更新；Swift 端对应机制是 @Observable，需专门验证。
+    /// Swift-specific: verifies that the @Observable macro triggers observation when properties are replaced as a whole,
+    /// allowing SwiftUI views to re-render correctly. WebCore uses a reactive signal system (Preact signals)
+    /// for fine-grained updates; Swift's equivalent mechanism is @Observable, so it needs dedicated coverage.
     @Test("observation triggers on properties replacement")
     func observationOnReplacement() {
         let comp = ComponentModel(id: "c1", type: "Button", properties: [
@@ -108,9 +108,9 @@ struct ComponentModelTests {
         #expect(flag.triggered == true)
     }
 
-    /// Swift 专属：验证通过下标（subscript）对单个属性的修改也会触发 @Observable 通知。
-    /// SwiftUI View 只订阅了 comp.properties 整体，subscript 写入需同样触发通知，
-    /// 否则视图将无法感知细粒度属性变化。
+    /// Swift-specific: verifies that mutating a single property through subscript also triggers @Observable notification.
+    /// SwiftUI views subscribe to comp.properties as a whole, so subscript writes must trigger notification as well,
+    /// otherwise views cannot observe fine-grained property changes.
     @Test("observation triggers on single property mutation")
     func observationOnMutation() {
         let comp = ComponentModel(id: "c1", type: "Button", properties: [

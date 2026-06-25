@@ -18,9 +18,9 @@ import Observation
 
 // MARK: - PathSlot
 
-/// 每个数据路径对应一个独立的可观察盒子。
-/// SwiftUI 视图读了哪个盒子，就只跟那个盒子绑定。
-/// 等价于 WebCore 的 `Signal<T>` per path。
+/// Each data path has its own observable box.
+/// A SwiftUI view is bound only to the box it reads.
+/// Equivalent to WebCore's per-path `Signal<T>`.
 /// Internal — not exported. Callers outside the module use DataModel.get() / DataContext.
 /// Mirrors WebCore's internal per-path Signal (not exported from data-model.ts).
 @Observable
@@ -48,13 +48,13 @@ final class PathSlot {
 /// Handles JSON Pointer path resolution (RFC 6901).
 /// Mirrors the behavior of the TypeScript WebCore `DataModel`.
 ///
-/// 提供两种数据访问方式：
-/// - `get(_:)` — 直接取值，不建立观察关系
-/// - `slot(for:)` — 返回路径对应的 PathSlot，SwiftUI 视图通过读 slot.value 建立精细观察
+/// Provides two data access modes:
+/// - `get(_:)` — reads the value directly without creating an observation dependency.
+/// - `slot(for:)` — returns the PathSlot for a path; SwiftUI views read slot.value for fine-grained observation.
 public final class DataModel {
     private var root: AnyCodable
 
-    /// 等价于 TS 的 `Map<string, Signal>`，懒创建。
+    /// Equivalent to the TS `Map<string, Signal>`, created lazily.
     private var slots: [String: PathSlot] = [:]
 
     public init() {
@@ -67,8 +67,8 @@ public final class DataModel {
 
     // MARK: - PathSlot Access
 
-    /// 获取路径对应的 PathSlot（懒创建）。
-    /// SwiftUI 视图应通过此方法读取数据以获得精细粒度的观察。
+    /// Returns the PathSlot for a path, creating it lazily.
+    /// SwiftUI views should read data through this method to get fine-grained observation.
     /// Internal — consumers outside the module use DataContext.resolveDynamicValue().
     func slot(for path: String) -> PathSlot {
         let normalized = normalizePath(path)
@@ -80,7 +80,7 @@ public final class DataModel {
         return newSlot
     }
 
-    /// 清除所有 PathSlot，断开所有观察。
+    /// Clears all PathSlots and disconnects all observations.
     public func dispose() {
         for slot in slots.values {
             slot.onChange.dispose()
@@ -164,13 +164,13 @@ public final class DataModel {
 
     // MARK: - Slot Notification
 
-    /// set() 之后，更新自己、所有祖先、所有后代的 slot。
-    /// 兄弟路径（如 /user/age）不受影响。
+    /// After set(), updates the path's slot, all ancestor slots, and all descendant slots.
+    /// Sibling paths, such as /user/age, are not affected.
     private func notifySlots(for path: String) {
-        // 1. 自己
+        // 1. Self
         updateSlot(at: path)
 
-        // 2. 祖先：/user/name → /user → /
+        // 2. Ancestors: /user/name → /user → /
         var parent = path
         while parent != "/" {
             if let lastSlash = parent.lastIndex(of: "/") {
@@ -181,20 +181,20 @@ public final class DataModel {
             updateSlot(at: parent)
         }
 
-        // 3. 后代：遍历已有 slot，前缀匹配
+        // 3. Descendants: iterate existing slots and match by prefix
         for slotPath in slots.keys where isDescendant(slotPath, of: path) {
             updateSlot(at: slotPath)
         }
     }
 
-    /// 替换 root 时，所有 slot 都要更新。
+    /// When replacing the root, all slots must be updated.
     private func notifyAllSlots() {
         for path in slots.keys {
             updateSlot(at: path)
         }
     }
 
-    /// 用当前 root 重新计算某个 slot 的值。
+    /// Recomputes a slot's value from the current root.
     private func updateSlot(at path: String) {
         guard let slot = slots[path] else { return }
         slot.update(get(path))
