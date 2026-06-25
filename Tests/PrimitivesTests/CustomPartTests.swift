@@ -19,7 +19,7 @@ struct CustomPart: Part, Sendable {
 }
 
 /// A converter for CustomPart.
-func customPartConverter(_ json: [String: Any?]) throws -> any Part {
+private let customPartConverter: JsonToPartConverter = { json in
     guard let type = json["type"] as? String, type == "Custom" else {
         throw PartError.unknownType(json["type"] as? String ?? "nil")
     }

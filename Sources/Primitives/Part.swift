@@ -22,7 +22,7 @@ public protocol Part: Equatable, Sendable {
 public let partTypeKey = "type"
 
 /// A closure that converts a JSON dictionary to a `Part`.
-public typealias JsonToPartConverter = ([String: Any?]) throws -> any Part
+public typealias JsonToPartConverter = @Sendable ([String: Any?]) throws -> any Part
 
 /// Deserializes a part from a JSON dictionary.
 ///

@@ -1,5 +1,5 @@
 {
-  "originHash" : "78e293cf77322b36117ac831839baa4a9c20d261b9c0fdb3cab52a873a9a336f",
+  "originHash" : "c78857f79394481a17b201c10d87bc23281c89bb8bedda5c739c53dba99f52ce",
   "pins" : [
     {
       "identity" : "icu-mirror",
@@ -8,6 +8,33 @@
       "state" : {
         "branch" : "swift-6.3.1-RELEASE",
         "revision" : "2e2854eee567589ed44c5f3c85c7343e6d91978d"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
+        "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "swift-json-schema",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ajevans99/swift-json-schema.git",
+      "state" : {
+        "revision" : "f299eb1cce78b2dd736d9a390ec0779d28678416",
+        "version" : "0.13.1"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
+        "version" : "603.0.2"
       }
     }
   ],

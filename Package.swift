@@ -58,6 +58,10 @@ let package = Package(
             url: "https://github.com/swiftlang/swift-foundation-icu.git",
             revision: "swift-6.3.1-RELEASE"
         ),
+        .package(
+            url: "https://github.com/ajevans99/swift-json-schema.git",
+            .upToNextMinor(from: "0.13.1")
+        ),
     ],
     targets: [
         .target(
@@ -72,6 +76,8 @@ let package = Package(
             name: "A2UISwiftCore",
             dependencies: [
                 .product(name: "_FoundationICU", package: "swift-foundation-icu"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "OrderedJSON", package: "swift-json-schema"),
             ],
             path: "Sources/A2UISwiftCore"
         ),
@@ -114,7 +120,10 @@ let package = Package(
         ),
         .testTarget(
             name: "A2UISwiftCoreTests",
-            dependencies: ["A2UISwiftCore"],
+            dependencies: [
+                "A2UISwiftCore",
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
             path: "Tests/A2UISwiftCoreTests"
         ),
         .testTarget(

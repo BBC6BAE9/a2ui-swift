@@ -14,6 +14,17 @@
 
 import Foundation
 
+// MARK: - CapabilitiesOptions
+
+/// Options for client capability generation.
+public struct CapabilitiesOptions: Sendable {
+    public let includeInlineCatalogs: Bool
+
+    public init(includeInlineCatalogs: Bool = false) {
+        self.includeInlineCatalogs = includeInlineCatalogs
+    }
+}
+
 // MARK: - MessageProcessor
 
 /// The central processor for A2UI server-to-client messages.
@@ -78,7 +89,97 @@ public final class MessageProcessor {
     /// // Attach to your A2A/HTTP transport metadata
     /// ```
     public var clientCapabilities: A2uiClientCapabilities {
-        A2uiClientCapabilities.make(from: catalogs)
+        getClientCapabilities()
+    }
+
+    /// Generates the client capabilities for this renderer.
+    ///
+    /// When `includeInlineCatalogs` is true, the processor converts catalog
+    /// component/function/theme schemas into the inline catalog payload defined
+    /// by the spec. Per spec, callers should only request inline catalogs when
+    /// the agent has advertised `acceptsInlineCatalogs: true`.
+    public func getClientCapabilities(
+        options: CapabilitiesOptions = CapabilitiesOptions()
+    ) -> A2uiClientCapabilities {
+        A2uiClientCapabilities.make(
+            from: catalogs,
+            inlineCatalogs: options.includeInlineCatalogs
+                ? catalogs.map(generateInlineCatalog)
+                : nil
+        )
+    }
+
+    private func generateInlineCatalog(_ catalog: Catalog) -> InlineCatalog {
+        let components = catalog.componentSchemas.reduce(into: [String: AnyCodable]()) { result, pair in
+            result[pair.key] = makeInlineComponentSchema(
+                name: pair.key,
+                propertiesSchema: processRefs(pair.value.anyCodableSchema)
+            )
+        }
+
+        let functions = catalog.functionApis.map { api in
+            FunctionDefinition(
+                name: api.name,
+                description: api.description,
+                parameters: processRefs(api.parameters.anyCodableSchema),
+                returnType: api.returnType
+            )
+        }
+
+        let theme = catalog.themeSchema
+            .map { processRefs($0.anyCodableSchema) }
+            .flatMap { $0.dictionaryValue?["properties"]?.dictionaryValue }
+
+        return InlineCatalog(
+            catalogId: catalog.id,
+            components: components.isEmpty ? nil : components,
+            functions: functions.isEmpty ? nil : functions,
+            theme: theme
+        )
+    }
+
+    private func makeInlineComponentSchema(name: String, propertiesSchema: AnyCodable) -> AnyCodable {
+        let schema = propertiesSchema.dictionaryValue ?? [:]
+        let required = schema["required"]?.arrayValue ?? []
+        let properties = schema["properties"]?.dictionaryValue ?? [:]
+        let userRequired = required.filter { $0.stringValue != "component" }
+
+        return .dictionary([
+            "allOf": .array([
+                .dictionary(["$ref": .string("common_types.json#/$defs/ComponentCommon")]),
+                .dictionary([
+                    "properties": .dictionary(
+                        properties.merging(["component": .dictionary(["const": .string(name)])]) { _, generated in
+                            generated
+                        }
+                    ),
+                    "required": .array([.string("component")] + userRequired),
+                ]),
+            ]),
+        ])
+    }
+
+    private func processRefs(_ node: AnyCodable) -> AnyCodable {
+        switch node {
+        case .dictionary(let dictionary):
+            if let description = dictionary["description"]?.stringValue,
+               description.hasPrefix("REF:") {
+                let raw = String(description.dropFirst(4))
+                let parts = raw.split(separator: "|", omittingEmptySubsequences: false)
+                var result: [String: AnyCodable] = [
+                    "$ref": .string(String(parts.first ?? ""))
+                ]
+                if parts.count > 1, !parts[1].isEmpty {
+                    result["description"] = .string(String(parts[1]))
+                }
+                return .dictionary(result)
+            }
+            return .dictionary(dictionary.mapValues(processRefs))
+        case .array(let array):
+            return .array(array.map(processRefs))
+        default:
+            return node
+        }
     }
 
     // MARK: - Path Resolution

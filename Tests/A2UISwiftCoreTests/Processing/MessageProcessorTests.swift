@@ -15,8 +15,24 @@
 @testable import A2UISwiftCore
 import Testing
 import Foundation
+import JSONSchema
+import JSONSchemaBuilder
 
 // MARK: - Helpers
+
+@Schemable
+@ObjectOptions(.additionalProperties { false })
+struct GeneratedChartProperties {
+    let title: String
+    let data: [Double]
+    let xAxisLabel: String
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case data
+        case xAxisLabel = "x_axis_label"
+    }
+}
 
 private func makeProcessor(
     catalogId: String = "test-catalog",
@@ -24,6 +40,10 @@ private func makeProcessor(
 ) -> MessageProcessor {
     let catalog = Catalog(id: catalogId)
     return MessageProcessor(catalogs: [catalog], actionHandler: actionHandler)
+}
+
+private func makeSchema(_ json: String) throws -> Schema {
+    try Schema(instance: json)
 }
 
 private func createSurfaceMsg(
@@ -398,10 +418,191 @@ struct MessageProcessorTests {
         #expect(processor.resolvePath("foo") == "/foo")
     }
 
-    // NOTE: WebCore's getClientCapabilities test does not apply in Swift.
-    // getClientCapabilities generates JSON Schema based on Zod schemas, REF: syntax conversion, and related TypeScript-only machinery.
-    // This is a TypeScript server-side capability used to describe available component structures to an LLM.
-    // The Swift implementation is a pure client renderer and does not generate capabilities, so there is no corresponding implementation.
+    // MARK: Client capabilities
+
+    @Test("clientCapabilities omits inline catalogs by default")
+    func clientCapabilitiesOmitsInlineCatalogsByDefault() throws {
+        let catalog = Catalog(
+            id: "custom-catalog",
+            componentSchemas: ["Custom": try makeSchema(#"{"type":"object"}"#)]
+        )
+        let processor = MessageProcessor(catalogs: [catalog])
+
+        let capabilities = processor.clientCapabilities
+
+        #expect(capabilities.v09.supportedCatalogIds == ["custom-catalog"])
+        #expect(capabilities.v09.inlineCatalogs == nil)
+    }
+
+    @Test("getClientCapabilities includes inline component catalogs when requested")
+    func getClientCapabilitiesIncludesInlineComponentCatalogs() throws {
+        let catalog = Catalog(
+            id: "custom-catalog",
+            componentSchemas: [
+                "Custom": try makeSchema(
+                    """
+                    {
+                      "type": "object",
+                      "properties": {
+                        "title": { "type": "string" },
+                        "child": {
+                          "description": "REF:common_types.json#/$defs/ComponentId|Child component id"
+                        },
+                        "noPipe": {
+                          "description": "REF:common_types.json#/$defs/NoPipe"
+                        },
+                        "multiPipe": {
+                          "description": "REF:common_types.json#/$defs/MultiPipe|First|Second"
+                        },
+                        "component": {
+                          "const": "WrongComponent"
+                        }
+                      },
+                      "required": ["component", "title"]
+                    }
+                    """
+                )
+            ]
+        )
+        let processor = MessageProcessor(catalogs: [catalog])
+
+        let capabilities = processor.getClientCapabilities(
+            options: CapabilitiesOptions(includeInlineCatalogs: true)
+        )
+
+        guard let inline = capabilities.v09.inlineCatalogs?.first,
+              let custom = inline.components?["Custom"]?.dictionaryValue,
+              let allOf = custom["allOf"]?.arrayValue,
+              allOf.count == 2,
+              let componentEnvelope = allOf[0].dictionaryValue,
+              let customSchema = allOf[1].dictionaryValue,
+              let properties = customSchema["properties"]?.dictionaryValue,
+              let component = properties["component"]?.dictionaryValue,
+              let child = properties["child"]?.dictionaryValue,
+              let noPipe = properties["noPipe"]?.dictionaryValue,
+              let multiPipe = properties["multiPipe"]?.dictionaryValue,
+              let required = customSchema["required"]?.arrayValue
+        else {
+            Issue.record("expected inline component schema")
+            return
+        }
+
+        #expect(inline.catalogId == "custom-catalog")
+        #expect(componentEnvelope["$ref"] == .string("common_types.json#/$defs/ComponentCommon"))
+        #expect(component["const"] == .string("Custom"))
+        #expect(child["$ref"] == .string("common_types.json#/$defs/ComponentId"))
+        #expect(child["description"] == .string("Child component id"))
+        #expect(noPipe["$ref"] == .string("common_types.json#/$defs/NoPipe"))
+        #expect(noPipe["description"] == nil)
+        #expect(multiPipe["$ref"] == .string("common_types.json#/$defs/MultiPipe"))
+        #expect(multiPipe["description"] == .string("First"))
+        #expect(required == [.string("component"), .string("title")])
+        #expect(required.filter { $0 == .string("component") }.count == 1)
+    }
+
+    @Test("getClientCapabilities accepts component schemas generated from Swift models")
+    func getClientCapabilitiesIncludesGeneratedModelSchemas() throws {
+        let catalog = Catalog(
+            id: "custom-catalog",
+            componentSchemas: [
+                "Chart": GeneratedChartProperties.schema.definition()
+            ]
+        )
+        let processor = MessageProcessor(catalogs: [catalog])
+
+        let capabilities = processor.getClientCapabilities(
+            options: CapabilitiesOptions(includeInlineCatalogs: true)
+        )
+
+        guard let inline = capabilities.v09.inlineCatalogs?.first,
+              let chart = inline.components?["Chart"]?.dictionaryValue,
+              let allOf = chart["allOf"]?.arrayValue,
+              allOf.count == 2,
+              let commonEnvelope = allOf[0].dictionaryValue,
+              let chartSchema = allOf[1].dictionaryValue,
+              let properties = chartSchema["properties"]?.dictionaryValue,
+              let component = properties["component"]?.dictionaryValue,
+              let title = properties["title"]?.dictionaryValue,
+              let data = properties["data"]?.dictionaryValue,
+              let xAxisLabel = properties["x_axis_label"]?.dictionaryValue,
+              let dataItems = data["items"]?.dictionaryValue,
+              let required = chartSchema["required"]?.arrayValue
+        else {
+            Issue.record("expected generated model schema in inline component catalog")
+            return
+        }
+
+        #expect(inline.catalogId == "custom-catalog")
+        #expect(commonEnvelope["$ref"] == .string("common_types.json#/$defs/ComponentCommon"))
+        #expect(component["const"] == .string("Chart"))
+        #expect(title["type"] == .string("string"))
+        #expect(data["type"] == .string("array"))
+        #expect(dataItems["type"] == .string("number"))
+        #expect(xAxisLabel["type"] == .string("string"))
+        #expect(chartSchema["additionalProperties"] == nil)
+        #expect(required == [
+            .string("component"),
+            .string("title"),
+            .string("data"),
+            .string("x_axis_label"),
+        ])
+    }
+
+    @Test("getClientCapabilities includes functions and theme schemas when requested")
+    func getClientCapabilitiesIncludesFunctionsAndThemeSchemas() throws {
+        let catalog = Catalog(
+            id: "custom-catalog",
+            functions: [
+                "format": { _, _, _ in .string("ok") }
+            ],
+            functionApis: [
+                CatalogFunctionApi(
+                    name: "format",
+                    description: "Formats a value",
+                    parameters: try makeSchema(
+                        """
+                        {
+                          "type": "object",
+                          "properties": { "value": { "type": "string" } },
+                          "required": ["value"]
+                        }
+                        """
+                    ),
+                    returnType: .string
+                )
+            ],
+            themeSchema: try makeSchema(
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "primaryColor": { "type": "string" }
+                  }
+                }
+                """
+            )
+        )
+        let processor = MessageProcessor(catalogs: [catalog])
+
+        let capabilities = processor.getClientCapabilities(
+            options: CapabilitiesOptions(includeInlineCatalogs: true)
+        )
+
+        guard let inline = capabilities.v09.inlineCatalogs?.first,
+              let function = inline.functions?.first,
+              let parameters = function.parameters.dictionaryValue,
+              let theme = inline.theme
+        else {
+            Issue.record("expected inline function and theme schemas")
+            return
+        }
+
+        #expect(function.name == "format")
+        #expect(function.description == "Formats a value")
+        #expect(function.returnType == .string)
+        #expect(parameters["type"] == .string("object"))
+        #expect(theme["primaryColor"]?.dictionaryValue?["type"] == .string("string"))
+    }
 
     // MARK: Version compatibility (v0.9 / v0.9.1)
     // v0.9.1 is a backward-compatible refinement of v0.9; schemas accept both

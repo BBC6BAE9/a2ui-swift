@@ -13,8 +13,30 @@
 // limitations under the License.
 
 import Foundation
+import JSONSchema
 
 // MARK: - Catalog
+
+/// A function schema definition stored by a catalog before it is converted to
+/// the wire-format `FunctionDefinition` used by client capabilities.
+public struct CatalogFunctionApi {
+    public let name: String
+    public let description: String?
+    public let parameters: Schema
+    public let returnType: FunctionCallReturnType
+
+    public init(
+        name: String,
+        description: String? = nil,
+        parameters: Schema,
+        returnType: FunctionCallReturnType
+    ) {
+        self.name = name
+        self.description = description
+        self.parameters = parameters
+        self.returnType = returnType
+    }
+}
 
 /// A collection of available component type names and optional function implementations.
 /// Mirrors WebCore `Catalog` in catalog/types.ts.
@@ -25,8 +47,17 @@ public final class Catalog {
     /// The set of known component type names (e.g. ["Button", "Text"]).
     public let componentNames: Set<String>
 
+    /// JSON Schemas for component properties, keyed by component name.
+    public let componentSchemas: [String: Schema]
+
     /// Named function implementations, keyed by function name.
     public let functions: [String: FunctionInvoker]
+
+    /// Function schemas and return-type metadata used for inline catalog generation.
+    public let functionApis: [CatalogFunctionApi]
+
+    /// JSON Schema for theme parameters used by this catalog.
+    public let themeSchema: Schema?
 
     /// A ready-to-use FunctionInvoker that delegates to this catalog's registered functions.
     /// Mirrors WebCore `Catalog.invoker`.
@@ -43,10 +74,16 @@ public final class Catalog {
     public init(
         id: String,
         componentNames: Set<String> = [],
-        functions: [String: FunctionInvoker] = [:]
+        componentSchemas: [String: Schema] = [:],
+        functions: [String: FunctionInvoker] = [:],
+        functionApis: [CatalogFunctionApi] = [],
+        themeSchema: Schema? = nil
     ) {
         self.id = id
-        self.componentNames = componentNames
+        self.componentNames = componentNames.union(componentSchemas.keys)
+        self.componentSchemas = componentSchemas
         self.functions = functions
+        self.functionApis = functionApis
+        self.themeSchema = themeSchema
     }
 }
