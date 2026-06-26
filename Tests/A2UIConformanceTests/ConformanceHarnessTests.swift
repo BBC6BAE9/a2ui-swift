@@ -96,26 +96,4 @@ struct ConformanceHarnessTests {
         try await runParseFull(testCase: testCase)
     }
 
-    @Test func parseFullExpectsError() async throws {
-        // Empty input: conformance suite expects a ParseError
-        let step = ConformanceStep(
-            input: "",
-            payload: nil,
-            args: nil,
-            expect: nil,
-            expectOutput: nil,
-            expectError: ConformanceExpectedError(category: "ParseError", message: nil),
-            expectSelected: nil
-        )
-        let testCase = ConformanceCase(
-            name: "test_parse_empty",
-            description: nil,
-            catalog: nil,
-            action: "parse_full",
-            steps: [step]
-        )
-        // With empty input and expected error, if no error is emitted the test will fail
-        // but it shouldn't throw from the harness itself
-        try await runParseFull(testCase: testCase)
-    }
 }

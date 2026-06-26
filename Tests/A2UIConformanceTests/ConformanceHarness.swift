@@ -58,35 +58,75 @@ func assertErrorMatches(_ error: Error, expected: ConformanceExpectedError, test
 func runProcessChunk(testCase: ConformanceCase) async throws {
     let parser = A2UIStreamParser()
 
+    // Buffer collects ParsedEvent values emitted between steps.
+    actor EventBuffer {
+        var events: [ParsedEvent] = []
+        func append(_ e: ParsedEvent) { events.append(e) }
+        func drain() -> [ParsedEvent] { let r = events; events = []; return r }
+    }
+    let buffer = EventBuffer()
+
+    let consumeTask = Task {
+        for await event in parser.events {
+            await buffer.append(event)
+        }
+    }
+
     for step in testCase.steps {
         guard let input = step.input else {
             XCTFail("[\(testCase.name)] process_chunk step missing 'input'"); return
         }
 
-        if let expectedError = step.expectError {
-            // Feed the chunk; collect errors from the event stream
-            var collectedError: Error?
-            let collectTask = Task {
-                for await event in parser.events {
-                    if case .error(let e) = event { collectedError = e; break }
-                }
-            }
-            await parser.add(input)
-            await parser.finish()
-            await collectTask.value
+        await parser.add(input)
+        // Yield several times to let events propagate through the async stream.
+        for _ in 0..<5 { await Task.yield() }
+        let events = await buffer.drain()
 
-            if let err = collectedError {
+        if let expectedError = step.expectError {
+            let errorEvents = events.compactMap { e -> Error? in
+                if case .error(let err) = e { return err } else { return nil }
+            }
+            if let err = errorEvents.first {
                 assertErrorMatches(err, expected: expectedError, testName: testCase.name)
             } else {
                 XCTFail("[\(testCase.name)] Expected error '\(expectedError.category)' but no error was emitted")
             }
-            return
+            break
         }
 
-        // Collect events for this chunk then yield briefly
-        await parser.add(input)
-        try await Task.sleep(nanoseconds: 1_000_000)
+        // Validate against step.expect.
+        if let expectedParts = step.expect as? [[String: Any]] {
+            // Non-empty expected array: verify we got corresponding events.
+            let nonErrorEvents = events.filter { if case .error = $0 { return false } else { return true } }
+            XCTAssertEqual(nonErrorEvents.count, expectedParts.count,
+                "[\(testCase.name)] Expected \(expectedParts.count) event(s), got \(nonErrorEvents.count)")
+            for (event, expected) in zip(nonErrorEvents, expectedParts) {
+                if let expectedText = expected["text"] as? String {
+                    if case .text(let actual) = event {
+                        XCTAssertEqual(
+                            actual.trimmingCharacters(in: .whitespacesAndNewlines),
+                            expectedText.trimmingCharacters(in: .whitespacesAndNewlines),
+                            "[\(testCase.name)] Text event mismatch")
+                    } else {
+                        XCTFail("[\(testCase.name)] Expected .text event but got \(event)")
+                    }
+                } else if expected["a2ui"] != nil {
+                    if case .message = event { /* ok */ } else {
+                        XCTFail("[\(testCase.name)] Expected .message event but got \(event)")
+                    }
+                }
+            }
+        } else if let arr = step.expect as? [Any], arr.isEmpty {
+            // Empty array means no events expected for this step.
+            let nonErrorEvents = events.filter { if case .error = $0 { return false } else { return true } }
+            XCTAssertTrue(nonErrorEvents.isEmpty,
+                "[\(testCase.name)] Expected no events but got \(nonErrorEvents.count)")
+        }
+        // nil expect → no assertion (step only feeds data, output verified by later steps).
     }
+
+    await parser.finish()
+    consumeTask.cancel()
 }
 
 // MARK: - parse_full dispatcher
