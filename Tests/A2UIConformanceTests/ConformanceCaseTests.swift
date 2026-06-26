@@ -1,54 +1,57 @@
 // Tests/A2UIConformanceTests/ConformanceCaseTests.swift
-import Testing
+import XCTest
 import Foundation
 
-@Suite("ConformanceCase")
-struct ConformanceCaseTests {
+final class ConformanceCaseTests: XCTestCase {
 
-    @Test func loadsParserSuite() throws {
+    func test_loadsParserSuite() throws {
         let cases = try loadConformanceCases(suite: "parser")
-        #expect(cases.count == 19, "parser.yaml should have 19 test cases, got \(cases.count)")
+        XCTAssertEqual(cases.count, 19, "parser.yaml should have 19 test cases, got \(cases.count)")
         let names = cases.map(\.name)
-        #expect(names.contains("test_parse_empty_response"), "Expected 'test_parse_empty_response' in parser suite")
+        XCTAssertTrue(names.contains("test_parse_empty_response"),
+            "Expected 'test_parse_empty_response' in parser suite")
     }
 
-    @Test func loadsAllSuites() throws {
+    func test_loadsAllSuites() throws {
         let suites = ["parser", "streaming_parser", "catalog", "validator", "schema_manager"]
         for suite in suites {
             let cases = try loadConformanceCases(suite: suite)
-            #expect(cases.count > 0, "\(suite) suite should have at least one case")
+            XCTAssertGreaterThan(cases.count, 0, "\(suite) suite should have at least one case")
         }
     }
 
-    @Test func caseFieldsDecoded() throws {
+    func test_caseFieldsDecoded() throws {
         let cases = try loadConformanceCases(suite: "parser")
-        // Find a case with expect_error at top level
-        let errCase = try #require(cases.first(where: { $0.name == "test_parse_empty_response" }))
-        #expect(errCase.action == "parse_full")
-        #expect(errCase.steps.count == 1)
+        let errCase = try XCTUnwrap(cases.first(where: { $0.name == "test_parse_empty_response" }),
+            "Expected case 'test_parse_empty_response'")
+        XCTAssertEqual(errCase.action, "parse_full")
+        XCTAssertEqual(errCase.steps.count, 1)
         let step = errCase.steps[0]
-        #expect(step.expectError != nil)
-        #expect(step.expectError?.category == "ParseError")
+        XCTAssertNotNil(step.expectError)
+        XCTAssertEqual(step.expectError?.category, "ParseError")
     }
 
-    @Test func streamingParserCaseHasSteps() throws {
+    func test_streamingParserCaseHasSteps() throws {
         let cases = try loadConformanceCases(suite: "streaming_parser")
-        let multiStep = try #require(cases.first(where: { $0.steps.count > 1 }))
-        #expect(multiStep.steps.count > 1, "streaming_parser should have multi-step cases")
+        let multiStep = try XCTUnwrap(cases.first(where: { $0.steps.count > 1 }),
+            "Expected a multi-step case in streaming_parser")
+        XCTAssertGreaterThan(multiStep.steps.count, 1,
+            "streaming_parser should have multi-step cases")
     }
 
-    @Test func catalogConfigDecoded() throws {
+    func test_catalogConfigDecoded() throws {
         let cases = try loadConformanceCases(suite: "streaming_parser")
-        // All streaming_parser cases have a catalog block with s2c_schema referencing a test_data file
-        let caseWithCatalog = try #require(cases.first(where: { $0.catalog != nil }))
-        let catalog = try #require(caseWithCatalog.catalog)
-        #expect(catalog.version == "0.8" || catalog.version == "0.9")
+        let caseWithCatalog = try XCTUnwrap(cases.first(where: { $0.catalog != nil }),
+            "Expected a case with catalog in streaming_parser")
+        let catalog = try XCTUnwrap(caseWithCatalog.catalog)
+        XCTAssertTrue(catalog.version == "0.8" || catalog.version == "0.9",
+            "Unexpected catalog version: \(catalog.version)")
     }
 
-    @Test func loadTestDataJSONWorks() throws {
+    func test_loadTestDataJSONWorks() throws {
         // The streaming_parser suite references "test_data/simplified_s2c_v08.json"
-        // loadTestDataJSON should resolve it
         let json = try loadTestDataJSON(path: "test_data/simplified_s2c_v08.json")
-        #expect(json is [String: Any] || json is [Any], "Expected JSON object or array")
+        XCTAssertTrue(json is [String: Any] || json is [Any],
+            "Expected JSON object or array")
     }
 }

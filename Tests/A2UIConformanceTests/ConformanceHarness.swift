@@ -78,8 +78,8 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
         }
 
         await parser.add(input)
-        // Yield several times to let events propagate through the async stream.
-        for _ in 0..<5 { await Task.yield() }
+        // Sleep briefly to give the cooperative scheduler time to drain events reliably.
+        try await Task.sleep(nanoseconds: 10_000_000)
         let events = await buffer.drain()
 
         if let expectedError = step.expectError {
@@ -126,7 +126,7 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
     }
 
     await parser.finish()
-    consumeTask.cancel()
+    await consumeTask.value
 }
 
 // MARK: - parse_full dispatcher
@@ -193,6 +193,11 @@ private func parseFullResponse(_ input: String) async -> ParseFullResult {
 // MARK: - validate dispatcher
 
 func runValidate(testCase: ConformanceCase) throws {
+    // v0.8 validation is agent-SDK-layer only (uses A2uiValidator.validate which
+    // requires a full schema stack not present in the renderer); skip.
+    if testCase.catalog?.version == "0.8" {
+        throw XCTSkip("N/A for renderer: v0.8 validator cases require full schema stack (test: \(testCase.name))")
+    }
     let decoder = JSONDecoder()
     for step in testCase.steps {
         guard let payload = step.payload else {
