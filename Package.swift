@@ -137,5 +137,11 @@ let package = Package(
             dependencies: ["A2UISwiftCore", "A2UIPlatform"],
             path: "Tests/A2UIPlatformTests"
         ),
+        .testTarget(
+            name: "A2UIConformanceTests",
+            dependencies: ["A2UISwiftCore"],
+            path: "Tests/A2UIConformanceTests",
+            resources: [.copy("Resources")]
+        ),
     ]
 )
