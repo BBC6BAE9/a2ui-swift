@@ -1,52 +1,51 @@
 // Tests/A2UIConformanceTests/ConformanceHarnessTests.swift
-import Testing
 import Foundation
 import XCTest
+@testable import A2UISwiftCore
 
-@Suite("ConformanceHarness")
-struct ConformanceHarnessTests {
+final class ConformanceHarnessTests: XCTestCase {
 
     // MARK: - alignErrorMatch
 
-    @Test func alignErrorMatchPassthrough() {
+    func testAlignErrorMatchPassthrough() {
         let pattern = "some other error"
-        #expect(alignErrorMatch(pattern) == pattern)
+        XCTAssertEqual(alignErrorMatch(pattern), pattern)
     }
 
-    @Test func alignErrorMatchRequiredProperty() {
+    func testAlignErrorMatchRequiredProperty() {
         let result = alignErrorMatch("required property 'foo' missing")
-        #expect(result.contains("Field required"))
-        #expect(result.contains("missing value"))
-        #expect(result.contains("required property 'foo' missing"))
+        XCTAssertTrue(result.contains("Field required"))
+        XCTAssertTrue(result.contains("missing value"))
+        XCTAssertTrue(result.contains("required property 'foo' missing"))
     }
 
-    @Test func alignErrorMatchVersionExpected() {
+    func testAlignErrorMatchVersionExpected() {
         let result = alignErrorMatch("'v0.9' was expected")
-        #expect(result.contains("version must be"))
-        #expect(result.contains("'v0.9' was expected"))
+        XCTAssertTrue(result.contains("version must be"))
+        XCTAssertTrue(result.contains("'v0.9' was expected"))
     }
 
-    @Test func alignErrorMatchIsNotOfType() {
+    func testAlignErrorMatchIsNotOfType() {
         let result = alignErrorMatch("is not of type 'string'")
-        #expect(result.contains("cannot convert"))
-        #expect(result.contains("type mismatch"))
-        #expect(result.contains("is not of type 'string'"))
+        XCTAssertTrue(result.contains("cannot convert"))
+        XCTAssertTrue(result.contains("type mismatch"))
+        XCTAssertTrue(result.contains("is not of type 'string'"))
     }
 
-    @Test func alignErrorMatchValidationFailed() {
+    func testAlignErrorMatchValidationFailed() {
         let result = alignErrorMatch("Validation failed for field")
-        #expect(result.contains("Field required"))
-        #expect(result.contains("Extra inputs"))
-        #expect(result.contains("Validation failed for field"))
+        XCTAssertTrue(result.contains("Field required"))
+        XCTAssertTrue(result.contains("Extra inputs"))
+        XCTAssertTrue(result.contains("Validation failed for field"))
     }
 
-    @Test func alignErrorMatchEmpty() {
-        #expect(alignErrorMatch("") == "")
+    func testAlignErrorMatchEmpty() {
+        XCTAssertEqual(alignErrorMatch(""), "")
     }
 
     // MARK: - skipAgentOnlyAction
 
-    @Test func skipAgentOnlyActionThrowsForKnownActions() throws {
+    func testSkipAgentOnlyActionThrowsForKnownActions() {
         let agentActions = [
             "generate_prompt", "select_catalog", "handle_rpc", "execute_tool",
             "create_a2ui_part", "is_a2ui_part", "try_activate", "try_activate_extension",
@@ -55,27 +54,30 @@ struct ConformanceHarnessTests {
             "prune", "load"
         ]
         for action in agentActions {
-            var threw = false
-            do {
-                try skipAgentOnlyAction(action, testName: "test")
-            } catch is XCTSkip {
-                threw = true
+            XCTAssertThrowsError(
+                try skipAgentOnlyAction(action, testName: "test"),
+                "Expected error for agent-only action '\(action)'"
+            ) { err in
+                XCTAssertTrue(err is XCTSkip, "Expected XCTSkip for agent-only action '\(action)', got \(type(of: err))")
             }
-            #expect(threw, "Expected XCTSkip for agent-only action '\(action)'")
         }
     }
 
-    @Test func skipAgentOnlyActionPassesForRendererActions() throws {
+    func testSkipAgentOnlyActionPassesForRendererActions() {
         let rendererActions = ["process_chunk", "parse_full", "validate", "unknown_action"]
         for action in rendererActions {
             // Should not throw
-            try skipAgentOnlyAction(action, testName: "test")
+            do {
+                try skipAgentOnlyAction(action, testName: "test")
+            } catch {
+                XCTFail("skipAgentOnlyAction should not throw for renderer action '\(action)', got: \(error)")
+            }
         }
     }
 
     // MARK: - runParseFull (basic smoke test)
 
-    @Test func parseFullPlainText() async throws {
+    func testParseFullPlainText() async {
         let step = ConformanceStep(
             input: "Hello world",
             payload: nil,
@@ -93,7 +95,11 @@ struct ConformanceHarnessTests {
             steps: [step]
         )
         // Should not throw — plain text produces text events only
-        try await runParseFull(testCase: testCase)
+        do {
+            try await runParseFull(testCase: testCase)
+        } catch {
+            XCTFail("runParseFull should not throw for plain text input, got: \(error)")
+        }
     }
 
 }
