@@ -15,6 +15,7 @@ final class StreamingParserConformanceTests: XCTestCase {
         }
 
         for testCase in cases {
+            if shouldSkipV08Case(testCase) { continue }
             try skipAgentOnlyAction(testCase.action, testName: testCase.name)
             try await runProcessChunk(testCase: testCase)
         }

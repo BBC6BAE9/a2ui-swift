@@ -15,6 +15,7 @@ final class ValidatorConformanceTests: XCTestCase {
         }
 
         for testCase in cases {
+            if shouldSkipV08Case(testCase) { continue }
             try skipAgentOnlyAction(testCase.action, testName: testCase.name)
             switch testCase.action {
             case "validate":

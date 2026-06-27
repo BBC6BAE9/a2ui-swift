@@ -19,6 +19,26 @@ func skipAgentOnlyAction(_ action: String, testName: String) throws {
     }
 }
 
+// MARK: - v0.8 cases (skip these)
+
+/// `main` targets the v0.9.1 spec, whose server-to-client vocabulary is
+/// `createSurface` / `updateComponents` / `updateDataModel` / `deleteSurface`.
+/// The v0.8 spec uses a different vocabulary (`beginRendering` / `surfaceUpdate` /
+/// `dataModelUpdate`) that this renderer intentionally does not speak, so v0.8
+/// conformance cases are not applicable here.
+///
+/// Returns `true` when the case is v0.8 and should be skipped. Callers should
+/// `continue` past the case rather than `throw`, so that the remaining v0.9
+/// cases in the same suite still run (each suite executes all of its cases in a
+/// single test method).
+func shouldSkipV08Case(_ testCase: ConformanceCase) -> Bool {
+    if testCase.catalog?.version == "0.8" {
+        print("[conformance] skipping v0.8 case (N/A for v0.9.1 renderer): \(testCase.name)")
+        return true
+    }
+    return false
+}
+
 // MARK: - Error matching (mirrors Python _align_error_match)
 
 /// Transforms a YAML `message:` pattern into a regex that tolerates known phrasing
@@ -193,11 +213,6 @@ private func parseFullResponse(_ input: String) async -> ParseFullResult {
 // MARK: - validate dispatcher
 
 func runValidate(testCase: ConformanceCase) throws {
-    // v0.8 validation is agent-SDK-layer only (uses A2uiValidator.validate which
-    // requires a full schema stack not present in the renderer); skip.
-    if testCase.catalog?.version == "0.8" {
-        throw XCTSkip("N/A for renderer: v0.8 validator cases require full schema stack (test: \(testCase.name))")
-    }
     let decoder = JSONDecoder()
     for step in testCase.steps {
         guard let payload = step.payload else {
