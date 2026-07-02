@@ -39,10 +39,16 @@ public enum ParsedEvent: Sendable {
 /// Mirrors Flutter's `A2uiParserTransformer` / `_A2uiParserStream` pair, reimplemented
 /// with Swift native concurrency (`AsyncStream` / `actor`).
 ///
-/// Three A2UI wire formats are detected:
-/// - **Markdown JSON block** — ` ```json … ``` ` or ` ``` … ``` `
-/// - **Bare JSON object** — balanced-brace matching starting at `{`
-/// - **XML wrapper** — `<a2ui_message>…</a2ui_message>` (tags stripped; inner JSON parsed)
+/// Parsing is **tag-first with a structural fallback**:
+/// - **Primary — `<a2ui-json>` … `</a2ui-json>` delimiter.** This is the spec's
+///   text↔UI mode switch: prose *outside* the tags is emitted as ``ParsedEvent/text(_:)``,
+///   JSON *inside* the tags is decoded into ``ParsedEvent/message(_:)``. Multiple blocks
+///   per stream are supported, and a tag split across chunk boundaries is buffered
+///   (a trailing prefix of a tag is held back rather than emitted as text). Mirrors the
+///   upstream Python `streaming.py` / Kotlin `StreamingParser.kt` state machine.
+/// - **Fallback — structural detection** (used only when no `<a2ui-json>` tag is present):
+///   a markdown JSON block (` ```json … ``` ` or ` ``` … ``` `) or a bare balanced-brace
+///   `{…}` object. Preserves the original Flutter tolerance for un-tagged input.
 ///
 /// Feed chunks via ``add(_:)``, signal end-of-stream with ``finish()``,
 /// and consume results from ``events``.
@@ -52,7 +58,15 @@ public final class A2UIStreamParser: Sendable {
 
     private actor _Core {
         private var buffer: String = ""
+        /// `true` while inside an `<a2ui-json>` block (hunting for the close tag); `false`
+        /// in text mode (hunting for the open tag). Mirrors upstream `_found_delimiter`.
+        private var inA2uiBlock = false
         private let continuation: AsyncStream<ParsedEvent>.Continuation
+
+        // Spec delimiter tags (hyphen — the v0.9 wire format). See upstream
+        // `constants.py` `A2UI_OPEN_TAG` / `A2UI_CLOSE_TAG`.
+        private static let openTag  = "<a2ui-json>"
+        private static let closeTag = "</a2ui-json>"
 
         init(continuation: AsyncStream<ParsedEvent>.Continuation) {
             self.continuation = continuation
@@ -66,7 +80,9 @@ public final class A2UIStreamParser: Sendable {
         }
 
         func finish() {
-            // If there's anything left in the buffer that looks like text, emit it.
+            // End of stream. Anything still buffered is plain text: a held-back partial
+            // open tag turned out not to be a tag, and an unterminated `<a2ui-json>` block
+            // has no close tag, so its contents are surfaced as text rather than dropped.
             if !buffer.isEmpty {
                 emitText(buffer)
                 buffer = ""
@@ -74,55 +90,124 @@ public final class A2UIStreamParser: Sendable {
             continuation.finish()
         }
 
-        // MARK: - Core buffer-processing loop (mirrors Flutter `_processBuffer`)
+        // MARK: - Core buffer-processing loop
 
+        /// Drives the `<a2ui-json>` two-state machine, looping so multiple blocks in one
+        /// chunk are handled in a single pass. Mirrors upstream `process_chunk`.
         private func processBuffer() {
             while !buffer.isEmpty {
-                // 1. Check for Markdown JSON block
-                if let m = findMarkdownJson(buffer) {
-                    consumeMatch(m)
-                    continue
+                if inA2uiBlock {
+                    if processJsonMode() { continue } else { return }
+                } else {
+                    if processTextMode() { continue } else { return }
                 }
-
-                // 2. Check for Balanced JSON
-                if let m = findBalancedJson(buffer) {
-                    consumeMatch(m)
-                    continue
-                }
-
-                // 3. Fallback / Wait logic
-                let markdownRange = buffer.range(of: "```")
-                let braceRange    = buffer.range(of: "{")
-
-                let firstPotentialStart: String.Index?
-                switch (markdownRange, braceRange) {
-                case let (.some(md), .some(br)):
-                    firstPotentialStart = md.lowerBound < br.lowerBound ? md.lowerBound : br.lowerBound
-                case let (.some(md), nil):
-                    firstPotentialStart = md.lowerBound
-                case let (nil, .some(br)):
-                    firstPotentialStart = br.lowerBound
-                case (nil, nil):
-                    // No potential JSON start. Emit all.
-                    emitText(buffer)
-                    buffer = ""
-                    return
-                }
-
-                guard let cut = firstPotentialStart else {
-                    emitText(buffer); buffer = ""; return
-                }
-
-                if cut > buffer.startIndex {
-                    // Emit safe prefix, then re-enter loop to attempt parsing the
-                    // JSON that now starts the buffer.
-                    emitText(String(buffer[..<cut]))
-                    buffer = String(buffer[cut...])
-                    continue
-                }
-                // Buffer starts with potential JSON but it's incomplete — wait for more data.
-                return
             }
+        }
+
+        /// Text mode — hunting for `<a2ui-json>`. Returns `true` to continue the loop,
+        /// `false` to wait for more input.
+        private func processTextMode() -> Bool {
+            if let openRange = buffer.range(of: Self.openTag) {
+                // Emit everything before the open tag, drop the tag, enter JSON mode.
+                emitText(String(buffer[..<openRange.lowerBound]))
+                buffer = String(buffer[openRange.upperBound...])
+                inA2uiBlock = true
+                return true
+            }
+            // No complete open tag. Run the structural fallback over the portion of the
+            // buffer that cannot be the start of a split open tag; hold the rest back.
+            let safe = bufferMinusTrailingTagPrefix(Self.openTag)
+            return processStructuralFallback(safeText: safe)
+        }
+
+        /// JSON mode — hunting for `</a2ui-json>`. Returns `true` to continue the loop,
+        /// `false` to wait for more input.
+        private func processJsonMode() -> Bool {
+            guard let closeRange = buffer.range(of: Self.closeTag) else {
+                // No close tag yet — wait. This parser only emits complete JSON, so there
+                // is nothing to flush incrementally; the close tag (or more data) completes it.
+                return false
+            }
+            let fragment = String(buffer[..<closeRange.lowerBound])
+            parseBlockFragment(fragment)
+            buffer = String(buffer[closeRange.upperBound...])
+            inA2uiBlock = false
+            return true
+        }
+
+        /// Parses the JSON inside an `<a2ui-json>` block. The spec wraps a JSON array (or a
+        /// single object / markdown fence); reuse the structural matchers and the array-aware
+        /// ``emitMessage(_:)``. Whitespace around the payload is tolerated.
+        private func parseBlockFragment(_ fragment: String) {
+            let trimmed = fragment.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            if let m = findMarkdownJson(trimmed) {
+                if let decoded = decodeJSON(m.content) { emitMessage(decoded) }
+                else { emitText(m.original) }
+            } else if let decoded = decodeJSON(trimmed) {
+                emitMessage(decoded)
+            } else {
+                // Not parseable as a complete value — surface as text rather than stall.
+                emitText(trimmed)
+            }
+        }
+
+        /// The original structure-first detection, applied to `safeText` (the buffer minus any
+        /// trailing partial-open-tag held back for the next chunk). Returns `true` to continue
+        /// the loop, `false` to wait for more input.
+        private func processStructuralFallback(safeText: String) -> Bool {
+            // 1. Markdown JSON block
+            if let m = findMarkdownJson(safeText) {
+                consumeMatch(m)
+                return true
+            }
+            // 2. Balanced JSON
+            if let m = findBalancedJson(safeText) {
+                consumeMatch(m)
+                return true
+            }
+            // 3. Find the first potential JSON start (` ``` ` or `{`) within the safe text.
+            let markdownRange = safeText.range(of: "```")
+            let braceRange    = safeText.range(of: "{")
+            let cut: String.Index
+            switch (markdownRange, braceRange) {
+            case let (.some(md), .some(br)):
+                cut = md.lowerBound < br.lowerBound ? md.lowerBound : br.lowerBound
+            case let (.some(md), nil):
+                cut = md.lowerBound
+            case let (nil, .some(br)):
+                cut = br.lowerBound
+            case (nil, nil):
+                // No potential JSON start in the safe text. Emit it; any held-back partial
+                // open-tag tail stays in the buffer for the next chunk.
+                emitText(safeText)
+                buffer = String(buffer.dropFirst(safeText.count))
+                return false
+            }
+
+            if cut > safeText.startIndex {
+                // Emit the safe prefix, then re-enter the loop to attempt parsing the JSON
+                // that now starts the buffer.
+                let prefixLen = safeText.distance(from: safeText.startIndex, to: cut)
+                emitText(String(safeText[..<cut]))
+                buffer = String(buffer.dropFirst(prefixLen))
+                return true
+            }
+            // Buffer starts with potential JSON but it's incomplete — wait for more data.
+            return false
+        }
+
+        /// Returns the buffer with its longest trailing substring that is a *proper prefix*
+        /// of `tag` removed, so a tag split across a chunk boundary is never emitted as text.
+        /// Mirrors the upstream split-tag guard (longest prefix-that-is-a-suffix).
+        private func bufferMinusTrailingTagPrefix(_ tag: String) -> String {
+            var keep = 0
+            // Longest first: the largest proper prefix of `tag` that the buffer ends with.
+            for i in stride(from: tag.count - 1, through: 1, by: -1) {
+                if buffer.hasSuffix(tag.prefix(i)) { keep = i; break }
+            }
+            guard keep > 0 else { return buffer }
+            return String(buffer.dropLast(keep))
         }
 
         /// Emits the text before a match, then emits the match content (as message or text),
@@ -205,11 +290,9 @@ public final class A2UIStreamParser: Sendable {
             emitText(String(buffer[..<idx]))
         }
 
-        private func emitText(_ raw: String) {
-            // Clean up protocol tags that might leak into text stream
-            let text = raw
-                .replacingOccurrences(of: "<a2ui_message>",  with: "")
-                .replacingOccurrences(of: "</a2ui_message>", with: "")
+        private func emitText(_ text: String) {
+            // The `<a2ui-json>` tags are stripped by the state machine before reaching here,
+            // so no tag cleanup is needed.
             guard !text.isEmpty else { return }
             continuation.yield(.text(text))
         }

@@ -238,17 +238,109 @@ struct A2UIStreamParserTests {
         #expect(combined.contains("more text"))
     }
 
-    // MARK: XML tag wrapper
+    // MARK: <a2ui-json> tag delimiter
 
-    @Test("<a2ui_message> XML tags are stripped from text output")
-    func xmlTagsStrippedFromText() async {
-        let input    = "<a2ui_message>\(createSurfaceJSON)</a2ui_message>"
+    @Test("<a2ui-json> tags are stripped; inner JSON is parsed as a message")
+    func a2uiJsonTagsStrippedFromText() async {
+        let input    = "<a2ui-json>[\(createSurfaceJSON)]</a2ui-json>"
         let events   = await parse(input)
         let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
         let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
-        #expect(!texts.joined().contains("<a2ui_message>"))
-        #expect(!texts.joined().contains("</a2ui_message>"))
+        #expect(!texts.joined().contains("<a2ui-json>"))
+        #expect(!texts.joined().contains("</a2ui-json>"))
         #expect(messages.count == 1)
+    }
+
+    @Test("Conversational text outside <a2ui-json> is emitted as text, inside is parsed")
+    func interleavedConversationalText() async {
+        // Mirrors upstream test_interleaved_conversational_text.
+        let events = await parseChunks([
+            "Here is your UI: <a2ui-json>",
+            "[\(createSurfaceJSON)]",
+            "</a2ui-json> That's all!",
+        ])
+        let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+
+        #expect(messages.count == 1)
+        let allText = texts.joined()
+        #expect(allText.contains("Here is your UI:"))
+        #expect(allText.contains("That's all!"))
+        // The tag literals must never leak into the text stream.
+        #expect(!allText.contains("<a2ui-json>"))
+        #expect(!allText.contains("</a2ui-json>"))
+    }
+
+    @Test("Open tag split across chunks is buffered, not emitted as text")
+    func splitTagHandlingForText() async {
+        // Mirrors upstream test_split_tag_handling_for_text:
+        // "Talking <a2u" + "i-json>" must hold back the partial tag.
+        let events = await parseChunks([
+            "Talking <a2u",
+            "i-json>",
+            "[\(createSurfaceJSON)]</a2ui-json> End.",
+        ])
+        let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+
+        #expect(messages.count == 1)
+        let allText = texts.joined()
+        #expect(allText.contains("Talking "))
+        #expect(allText.contains("End."))
+        // The partial tag prefix must not appear as conversational text.
+        #expect(!allText.contains("<a2u"))
+        #expect(!allText.contains("<a2ui-json>"))
+        #expect(!allText.contains("</a2ui-json>"))
+    }
+
+    @Test("Multiple <a2ui-json> blocks interleaved with text")
+    func multipleA2uiBlocks() async {
+        // Mirrors upstream test_multiple_a2ui_blocks.
+        let updateJSON = """
+        {"version":"v0.9","updateDataModel":{"surfaceId":"s1","path":"/name","value":"Alice"}}
+        """
+        let input = "Some text here <a2ui-json>[\(createSurfaceJSON)]</a2ui-json>"
+            + " mid text <a2ui-json>[\(updateJSON)]</a2ui-json> trailing text"
+        let events   = await parse(input)
+        let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+
+        #expect(messages.count == 2)
+        let allText = texts.joined()
+        #expect(allText.contains("Some text here"))
+        #expect(allText.contains("mid text"))
+        #expect(allText.contains("trailing text"))
+        #expect(!allText.contains("<a2ui-json>"))
+        #expect(!allText.contains("</a2ui-json>"))
+    }
+
+    @Test("Untagged markdown/bare JSON still parses (structure fallback)")
+    func untaggedStructureFallbackStillWorks() async {
+        // No <a2ui-json> tag present — the structural fallback must still parse.
+        let events   = await parse("Intro \(createSurfaceJSON) outro")
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+        #expect(messages.count == 1)
+    }
+
+    @Test("A held-back partial open tag that turns out to be plain text is flushed on finish()")
+    func partialOpenTagThatIsActuallyText() async {
+        // "<a2u" looks like the start of <a2ui-json> and is buffered, but the stream ends
+        // without completing the tag — finish() must surface it as plain text, not drop it.
+        let events   = await parse("Talking about <a2u")
+        let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+        #expect(messages.isEmpty)
+        #expect(texts.joined() == "Talking about <a2u")
+    }
+
+    @Test("A partial-tag prefix followed by non-tag text is emitted as text")
+    func partialTagPrefixResolvedAsText() async {
+        // First chunk holds back "<a2u"; the next chunk reveals it was not a tag.
+        let events   = await parseChunks(["Talking <a2u", "tomic stuff"])
+        let texts    = events.compactMap { if case .text(let t) = $0 { t } else { nil } }
+        let messages = events.compactMap { if case .message(let m) = $0 { m } else { nil } }
+        #expect(messages.isEmpty)
+        #expect(texts.joined() == "Talking <a2utomic stuff")
     }
 
     // MARK: finish() flushes remaining buffer
