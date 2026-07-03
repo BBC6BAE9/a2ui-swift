@@ -56,7 +56,7 @@ let package = Package(
         // Exported library product is `_FoundationICU` only.
         .package(
             url: "https://github.com/swiftlang/swift-foundation-icu.git",
-            revision: "swift-6.3.1-RELEASE"
+            .upToNextMajor(from: "0.0.10")
         ),
         .package(
             url: "https://github.com/ajevans99/swift-json-schema.git",
