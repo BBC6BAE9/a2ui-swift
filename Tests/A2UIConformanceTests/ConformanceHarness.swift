@@ -214,31 +214,45 @@ private func parseFullResponse(_ input: String) async -> ParseFullResult {
 
 func runValidate(testCase: ConformanceCase) throws {
     let decoder = JSONDecoder()
+    // One semantic validator per case so that incremental-update steps validate against
+    // the component ids accumulated from earlier steps in the SAME case.
+    let semanticValidator = A2uiPayloadValidator(catalogSchema: testCase.catalog?.catalogSchema)
+
     for step in testCase.steps {
         guard let payload = step.payload else {
             XCTFail("[\(testCase.name)] validate step missing 'payload'"); return
         }
 
         if let expectedError = step.expectError {
-            XCTAssertThrowsError(try validatePayload(payload, decoder: decoder),
+            XCTAssertThrowsError(
+                try validatePayload(payload, decoder: decoder, semanticValidator: semanticValidator),
                 "[\(testCase.name)] Expected error '\(expectedError.category)'") { err in
                 assertErrorMatches(err, expected: expectedError, testName: testCase.name)
             }
         } else {
-            XCTAssertNoThrow(try validatePayload(payload, decoder: decoder),
+            XCTAssertNoThrow(
+                try validatePayload(payload, decoder: decoder, semanticValidator: semanticValidator),
                 "[\(testCase.name)] Unexpected validation error")
         }
     }
 }
 
-private func validatePayload(_ payload: Any, decoder: JSONDecoder) throws {
+private func validatePayload(
+    _ payload: Any,
+    decoder: JSONDecoder,
+    semanticValidator: A2uiPayloadValidator
+) throws {
     guard let messages = payload as? [[String: Any]] else {
         throw A2uiValidationError("Payload must be an array of message objects")
     }
+    // 1. Envelope decode (version + key shape) via the message Codable layer.
     for msg in messages {
         let data = try JSONSerialization.data(withJSONObject: msg)
         _ = try decoder.decode(A2uiMessage.self, from: data)
     }
+    // 2. Semantic / graph validation (duplicates, roots, references, cycles, depth, paths,
+    //    catalog property schemas). Carries state across steps within the case.
+    try semanticValidator.validate(payload)
 }
 
 // MARK: - Helpers
