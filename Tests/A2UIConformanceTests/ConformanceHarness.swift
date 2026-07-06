@@ -149,65 +149,157 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
     await consumeTask.value
 }
 
-// MARK: - parse_full dispatcher
+// MARK: - parse_full / fix_payload dispatcher
 
+/// Dispatches both `parse_full` and `fix_payload` conformance actions against the
+/// non-streaming ``A2UIResponseParser``. Both actions live here because they share
+/// the same YAML `expect` / `expect_error` shapes and the same JSON-equality
+/// assertions.
 func runParseFull(testCase: ConformanceCase) async throws {
     for step in testCase.steps {
         guard let input = step.input else {
-            XCTFail("[\(testCase.name)] parse_full step missing 'input'"); return
+            XCTFail("[\(testCase.name)] \(testCase.action) step missing 'input'"); return
         }
 
-        let results = await parseFullResponse(input)
+        switch testCase.action {
+        case "fix_payload":
+            runFixPayloadStep(input: input, step: step, testName: testCase.name)
+        default: // "parse_full"
+            runParseFullStep(input: input, step: step, testName: testCase.name)
+        }
+    }
+}
+
+/// Runs one `parse_full` step: parse the complete response, then assert the
+/// thrown ``A2uiParseError`` (when `expect_error` is set) or the decoded
+/// ``A2uiResponsePart`` list against `expect`.
+private func runParseFullStep(input: String, step: ConformanceStep, testName: String) {
+    do {
+        let parts = try A2UIResponseParser.parseFull(input)
 
         if let expectedError = step.expectError {
-            XCTAssertFalse(results.errors.isEmpty,
-                "[\(testCase.name)] Expected error '\(expectedError.category)' but no error was emitted")
-            if let err = results.errors.first {
-                assertErrorMatches(err, expected: expectedError, testName: testCase.name)
-            }
+            XCTFail("[\(testName)] Expected error '\(expectedError.category)' but parse succeeded with \(parts.count) part(s)")
             return
         }
 
-        if let expectedParts = step.expect as? [[String: Any]] {
-            let textParts = results.parts.filter { !$0.text.isEmpty }
-            XCTAssertEqual(textParts.count, expectedParts.count,
-                "[\(testCase.name)] Expected \(expectedParts.count) parts, got \(textParts.count)")
-            for (actual, expected) in zip(textParts, expectedParts) {
-                let expectedText = expected["text"] as? String ?? ""
-                XCTAssertEqual(actual.text.trimmingCharacters(in: .whitespacesAndNewlines),
-                               expectedText.trimmingCharacters(in: .whitespacesAndNewlines),
-                               "[\(testCase.name)] Text mismatch")
+        guard let expectedParts = step.expect as? [[String: Any]] else {
+            // No structured expectation for this step (e.g. harness smoke tests).
+            return
+        }
+
+        XCTAssertEqual(parts.count, expectedParts.count,
+            "[\(testName)] Expected \(expectedParts.count) part(s), got \(parts.count)")
+
+        for (actual, expected) in zip(parts, expectedParts) {
+            let expectedText = expected["text"] as? String ?? ""
+            XCTAssertEqual(actual.text, expectedText, "[\(testName)] Text part mismatch")
+
+            // `a2ui` in the YAML may be absent (trailing text-only part) or a
+            // JSON value that must match the decoded block exactly.
+            if let expectedA2ui = expected["a2ui"] {
+                XCTAssertTrue(jsonEqual(actual.a2ui, expectedA2ui),
+                    "[\(testName)] a2ui mismatch: got \(String(describing: actual.a2ui)), expected \(expectedA2ui)")
+            } else {
+                XCTAssertNil(actual.a2ui, "[\(testName)] Expected no a2ui payload for trailing text part")
             }
         }
+    } catch {
+        if let expectedError = step.expectError {
+            assertErrorMatches(error, expected: expectedError, testName: testName)
+        } else if step.expect != nil {
+            XCTFail("[\(testName)] Unexpected parse error: \(error)")
+        }
+        // No expectation at all (harness smoke tests) → tolerate the throw.
     }
 }
 
-private struct ParseFullResult {
-    var parts: [(text: String, a2ui: Any?)] = []
-    var errors: [Error] = []
+/// Dispatches the `has_parts` action: asserts ``A2UIResponseParser/hasA2uiParts(_:)``
+/// matches the boolean `expect` for each step.
+func runHasParts(testCase: ConformanceCase) {
+    for step in testCase.steps {
+        guard let input = step.input else {
+            XCTFail("[\(testCase.name)] has_parts step missing 'input'"); return
+        }
+        guard let expected = step.expect as? Bool else {
+            XCTFail("[\(testCase.name)] has_parts step missing boolean 'expect'"); return
+        }
+        XCTAssertEqual(A2UIResponseParser.hasA2uiParts(input), expected,
+            "[\(testCase.name)] has_a2ui_parts mismatch for input \(input.debugDescription)")
+    }
 }
 
-/// Wraps `A2UIStreamParser` for async full-response parsing.
-private func parseFullResponse(_ input: String) async -> ParseFullResult {
-    let parser = A2UIStreamParser()
-    var result = ParseFullResult()
+/// Runs one `fix_payload` step: repair the payload, decode it to JSON, and assert
+/// it equals the expected (always-array) `expect` value.
+private func runFixPayloadStep(input: String, step: ConformanceStep, testName: String) {
+    let fixed = A2UIResponseParser.fixPayload(input)
 
-    let collectTask = Task {
-        var localResult = ParseFullResult()
-        for await event in parser.events {
-            switch event {
-            case .text(let t): localResult.parts.append((t, nil))
-            case .message(let m): localResult.parts.append(("", encodeMessageToAny(m)))
-            case .error(let e): localResult.errors.append(e)
-            }
-        }
-        return localResult
+    guard let data = fixed.data(using: .utf8),
+          let decoded = try? JSONSerialization.jsonObject(with: data) else {
+        XCTFail("[\(testName)] fix_payload produced unparseable JSON: \(fixed)")
+        return
     }
 
-    await parser.add(input)
-    await parser.finish()
-    result = await collectTask.value
-    return result
+    guard let expected = step.expect else {
+        return // No expectation (defensive).
+    }
+    XCTAssertTrue(jsonEqual(decoded, expected),
+        "[\(testName)] fix_payload mismatch: got \(decoded), expected \(expected)")
+}
+
+// MARK: - JSON structural equality
+
+/// Compares two `JSONSerialization`-shaped values (`[Any]`, `[String: Any]`,
+/// `String`, `NSNumber`, `Bool`, `NSNull`) for structural equality, independent
+/// of dictionary key order. Numeric values compare by their `Double` value so
+/// `1` and `1.0` are equal.
+func jsonEqual(_ lhs: Any?, _ rhs: Any?) -> Bool {
+    switch (lhs, rhs) {
+    case (nil, nil):
+        return true
+    case (.some(let l), .some(let r)):
+        return jsonEqualNonNil(l, r)
+    default:
+        return false
+    }
+}
+
+private func jsonEqualNonNil(_ lhs: Any, _ rhs: Any) -> Bool {
+    if lhs is NSNull && rhs is NSNull { return true }
+
+    if let l = lhs as? [Any], let r = rhs as? [Any] {
+        guard l.count == r.count else { return false }
+        return zip(l, r).allSatisfy { jsonEqualNonNil($0, $1) }
+    }
+
+    if let l = lhs as? [String: Any], let r = rhs as? [String: Any] {
+        guard l.count == r.count else { return false }
+        for (key, lv) in l {
+            guard let rv = r[key], jsonEqualNonNil(lv, rv) else { return false }
+        }
+        return true
+    }
+
+    if let l = lhs as? String, let r = rhs as? String { return l == r }
+
+    // Distinguish Bool from numeric: NSNumber bridges both, so check Bool first
+    // only when both sides are genuine booleans.
+    if let l = lhs as? Bool, let r = rhs as? Bool,
+       isBoolNumber(lhs), isBoolNumber(rhs) {
+        return l == r
+    }
+
+    if let l = lhs as? NSNumber, let r = rhs as? NSNumber {
+        return l.doubleValue == r.doubleValue
+    }
+
+    return false
+}
+
+/// True when `value` is an `NSNumber` that actually represents a boolean
+/// (`kCFBooleanTrue`/`kCFBooleanFalse`), so it is not mistaken for `0`/`1`.
+private func isBoolNumber(_ value: Any) -> Bool {
+    guard let number = value as? NSNumber else { return false }
+    return CFGetTypeID(number) == CFBooleanGetTypeID()
 }
 
 // MARK: - validate dispatcher
@@ -239,14 +331,4 @@ private func validatePayload(_ payload: Any, decoder: JSONDecoder) throws {
         let data = try JSONSerialization.data(withJSONObject: msg)
         _ = try decoder.decode(A2uiMessage.self, from: data)
     }
-}
-
-// MARK: - Helpers
-
-private func encodeMessageToAny(_ message: A2uiMessage) -> Any {
-    guard let data = try? JSONEncoder().encode(message),
-          let obj = try? JSONSerialization.jsonObject(with: data) else {
-        return [String: Any]()
-    }
-    return obj
 }
