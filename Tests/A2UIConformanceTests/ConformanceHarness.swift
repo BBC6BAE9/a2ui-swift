@@ -112,18 +112,58 @@ private func flattenExpectedEvents(_ parts: [[String: Any]]) -> [ExpectedEvent] 
 /// Mirrors what the upstream Python parser reads off its catalog.
 private func makeParserConfig(_ testCase: ConformanceCase) -> A2UIStreamParserConfig {
     var required: [String: Set<String>] = [:]
+    var childRefs: [String: Set<String>] = [:]
     if let schema = testCase.catalog?.catalogSchema as? [String: Any],
        let components = schema["components"] as? [String: Any] {
         for (componentType, def) in components {
-            guard let def = def as? [String: Any],
-                  let requiredList = def["required"] as? [Any] else { continue }
-            required[componentType] = Set(requiredList.compactMap { $0 as? String })
+            guard let def = def as? [String: Any] else { continue }
+            if let requiredList = def["required"] as? [Any] {
+                required[componentType] = Set(requiredList.compactMap { $0 as? String })
+            }
+            // A property is a placeholder-eligible child ref when its schema references the
+            // common-types ChildList or ComponentId definitions.
+            if let props = def["properties"] as? [String: Any] {
+                var refFields: Set<String> = []
+                for (propName, propDef) in props {
+                    if schemaReferencesChildRef(propDef) { refFields.insert(propName) }
+                }
+                if !refFields.isEmpty { childRefs[componentType] = refFields }
+            }
         }
     }
+    // The v0.9 loading placeholder is a `Row`; it can only be synthesised when the catalog
+    // defines that component type.
+    var canSynthesizePlaceholder = false
+    if let schema = testCase.catalog?.catalogSchema as? [String: Any],
+       let components = schema["components"] as? [String: Any] {
+        canSynthesizePlaceholder = components["Row"] != nil
+    }
+
     return A2UIStreamParserConfig(
         cuttableKeys: Set(testCase.customCuttableKeys),
-        requiredFieldsByComponent: required
+        requiredFieldsByComponent: required,
+        childRefFieldsByComponent: childRefs,
+        canSynthesizePlaceholder: canSynthesizePlaceholder
     )
+}
+
+/// True when a property schema (possibly nested via oneOf/items) references the common-types
+/// `ChildList` or `ComponentId` definitions — i.e. its value(s) are component references.
+private func schemaReferencesChildRef(_ schema: Any) -> Bool {
+    if let ref = (schema as? [String: Any])?["$ref"] as? String {
+        if ref.contains("ChildList") || ref.contains("ComponentId") { return true }
+    }
+    if let dict = schema as? [String: Any] {
+        // Inline objects that carry a `componentId` property are template child refs.
+        if let props = dict["properties"] as? [String: Any], props["componentId"] != nil { return true }
+        for key in ["items", "oneOf", "anyOf", "allOf"] {
+            if let nested = dict[key], schemaReferencesChildRef(nested) { return true }
+        }
+    }
+    if let arr = schema as? [Any] {
+        return arr.contains { schemaReferencesChildRef($0) }
+    }
+    return false
 }
 
 func runProcessChunk(testCase: ConformanceCase) async throws {
