@@ -265,6 +265,15 @@ private struct YAMLScanner {
             } else if ch == "{" {
                 value = try parseFlowMapping()
                 consumeRestOfLine()
+            } else if ch == "\"" {
+                // Double-quoted scalar: parse via the escape-aware reader so
+                // `\"`, `\n`, etc. are unescaped (a bare `collectScalar` keeps
+                // backslashes literal and corrupts embedded JSON).
+                value = try parseDoubleQuotedString()
+                consumeRestOfLine()
+            } else if ch == "'" {
+                value = parseSingleQuotedString()
+                consumeRestOfLine()
             } else if ch == "|" || ch == ">" {
                 value = try parseBlockScalar(keyIndent: mapIndent + 2)
             } else {
