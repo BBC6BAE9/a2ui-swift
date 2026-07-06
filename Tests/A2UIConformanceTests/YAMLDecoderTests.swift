@@ -106,4 +106,37 @@ final class YAMLDecoderTests: XCTestCase {
         let obj = try XCTUnwrap(dict["obj"] as? [String: Any])
         XCTAssertEqual(obj["type"] as? String, "object")
     }
+
+    func test_quotedBlockSequenceItemsDecodeEscapes() throws {
+        let yaml = """
+        - "line1\\nline2"
+        - "say \\"hi\\""
+        - 'it''s'
+        """
+        let result = try parseYAML(yaml)
+        let arr = try XCTUnwrap(result as? [Any])
+        XCTAssertEqual(arr.count, 3)
+        XCTAssertEqual(arr[0] as? String, "line1\nline2")
+        XCTAssertEqual(arr[1] as? String, "say \"hi\"")
+        XCTAssertEqual(arr[2] as? String, "it's")
+    }
+
+    func test_windowsLineEndingsParseLikeUnix() throws {
+        let unix = """
+        - name: foo
+          note:
+          count: 42
+        -
+          nested: true
+        """
+        let windows = unix.replacingOccurrences(of: "\n", with: "\r\n")
+        for text in [unix, windows] {
+            let arr = try XCTUnwrap(try parseYAML(text) as? [[String: Any]])
+            XCTAssertEqual(arr.count, 2)
+            XCTAssertEqual(arr[0]["name"] as? String, "foo")
+            XCTAssertTrue(arr[0]["note"] is NSNull)
+            XCTAssertEqual(arr[0]["count"] as? Int, 42)
+            XCTAssertEqual(arr[1]["nested"] as? Bool, true)
+        }
+    }
 }

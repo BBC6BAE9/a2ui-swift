@@ -25,7 +25,12 @@ private struct YAMLScanner {
     var pos: Int = 0
 
     init(_ text: String) {
-        source = Array(text)
+        // YAML 1.2 §5.4 normalizes line breaks; folding `\r\n` / `\r` into `\n`
+        // here lets every scan below check only for `\n`.
+        source = Array(
+            text.replacingOccurrences(of: "\r\n", with: "\n")
+                .replacingOccurrences(of: "\r", with: "\n")
+        )
     }
 
     // MARK: Helpers
@@ -191,6 +196,15 @@ private struct YAMLScanner {
                     // Inline mapping: first key starts here, continuation lines
                     // are at seqIndent + 2.
                     result.append(try parseInlineBlockMapping(keyIndent: seqIndent + 2))
+                } else if ch == "\"" {
+                    // Quoted scalar item: parse via the escape-aware readers so
+                    // `\"`, `\n`, etc. are unescaped (a bare `collectScalar`
+                    // keeps backslashes literal).
+                    result.append(try parseDoubleQuotedString())
+                    consumeRestOfLine()
+                } else if ch == "'" {
+                    result.append(parseSingleQuotedString())
+                    consumeRestOfLine()
                 } else {
                     let raw = collectScalar()
                     result.append(parseScalar(raw))

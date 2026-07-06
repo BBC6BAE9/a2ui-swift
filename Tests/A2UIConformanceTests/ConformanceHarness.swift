@@ -137,7 +137,7 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
 
     // Buffer collects ParsedEvent values emitted between steps.
     actor EventBuffer {
-        var events: [ParsedEvent] = []
+        private var events: [ParsedEvent] = []
         func append(_ e: ParsedEvent) { events.append(e) }
         var count: Int { events.count }
         func drain() -> [ParsedEvent] { let r = events; events = []; return r }
@@ -155,10 +155,20 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
     // than a single fixed sleep: the actor + AsyncStream continuation hop means
     // events can arrive over several cooperative-scheduling turns, and a lone
     // 10ms sleep occasionally raced ahead of the last event.
-    func drainStable() async -> [ParsedEvent] {
+    func drainStable(expectedCount: Int? = nil) async -> [ParsedEvent] {
+        // When the step declares how many events it expects, wait for that many
+        // first (bounded at ~1s): the stability window alone can drain early if
+        // a busy CI scheduler delays an in-flight event past one interval.
+        if let expectedCount, expectedCount > 0 {
+            for _ in 0..<200 {
+                if await buffer.count >= expectedCount { break }
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+        }
         var previous = -1
         // Poll until the count is stable for one interval, capped so a genuinely
-        // empty step doesn't stall the suite.
+        // empty step doesn't stall the suite. Also catches events beyond the
+        // expected count so over-emission still fails the assertion below.
         for _ in 0..<20 {
             let current = await buffer.count
             if current == previous { break }
@@ -173,8 +183,12 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
             XCTFail("[\(testCase.name)] process_chunk step missing 'input'"); return
         }
 
+        // Flatten expectations up front so the drain can wait for the exact
+        // event count this step declares.
+        let expectedEvents = (step.expect as? [[String: Any]]).map(flattenExpectedEvents)
+
         await parser.add(input)
-        let events = await drainStable()
+        let events = await drainStable(expectedCount: expectedEvents?.count)
 
         if let expectedError = step.expectError {
             let errorEvents = events.compactMap { e -> Error? in
@@ -188,11 +202,9 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
             break
         }
 
-        // Validate against step.expect.
-        if let expectedParts = step.expect as? [[String: Any]] {
-            // Flatten the YAML parts into the ordered event sequence the parser
-            // must emit, then compare against the non-error events for this step.
-            let expectedEvents = flattenExpectedEvents(expectedParts)
+        // Validate against step.expect: compare the flattened expected event
+        // sequence against the non-error events for this step.
+        if let expectedEvents {
             let nonErrorEvents = events.filter { if case .error = $0 { return false } else { return true } }
             XCTAssertEqual(nonErrorEvents.count, expectedEvents.count,
                 "[\(testCase.name)] Expected \(expectedEvents.count) event(s), got \(nonErrorEvents.count)")
@@ -213,13 +225,10 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
                     }
                 }
             }
-        } else if let arr = step.expect as? [Any], arr.isEmpty {
-            // Empty array means no events expected for this step.
-            let nonErrorEvents = events.filter { if case .error = $0 { return false } else { return true } }
-            XCTAssertTrue(nonErrorEvents.isEmpty,
-                "[\(testCase.name)] Expected no events but got \(nonErrorEvents.count)")
         }
-        // nil expect → no assertion (step only feeds data, output verified by later steps).
+        // An empty `expect` array flattens to zero expected events and is asserted
+        // above; nil expect → no assertion (step only feeds data, output verified
+        // by later steps).
     }
 
     await parser.finish()
