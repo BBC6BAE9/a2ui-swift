@@ -52,12 +52,6 @@ public struct A2UIStreamParserConfig: Sendable {
     /// any required field is held back until the field arrives.
     public var requiredFieldsByComponent: [String: Set<String>]
 
-    /// componentType → set of properties that are child references typed as `ChildList`
-    /// or `ComponentId` in the catalog. Targets of these fields are *placeholder-eligible*:
-    /// an unseen target is rendered as a loading placeholder rather than blocking the parent.
-    /// A `child`-named field NOT in this set whose target is unseen blocks the parent's yield.
-    public var childRefFieldsByComponent: [String: Set<String>]
-
     /// Whether the catalog defines the loading-placeholder component type (`Row` in v0.9).
     /// A partial parent with an unseen placeholder-eligible child can only be yielded when a
     /// placeholder can be synthesised; without the placeholder type the parent is held back.
@@ -71,12 +65,10 @@ public struct A2UIStreamParserConfig: Sendable {
     public init(
         cuttableKeys: Set<String> = [],
         requiredFieldsByComponent: [String: Set<String>] = [:],
-        childRefFieldsByComponent: [String: Set<String>] = [:],
         canSynthesizePlaceholder: Bool = false
     ) {
         self.cuttableKeys = Self.defaultCuttableKeys.union(cuttableKeys)
         self.requiredFieldsByComponent = requiredFieldsByComponent
-        self.childRefFieldsByComponent = childRefFieldsByComponent
         self.canSynthesizePlaceholder = canSynthesizePlaceholder
     }
 }
@@ -464,31 +456,25 @@ public final class A2UIStreamParser: Sendable {
             let seen = seenComponents[sid] ?? [:]
             guard seen[Self.rootId] != nil else { return }  // root must be present
 
-            // BFS from root over child-reference edges. Bail if any edge points at an unseen
-            // target through a field that is NOT placeholder-eligible, or through a
-            // placeholder-eligible field when no placeholder component type is available (the
-            // parent cannot be rendered yet).
+            // BFS from root over child-reference edges (fields named child/children/…). An
+            // unseen child target renders as a loading placeholder — but only when the catalog
+            // can synthesise the placeholder component (defines `Row`); otherwise the parent is
+            // not renderable yet and nothing is yielded.
             var reachable: Set<String> = []
             var needsPlaceholder = false
             var queue = [Self.rootId]
             while let id = queue.popLast() {
                 guard !reachable.contains(id), let comp = seen[id] else { continue }
                 reachable.insert(id)
-                guard let type = comp["component"] as? String else { continue }
-                let eligible = config.childRefFieldsByComponent[type] ?? []
                 for field in Self.childFieldNames {
                     guard let value = comp[field] else { continue }
                     for target in referencedIds(value) {
                         if seen[target] != nil {
                             queue.append(target)
-                        } else if eligible.contains(field) {
-                            // Unseen but placeholder-eligible — only renderable if we can
-                            // synthesise the loading placeholder component (catalog defines it).
+                        } else {
+                            // Unseen child ref — needs a loading placeholder.
                             guard config.canSynthesizePlaceholder else { return }
                             needsPlaceholder = true
-                        } else {
-                            // Unseen ref through a non-placeholder field → parent not ready.
-                            return
                         }
                     }
                 }
