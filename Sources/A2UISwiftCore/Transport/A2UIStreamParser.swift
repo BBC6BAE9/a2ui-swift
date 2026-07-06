@@ -127,8 +127,9 @@ public final class A2UIStreamParser: Sendable {
         private var pendingComponentMessages: [String: [[String: Any]]] = [:]
         /// Signature of the last partial *component* set emitted this block (dedup).
         private var lastComponentSignature: String?
-        /// Cumulative data-model keys already emitted this block, per surface (dedup).
-        private var yieldedDataModelKeys: [String: Set<String>] = [:]
+        /// Data-model values already emitted this block, per surface: key → canonical value
+        /// JSON. A partial data-model update is re-yielded only when a key's value changed.
+        private var yieldedDataModelValues: [String: [String: String]] = [:]
         /// Child-reference edges seen this stream, for cycle detection. id → referenced ids.
         private var componentEdges: [String: Set<String>] = [:]
 
@@ -230,7 +231,7 @@ public final class A2UIStreamParser: Sendable {
             inString = false
             stringEscaped = false
             lastComponentSignature = nil
-            yieldedDataModelKeys = [:]
+            yieldedDataModelValues = [:]
         }
 
         // MARK: - Incremental JSON scanner (mirrors upstream `_process_json_chunk`)
@@ -374,6 +375,20 @@ public final class A2UIStreamParser: Sendable {
             for obj in pending { emitDecodedOrError(obj) }
         }
 
+        /// Completes and decodes a partial object fragment. First tries ``fixJson``; if the
+        /// healed fragment still doesn't decode (e.g. a dangling `"key` with no value, which
+        /// `fixJson` closes into invalid `"key"`), it iteratively strips the last
+        /// comma-delimited element and retries — mirroring upstream's rsplit-on-comma fallback.
+        private func fixAndDecode(_ raw: String) -> [String: Any]? {
+            if let fixed = fixJson(raw), let obj = decodeObject(fixed) { return obj }
+            var trimmed = raw
+            while let commaIdx = trimmed.range(of: ",", options: .backwards) {
+                trimmed = String(trimmed[..<commaIdx.lowerBound])
+                if let fixed = fixJson(trimmed), let obj = decodeObject(fixed) { return obj }
+            }
+            return nil
+        }
+
         // MARK: - Partial component sniffing (mirrors `_sniff_partial_component`)
 
         /// If the trailing incomplete object is (or contains) a component, complete it via
@@ -385,6 +400,9 @@ public final class A2UIStreamParser: Sendable {
             for (type, startIdx) in braceStack.reversed() where type == "{" {
                 let raw = substring(jsonBuffer, from: startIdx)
                 guard !raw.isEmpty else { continue }
+                // Component sniffing uses fixJson only (no comma-strip fallback): a component
+                // whose trailing field is a partial non-cuttable value must be held back whole,
+                // not truncated to a smaller valid-but-incomplete component.
                 guard let fixed = fixJson(raw), let obj = decodeObject(fixed) else { continue }
                 guard isYieldableComponent(obj) else { continue }
 
@@ -419,7 +437,7 @@ public final class A2UIStreamParser: Sendable {
             for (type, startIdx) in braceStack where type == "{" {
                 let raw = substring(jsonBuffer, from: startIdx)
                 guard raw.contains("\"updateComponents\"") else { continue }
-                if let fixed = fixJson(raw), let obj = decodeObject(fixed),
+                if let obj = fixAndDecode(raw),
                    let uc = obj["updateComponents"] as? [String: Any],
                    let sid = uc["surfaceId"] as? String {
                     return sid
@@ -438,20 +456,29 @@ public final class A2UIStreamParser: Sendable {
             guard jsonBuffer.contains("\"updateDataModel\"") else { return }
             for (type, startIdx) in braceStack.reversed() where type == "{" {
                 let raw = substring(jsonBuffer, from: startIdx)
-                guard !raw.isEmpty else { continue }
-                guard let fixed = fixJson(raw), let obj = decodeObject(fixed) else { continue }
+                guard !raw.isEmpty, raw.contains("\"updateDataModel\"") else { continue }
+                guard let obj = fixAndDecode(raw) else { continue }
                 guard let dm = obj["updateDataModel"] as? [String: Any] else { continue }
 
                 let surfaceId = (dm["surfaceId"] as? String) ?? "default"
                 guard let rawValue = dm["value"] else { continue }
-                let pruned = pruneEmpty(rawValue)
-                guard let valueDict = pruned as? [String: Any], !valueDict.isEmpty else { continue }
+                // fixJson + comma-strip already dropped dangling keys / partial values; an
+                // explicitly-opened empty dict (e.g. `items:{}`) is intentionally kept.
+                guard let valueDict = rawValue as? [String: Any], !valueDict.isEmpty else { continue }
 
-                var alreadyYielded = yieldedDataModelKeys[surfaceId, default: []]
-                let newKeys = valueDict.keys.filter { !alreadyYielded.contains($0) }
-                guard !newKeys.isEmpty else { return }
-                newKeys.forEach { alreadyYielded.insert($0) }
-                yieldedDataModelKeys[surfaceId] = alreadyYielded
+                // Re-yield only when at least one top-level key's value changed vs the last
+                // emit for this surface (mirrors upstream `_yielded_data_model` value compare).
+                var stored = yieldedDataModelValues[surfaceId, default: [:]]
+                var changed = false
+                for (key, value) in valueDict {
+                    let canonical = canonicalValue(value)
+                    if stored[key] != canonical {
+                        stored[key] = canonical
+                        changed = true
+                    }
+                }
+                guard changed else { return }
+                yieldedDataModelValues[surfaceId] = stored
 
                 emitSyntheticUpdateDataModel(surfaceId: surfaceId, value: valueDict)
                 return
@@ -524,26 +551,7 @@ public final class A2UIStreamParser: Sendable {
                 || value.hasPrefix("data:") || value.hasPrefix("/")
         }
 
-        // MARK: - Pruning (mirrors `_prune_incomplete_datamodel_entries` semantics)
-
-        /// Recursively drops empty dictionaries and dictionary entries whose value became
-        /// empty after pruning. Non-empty scalars/arrays are kept.
-        private func pruneEmpty(_ value: Any) -> Any? {
-            if let dict = value as? [String: Any] {
-                var out: [String: Any] = [:]
-                for (k, v) in dict {
-                    if let pruned = pruneEmpty(v) { out[k] = pruned }
-                }
-                return out.isEmpty ? nil : out
-            }
-            if let arr = value as? [Any] {
-                let pruned = arr.compactMap { pruneEmpty($0) }
-                return pruned.isEmpty ? nil : pruned
-            }
-            // Scalars (string/number/bool) are always meaningful. `NSNull` is dropped.
-            if value is NSNull { return nil }
-            return value
-        }
+        // MARK: - Empty-dict detection (mirrors `_has_empty_dict`)
 
         /// True if `obj` is an empty dict, or any nested value is an empty dict.
         private func hasEmptyDict(_ value: Any) -> Bool {
@@ -794,7 +802,9 @@ public final class A2UIStreamParser: Sendable {
                 continuation.yield(.message(message))
             } catch {
                 if looksLikeA2ui {
-                    continuation.yield(.error(error))
+                    // Surface a structured A2UI error so the message text is stable across
+                    // decode-error phrasings (mirrors upstream `A2uiParseError`/validation).
+                    continuation.yield(.error(A2uiValidationError("Validation failed: \(error)")))
                 } else if let text = String(data: data, encoding: .utf8) {
                     continuation.yield(.text(text))
                 }
@@ -827,6 +837,16 @@ public final class A2UIStreamParser: Sendable {
             guard let data = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys]),
                   let s = String(data: data, encoding: .utf8) else { return "\(obj)" }
             return s
+        }
+
+        /// Canonical string form of an arbitrary JSON value (for change detection).
+        private func canonicalValue(_ value: Any) -> String {
+            if JSONSerialization.isValidJSONObject([value]),
+               let data = try? JSONSerialization.data(withJSONObject: [value], options: [.sortedKeys]),
+               let s = String(data: data, encoding: .utf8) {
+                return s
+            }
+            return "\(value)"
         }
 
         // MARK: - String index helpers (jsonBuffer is indexed by character offset)

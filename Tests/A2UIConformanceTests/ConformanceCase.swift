@@ -114,7 +114,10 @@ private func decodeCase(_ d: [String: Any]) throws -> ConformanceCase {
     let topLevelError = decodeExpectedError(d)
     let steps = rawSteps.map { decodeStep($0, fallbackError: topLevelError) }
 
-    let customCuttableKeys = (d["custom_cuttable_keys"] as? [Any])?.compactMap { $0 as? String } ?? []
+    // `custom_cuttable_keys:` may appear at the case level or nested under `catalog:`.
+    let rawCuttable = (d["custom_cuttable_keys"] as? [Any])
+        ?? ((d["catalog"] as? [String: Any])?["custom_cuttable_keys"] as? [Any])
+    let customCuttableKeys = rawCuttable?.compactMap { $0 as? String } ?? []
 
     return ConformanceCase(
         name: name,
