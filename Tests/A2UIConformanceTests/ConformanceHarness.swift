@@ -75,13 +75,71 @@ func assertErrorMatches(_ error: Error, expected: ConformanceExpectedError, test
 
 // MARK: - process_chunk dispatcher
 
+/// A single expected event flattened out of a YAML `expect` part.
+///
+/// The YAML models one "part" as a bundle that may carry conversational `text`
+/// and/or an `a2ui` array of N protocol messages, whereas the Swift parser emits
+/// each as its own ``ParsedEvent``. `.text` carries the expected (trimmed) string;
+/// `.message` carries no payload because the harness only asserts event *shape*
+/// (text vs message) and count, matching the upstream Python conformance harness.
+private enum ExpectedEvent {
+    case text(String)
+    case message
+}
+
+/// Flattens the YAML `expect` array into the ordered sequence of ``ParsedEvent``
+/// the parser must emit. A part with both `text` and `a2ui` expands to a text
+/// event followed by one message event per entry in the `a2ui` array (upstream
+/// yields the leading conversational text before the block's messages).
+private func flattenExpectedEvents(_ parts: [[String: Any]]) -> [ExpectedEvent] {
+    var out: [ExpectedEvent] = []
+    for part in parts {
+        if let text = part["text"] as? String {
+            out.append(.text(text))
+        }
+        if let a2ui = part["a2ui"] as? [Any] {
+            out.append(contentsOf: a2ui.map { _ in ExpectedEvent.message })
+        } else if part["a2ui"] != nil {
+            // Non-array a2ui value (defensive): treat as a single message.
+            out.append(.message)
+        }
+    }
+    return out
+}
+
+/// Builds the parser config from the conformance case's catalog: the required-fields map
+/// (componentType → required property names) and any case-level custom cuttable keys.
+/// Mirrors what the upstream Python parser reads off its catalog.
+private func makeParserConfig(_ testCase: ConformanceCase) -> A2UIStreamParserConfig {
+    var required: [String: Set<String>] = [:]
+    // The v0.9 loading placeholder is a `Row`; a partial parent with an unseen child can only
+    // be yielded when that placeholder component type is defined by the catalog.
+    var canSynthesizePlaceholder = false
+    if let schema = testCase.catalog?.catalogSchema as? [String: Any],
+       let components = schema["components"] as? [String: Any] {
+        for (componentType, def) in components {
+            guard let def = def as? [String: Any],
+                  let requiredList = def["required"] as? [Any] else { continue }
+            required[componentType] = Set(requiredList.compactMap { $0 as? String })
+        }
+        canSynthesizePlaceholder = components["Row"] != nil
+    }
+
+    return A2UIStreamParserConfig(
+        cuttableKeys: Set(testCase.customCuttableKeys),
+        requiredFieldsByComponent: required,
+        canSynthesizePlaceholder: canSynthesizePlaceholder
+    )
+}
+
 func runProcessChunk(testCase: ConformanceCase) async throws {
-    let parser = A2UIStreamParser()
+    let parser = A2UIStreamParser(config: makeParserConfig(testCase))
 
     // Buffer collects ParsedEvent values emitted between steps.
     actor EventBuffer {
         var events: [ParsedEvent] = []
         func append(_ e: ParsedEvent) { events.append(e) }
+        var count: Int { events.count }
         func drain() -> [ParsedEvent] { let r = events; events = []; return r }
     }
     let buffer = EventBuffer()
@@ -92,15 +150,31 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
         }
     }
 
+    // Drains events emitted after an `add(_:)`, waiting until the emitted-event
+    // count stops growing across successive scheduler ticks. This is more robust
+    // than a single fixed sleep: the actor + AsyncStream continuation hop means
+    // events can arrive over several cooperative-scheduling turns, and a lone
+    // 10ms sleep occasionally raced ahead of the last event.
+    func drainStable() async -> [ParsedEvent] {
+        var previous = -1
+        // Poll until the count is stable for one interval, capped so a genuinely
+        // empty step doesn't stall the suite.
+        for _ in 0..<20 {
+            let current = await buffer.count
+            if current == previous { break }
+            previous = current
+            try? await Task.sleep(nanoseconds: 3_000_000)
+        }
+        return await buffer.drain()
+    }
+
     for step in testCase.steps {
         guard let input = step.input else {
             XCTFail("[\(testCase.name)] process_chunk step missing 'input'"); return
         }
 
         await parser.add(input)
-        // Sleep briefly to give the cooperative scheduler time to drain events reliably.
-        try await Task.sleep(nanoseconds: 10_000_000)
-        let events = await buffer.drain()
+        let events = await drainStable()
 
         if let expectedError = step.expectError {
             let errorEvents = events.compactMap { e -> Error? in
@@ -116,12 +190,15 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
 
         // Validate against step.expect.
         if let expectedParts = step.expect as? [[String: Any]] {
-            // Non-empty expected array: verify we got corresponding events.
+            // Flatten the YAML parts into the ordered event sequence the parser
+            // must emit, then compare against the non-error events for this step.
+            let expectedEvents = flattenExpectedEvents(expectedParts)
             let nonErrorEvents = events.filter { if case .error = $0 { return false } else { return true } }
-            XCTAssertEqual(nonErrorEvents.count, expectedParts.count,
-                "[\(testCase.name)] Expected \(expectedParts.count) event(s), got \(nonErrorEvents.count)")
-            for (event, expected) in zip(nonErrorEvents, expectedParts) {
-                if let expectedText = expected["text"] as? String {
+            XCTAssertEqual(nonErrorEvents.count, expectedEvents.count,
+                "[\(testCase.name)] Expected \(expectedEvents.count) event(s), got \(nonErrorEvents.count)")
+            for (event, expected) in zip(nonErrorEvents, expectedEvents) {
+                switch expected {
+                case .text(let expectedText):
                     if case .text(let actual) = event {
                         XCTAssertEqual(
                             actual.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -130,7 +207,7 @@ func runProcessChunk(testCase: ConformanceCase) async throws {
                     } else {
                         XCTFail("[\(testCase.name)] Expected .text event but got \(event)")
                     }
-                } else if expected["a2ui"] != nil {
+                case .message:
                     if case .message = event { /* ok */ } else {
                         XCTFail("[\(testCase.name)] Expected .message event but got \(event)")
                     }
