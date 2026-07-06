@@ -30,6 +30,25 @@ struct ConformanceCase {
     let catalog: ConformanceCatalogConfig?
     let action: String
     let steps: [ConformanceStep]
+    /// Case-level `custom_cuttable_keys:` — extra keys the streaming parser may safely
+    /// truncate mid-stream (in addition to the built-in defaults). Used by process_chunk.
+    let customCuttableKeys: [String]
+
+    init(
+        name: String,
+        description: String?,
+        catalog: ConformanceCatalogConfig?,
+        action: String,
+        steps: [ConformanceStep],
+        customCuttableKeys: [String] = []
+    ) {
+        self.name = name
+        self.description = description
+        self.catalog = catalog
+        self.action = action
+        self.steps = steps
+        self.customCuttableKeys = customCuttableKeys
+    }
 }
 
 // MARK: - Loaders
@@ -95,12 +114,15 @@ private func decodeCase(_ d: [String: Any]) throws -> ConformanceCase {
     let topLevelError = decodeExpectedError(d)
     let steps = rawSteps.map { decodeStep($0, fallbackError: topLevelError) }
 
+    let customCuttableKeys = (d["custom_cuttable_keys"] as? [Any])?.compactMap { $0 as? String } ?? []
+
     return ConformanceCase(
         name: name,
         description: d["description"] as? String,
         catalog: catalogConfig,
         action: action,
-        steps: steps
+        steps: steps,
+        customCuttableKeys: customCuttableKeys
     )
 }
 
