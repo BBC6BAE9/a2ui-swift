@@ -115,8 +115,11 @@ public final class A2UIStreamParser: Sendable {
         // MARK: Incremental JSON-mode state (mirrors upstream `_process_json_chunk`)
 
         /// Accumulated JSON characters for the current block (chars are dropped from the
-        /// front as complete top-level objects are consumed).
-        private var jsonBuffer = ""
+        /// front as complete top-level objects are consumed). `[Character]` (not `String`)
+        /// so `count`, offset indexing, and prefix removal are O(1)/O(k) rather than the
+        /// O(N) grapheme walk `String.index(_:offsetBy:)` requires — this buffer is probed
+        /// on every open/close brace while streaming, so an O(N) walk there is O(N·M) overall.
+        private var jsonBuffer: [Character] = []
         /// Stack of ("{" or "[", startIndexInJsonBuffer). Mirrors `_brace_stack`.
         private var braceStack: [(Character, Int)] = []
         private var braceCount = 0
@@ -146,6 +149,9 @@ public final class A2UIStreamParser: Sendable {
         private var componentEdges: [String: Set<String>] = [:]
         /// Default root component id (matches upstream `DEFAULT_ROOT_ID`).
         private static let rootId = "root"
+        /// Needle for the `jsonBuffer` (now `[Character]`) substring probes below.
+        private static let componentsKeyChars: [Character] = Array("\"components\"")
+        private static let updateDataModelKeyChars: [Character] = Array("\"updateDataModel\"")
         /// Field names that carry child component references (regardless of catalog typing).
         private static let childFieldNames = ["child", "children", "contentChild", "entryPointChild", "explicitList"]
 
@@ -240,7 +246,7 @@ public final class A2UIStreamParser: Sendable {
         /// Resets the per-block incremental JSON scan state (keeps cross-block dedup state
         /// like `startedSurfaces`, `seenComponents`, `lastReachableSignature`, `componentEdges`).
         private func resetJsonState() {
-            jsonBuffer = ""
+            jsonBuffer = []
             braceStack = []
             braceCount = 0
             inTopLevelList = false
@@ -365,11 +371,9 @@ public final class A2UIStreamParser: Sendable {
         private func dropConsumedObject(startIdx: Int, length: Int) {
             if braceStack.count == 1 && braceStack[0].0 == "[" {
                 // Keep the "[" frame; excise the object that followed it.
-                let start = jsonBuffer.index(jsonBuffer.startIndex, offsetBy: startIdx)
-                let end = jsonBuffer.index(start, offsetBy: length)
-                jsonBuffer.removeSubrange(start..<end)
+                jsonBuffer.removeSubrange(startIdx..<(startIdx + length))
             } else if braceStack.isEmpty {
-                jsonBuffer = ""
+                jsonBuffer = []
             }
         }
 
@@ -412,7 +416,16 @@ public final class A2UIStreamParser: Sendable {
                 // A deleteSurface before the surface exists is dropped (upstream `_delete_surface`
                 // simply clears state); otherwise emit it.
                 let sid = (obj["deleteSurface"] as? [String: Any])?["surfaceId"] as? String
-                if let sid, !startedSurfaces.contains(sid) { return }
+                if let sid {
+                    guard startedSurfaces.contains(sid) else { return }
+                    // Clear cross-block dedup state so a surface id reused later in the
+                    // stream starts clean instead of inheriting stale reachability/yield state.
+                    startedSurfaces.remove(sid)
+                    pendingComponentSurfaces.remove(sid)
+                    seenComponents.removeValue(forKey: sid)
+                    lastReachableSignature.removeValue(forKey: sid)
+                    yieldedDataModelValues.removeValue(forKey: sid)
+                }
                 emitDecodedOrError(obj)
                 return
             }
@@ -510,7 +523,7 @@ public final class A2UIStreamParser: Sendable {
         /// trigger a reachability yield. A component whose trailing field is a partial
         /// non-cuttable value is held back whole (fixJson returns nil).
         private func sniffPartialComponent() {
-            guard jsonBuffer.contains("\"components\"") else { return }
+            guard jsonBuffer.firstRange(of: Self.componentsKeyChars) != nil else { return }
             updateActiveSurfaceFromBuffer()
             for (type, startIdx) in braceStack.reversed() where type == "{" {
                 let raw = substring(jsonBuffer, from: startIdx)
@@ -557,7 +570,7 @@ public final class A2UIStreamParser: Sendable {
         /// `value`, and emit iff at least one new/changed key appears vs what was already
         /// yielded for that surface this block.
         private func sniffPartialDataModel() {
-            guard jsonBuffer.contains("\"updateDataModel\"") else { return }
+            guard jsonBuffer.firstRange(of: Self.updateDataModelKeyChars) != nil else { return }
             for (type, startIdx) in braceStack.reversed() where type == "{" {
                 let raw = substring(jsonBuffer, from: startIdx)
                 guard !raw.isEmpty, raw.contains("\"updateDataModel\"") else { continue }
@@ -978,10 +991,11 @@ public final class A2UIStreamParser: Sendable {
 
         // MARK: - String index helpers (jsonBuffer is indexed by character offset)
 
-        /// Substring of `s` from character offset `from` to the end.
-        private func substring(_ s: String, from offset: Int) -> String {
+        /// Substring of `s` from character offset `from` to the end. `[Character]` gives
+        /// O(1) random-access slicing, unlike `String.index(_:offsetBy:)` which is O(N).
+        private func substring(_ s: [Character], from offset: Int) -> String {
             guard offset >= 0, offset <= s.count else { return "" }
-            return String(s[s.index(s.startIndex, offsetBy: offset)...])
+            return String(s[offset...])
         }
 
         private func advance(by count: Int) {

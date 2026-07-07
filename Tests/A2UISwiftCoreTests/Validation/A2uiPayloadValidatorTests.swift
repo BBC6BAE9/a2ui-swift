@@ -64,6 +64,7 @@ final class A2uiPayloadValidatorTests: XCTestCase {
                         "component": ["const": "Button"],
                         "text": ["type": "string"],
                         "action": ["type": "object"],
+                        "disabled": ["type": "boolean"],
                     ],
                 ],
                 // A component whose `content` accepts a dynamic object, so a `{path: …}`
@@ -286,6 +287,30 @@ final class A2uiPayloadValidatorTests: XCTestCase {
         XCTAssertThrowsError(try makeValidator().validate(payload(json))) { error in
             self.assertMessage(error, contains: "is not of type 'string'")
         }
+    }
+
+    /// On Darwin, `NSNumber(value: 0)` / `NSNumber(value: 1)` bridge to `is Bool == true`
+    /// (ObjC `BOOL`/`char` aliasing), so a naive `value is Bool` type check misclassifies
+    /// the integers 0/1 from `JSONSerialization` as booleans. `disabled: 1` must still be
+    /// rejected as not-a-boolean.
+    func test_booleanProperty_rejectsIntegerZeroOrOne() throws {
+        let json = """
+        [{"version":"v0.9","updateComponents":{"surfaceId":"s1","components":[
+          {"id":"root","component":"Button","text":"btn","disabled":1}
+        ]}}]
+        """
+        XCTAssertThrowsError(try makeValidator().validate(payload(json))) { error in
+            self.assertMessage(error, contains: "is not of type 'boolean'")
+        }
+    }
+
+    func test_booleanProperty_acceptsTrueFalse() throws {
+        let json = """
+        [{"version":"v0.9","updateComponents":{"surfaceId":"s1","components":[
+          {"id":"root","component":"Button","text":"btn","disabled":false}
+        ]}}]
+        """
+        XCTAssertNoThrow(try makeValidator().validate(payload(json)))
     }
 
     func test_validPayload_isValid() throws {

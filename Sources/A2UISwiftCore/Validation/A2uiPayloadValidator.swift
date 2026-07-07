@@ -434,7 +434,7 @@ public final class A2uiPayloadValidator {
         case "number", "integer":
             ok = isNumber(value)
         case "boolean":
-            ok = value is Bool && !isNumber(value)
+            ok = isBool(value)
         case "object":
             ok = value is [String: Any]
         case "array":
@@ -452,18 +452,28 @@ public final class A2uiPayloadValidator {
     // MARK: - Value helpers
 
     private func isNumber(_ value: Any) -> Bool {
-        if value is Bool { return false }
         if let number = value as? NSNumber {
-            // Exclude boolean NSNumbers.
+            // On Darwin, `NSNumber(value: 1) is Bool` is true (ObjC's Bool/int
+            // bridging), so an integer-valued NSNumber from JSONSerialization
+            // must not be excluded here — only genuine CFBoolean values are.
             return CFGetTypeID(number) != CFBooleanGetTypeID()
         }
         return value is Int || value is Double || value is Float
     }
 
+    /// True only for genuine booleans, not integer-valued `NSNumber`s that
+    /// happen to also satisfy `is Bool` due to Darwin's ObjC bridging.
+    private func isBool(_ value: Any) -> Bool {
+        if let number = value as? NSNumber {
+            return CFGetTypeID(number) == CFBooleanGetTypeID()
+        }
+        return value is Bool
+    }
+
     /// Renders a value the way the jsonschema error messages do (e.g. `123`, `'text'`).
     private func describe(_ value: Any) -> String {
         if let string = value as? String { return "'\(string)'" }
-        if value is Bool { return "\(value)" }
+        if isBool(value) { return "\(value)" }
         if let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() {
             // Print integers without a trailing ".0".
             if number.doubleValue == number.doubleValue.rounded() {
@@ -484,7 +494,9 @@ public final class A2uiPayloadValidator {
         if isNumber(lhs) && isNumber(rhs) {
             return (lhs as? NSNumber)?.doubleValue == (rhs as? NSNumber)?.doubleValue
         }
-        if let l = lhs as? Bool, let r = rhs as? Bool { return l == r }
+        if isBool(lhs) && isBool(rhs) {
+            return (lhs as? Bool) == (rhs as? Bool)
+        }
         return false
     }
 
