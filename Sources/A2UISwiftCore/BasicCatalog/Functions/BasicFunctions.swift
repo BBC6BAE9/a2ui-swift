@@ -344,7 +344,7 @@ private func resolveLocale(_ context: DataContext) -> Locale {
     return Locale.current
 }
 
-/// Resolves the locale identifier string for ICU-level APIs (e.g. A2UIPluralRules).
+/// Resolves the locale identifier string for plural selection (A2UIPluralRules).
 private func resolveLocaleIdentifier(_ context: DataContext) -> String {
     context.locale ?? Locale.current.identifier
 }

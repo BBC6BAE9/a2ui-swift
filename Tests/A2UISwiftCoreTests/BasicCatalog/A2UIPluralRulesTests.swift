@@ -161,11 +161,138 @@ struct A2UIPluralRulesTests {
             ("ru", 40.0, "many"),
             ("ru", 41.0, "one"),
             ("ru", 42.0, "few"),
+
+            // MARK: fr — one covers i = 0,1; many at whole millions
+
+            ("fr", 0.0, "one"),
+            ("fr", 1.0, "one"),
+            ("fr", 1.5, "one"),
+            ("fr", 2.0, "other"),
+            ("fr", 1_000_000.0, "many"),
+            ("fr", 2_000_000.0, "many"),
+            ("fr", 1_000_001.0, "other"),
+
+            // MARK: es / it / pt — Romance languages with `many` at whole millions
+
+            ("es", 1.0, "one"),
+            ("es", 0.0, "other"),
+            ("es", 0.5, "other"),
+            ("es", 1_000_000.0, "many"),
+            ("it", 1.0, "one"),
+            ("it", 1.5, "other"),
+            ("it", 2.0, "other"),
+            ("it", 1_000_000.0, "many"),
+            ("pt", 0.0, "one"),
+            ("pt", 1.0, "one"),
+            ("pt", 1.5, "one"),
+            ("pt", 2.0, "other"),
+            ("pt-BR", 0.0, "one"),
+            ("pt-PT", 0.0, "other"),
+            ("pt-PT", 1.0, "one"),
+            ("pt-PT", 1.5, "other"),
+
+            // MARK: cs — few 2..4, many for fractions
+
+            ("cs", 1.0, "one"),
+            ("cs", 2.0, "few"),
+            ("cs", 4.0, "few"),
+            ("cs", 5.0, "other"),
+            ("cs", 0.0, "other"),
+            ("cs", 1.5, "many"),
+
+            // MARK: he — one / two
+
+            ("he", 1.0, "one"),
+            ("he", 2.0, "two"),
+            ("he", 3.0, "other"),
+            ("he", 20.0, "other"),
+
+            // MARK: uk — same family as ru
+
+            ("uk", 1.0, "one"),
+            ("uk", 2.0, "few"),
+            ("uk", 5.0, "many"),
+            ("uk", 11.0, "many"),
+            ("uk", 21.0, "one"),
+            ("uk", 0.5, "other"),
+
+            // MARK: sl — dual and i % 100 cycle
+
+            ("sl", 1.0, "one"),
+            ("sl", 2.0, "two"),
+            ("sl", 3.0, "few"),
+            ("sl", 5.0, "other"),
+            ("sl", 101.0, "one"),
+            ("sl", 102.0, "two"),
+            ("sl", 0.5, "few"),
+
+            // MARK: sr — f-operand clauses for fractions
+
+            ("sr", 1.0, "one"),
+            ("sr", 2.0, "few"),
+            ("sr", 5.0, "other"),
+            ("sr", 11.0, "other"),
+            ("sr", 21.0, "one"),
+            ("sr", 0.1, "one"),
+
+            // MARK: lt — many only for fractions
+
+            ("lt", 1.0, "one"),
+            ("lt", 2.0, "few"),
+            ("lt", 9.0, "few"),
+            ("lt", 10.0, "other"),
+            ("lt", 11.0, "other"),
+            ("lt", 21.0, "one"),
+            ("lt", 0.5, "many"),
+
+            // MARK: da — fractional one
+
+            ("da", 1.0, "one"),
+            ("da", 2.0, "other"),
+            ("da", 0.5, "one"),
+            ("da", 1.5, "one"),
+            ("da", 2.5, "other"),
+
+            // MARK: hi — one covers i = 0
+
+            ("hi", 0.0, "one"),
+            ("hi", 0.5, "one"),
+            ("hi", 1.0, "one"),
+            ("hi", 2.0, "other"),
+
+            // MARK: ga / cy — celtic few/many
+
+            ("ga", 1.0, "one"),
+            ("ga", 2.0, "two"),
+            ("ga", 3.0, "few"),
+            ("ga", 7.0, "many"),
+            ("ga", 11.0, "other"),
+            ("cy", 0.0, "zero"),
+            ("cy", 1.0, "one"),
+            ("cy", 2.0, "two"),
+            ("cy", 3.0, "few"),
+            ("cy", 6.0, "many"),
+            ("cy", 4.0, "other"),
+
+            // MARK: tr / ja — simple sets
+
+            ("tr", 1.0, "one"),
+            ("tr", 2.0, "other"),
+            ("ja", 1.0, "other"),
         ]
     )
     func intlParity(locale: String, number: Double, want: String) {
         let got = A2UIPluralRules(localeIdentifier: locale).select(number)
         #expect(got == want)
+    }
+
+    // Unknown languages use the root rule set (always "other"), matching the ICU
+    // C API (`uplrules_openForType("xx")`). Note Intl.PluralRules differs here:
+    // it falls back to the host's *default locale* for unsupported languages.
+    @Test("unknown language falls back to root rules")
+    func unknownLanguageIsRoot() {
+        #expect(A2UIPluralRules(localeIdentifier: "xx").select(1.0) == "other")
+        #expect(A2UIPluralRules(localeIdentifier: "").select(1.0) == "other")
     }
 
     @Test(
@@ -179,11 +306,11 @@ struct A2UIPluralRulesTests {
         #expect(rules.select(-Double.infinity) == "other")
     }
 
-    // Verify ICU C API accepts both BCP-47 (hyphen) and POSIX/ICU (underscore) formats.
+    // Verify both BCP-47 (hyphen) and POSIX/ICU (underscore) formats are accepted.
     // BCP-47 comes from the server / host app (WebCore convention).
-    // ICU underscore format comes from Locale.current.identifier (Apple fallback).
+    // The underscore format comes from Locale.current.identifier (Apple fallback).
     @Test(
-        "ICU accepts both BCP-47 and POSIX locale identifiers",
+        "accepts both BCP-47 and POSIX locale identifiers",
         arguments: [
             ("en-US", "en_US", 1.0, "one"),
             ("en-US", "en_US", 2.0, "other"),
