@@ -394,6 +394,33 @@ struct A2UIStreamParserTests {
         }
     }
 
+    @Test("deleteSurface clears cached reachability state so a reused surfaceId re-yields")
+    func deleteSurfaceClearsReachabilityState() async {
+        // Same surfaceId, same single-component root shape, reused after a delete. If
+        // `lastReachableSignature["s1"]` from the first createSurface/updateComponents
+        // pair survives the deleteSurface, the second updateComponents computes an
+        // identical signature and the reachability yield is wrongly suppressed as a dup.
+        // Wrapped in <a2ui-json> so this goes through the incremental scanner
+        // (`scanJson`/`handleTopLevelMessage`), where the surface-scoped dedup caches this
+        // test targets actually live — untagged/structural-fallback JSON bypasses them.
+        let messages = [
+            #"{"version":"v0.9","createSurface":{"surfaceId":"s1","catalogId":"basic","sendDataModel":false}}"#,
+            #"{"version":"v0.9","updateComponents":{"surfaceId":"s1","components":[{"id":"root","component":"Text","text":"first"}]}}"#,
+            #"{"version":"v0.9","deleteSurface":{"surfaceId":"s1"}}"#,
+            #"{"version":"v0.9","createSurface":{"surfaceId":"s1","catalogId":"basic","sendDataModel":false}}"#,
+            #"{"version":"v0.9","updateComponents":{"surfaceId":"s1","components":[{"id":"root","component":"Text","text":"first"}]}}"#,
+        ]
+        let input = "<a2ui-json>[\(messages.joined(separator: ","))]</a2ui-json>"
+        let events = await parse(input)
+        let updateComponentsMessages = events.compactMap { event -> UpdateComponentsPayload? in
+            guard case .message(let m) = event, case .updateComponents(let p) = m else { return nil }
+            return p
+        }
+        // One reachability yield per updateComponents — the second must not be dropped as
+        // a stale-signature dup of the first, since it belongs to a fresh surface lifetime.
+        #expect(updateComponentsMessages.count == 2)
+    }
+
     // MARK: Validation error propagation
 
     @Test("A2UI JSON with invalid field type emits .error, not .text or .message")
