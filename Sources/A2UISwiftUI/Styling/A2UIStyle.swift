@@ -693,6 +693,10 @@ private struct A2UIImageResolverKey: EnvironmentKey {
     static let defaultValue: A2UIImageResolver? = nil
 }
 
+private struct A2UITriggerActivationKey: EnvironmentKey {
+    static let defaultValue: (@Sendable () -> Void)? = nil
+}
+
 extension EnvironmentValues {
     public var a2uiStyle: A2UIStyle {
         get { self[A2UIStyleKey.self] }
@@ -709,6 +713,15 @@ extension EnvironmentValues {
     public var a2uiImageResolver: A2UIImageResolver? {
         get { self[A2UIImageResolverKey.self] }
         set { self[A2UIImageResolverKey.self] = newValue }
+    }
+
+    /// Internal: containers (e.g. Modal) inject this to learn that a descendant
+    /// Button trigger was activated, regardless of `Action` kind. Unlike
+    /// `a2uiActionHandler` — which deliberately reports only resolved server
+    /// events — this also fires for pure client-side `functionCall` actions.
+    var a2uiTriggerActivationHandler: (@Sendable () -> Void)? {
+        get { self[A2UITriggerActivationKey.self] }
+        set { self[A2UITriggerActivationKey.self] = newValue }
     }
 
 }

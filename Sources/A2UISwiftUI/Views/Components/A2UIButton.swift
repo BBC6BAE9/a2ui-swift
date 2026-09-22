@@ -46,6 +46,51 @@ struct A2UIButton: View {
     }
 }
 
+// MARK: - Action handling
+
+/// Executes a Button's `Action`. Shared by `ButtonActionView` and unit tests.
+///
+/// `onTriggerActivated` fires first, for BOTH action kinds: containers such as
+/// Modal rely on it to detect that their trigger was activated. `functionCall`
+/// actions never reach `actionHandler` (there is no server event name), so
+/// activation must not be inferred from it.
+@MainActor
+func a2uiHandleButtonAction(
+    _ action: Action,
+    componentId: String,
+    dataContext dc: DataContext,
+    surface: SurfaceModel,
+    actionHandler: ((ResolvedAction) -> Void)?,
+    onTriggerActivated: (() -> Void)?
+) {
+    // Action-kind-independent activation notice — regardless of whether the
+    // action later succeeds (mirrors how event actions dispatch unconditionally).
+    onTriggerActivated?()
+    switch action {
+    case .event(let name, let ctx):
+        var resolvedContext: [String: AnyCodable] = [:]
+        if let ctx = ctx {
+            for (key, dv) in ctx {
+                resolvedContext[key] = dc.resolveDynamicValue(dv) ?? .null
+            }
+        }
+        // Dispatch to SurfaceModel → MessageProcessor → server.
+        // Context is resolved before dispatch, mirroring WebCore where the renderer
+        // calls DataContext.resolveAction() before surface.dispatchAction().
+        surface.dispatchAction(name: name, sourceComponentId: componentId, context: resolvedContext)
+        // Notify the host app's local SwiftUI action handler.
+        if let handler = actionHandler {
+            handler(ResolvedAction(name: name, sourceComponentId: componentId, context: resolvedContext))
+        }
+    case .functionCall(let fc):
+        // Pure client-side execution: resolve via DataContext (handles arg resolution,
+        // function invocation, and error dispatching). No server dispatch or actionHandler
+        // notification — there is no server event name. Trigger activation was already
+        // reported above via onTriggerActivated.
+        _ = dc.resolveDynamicValue(.functionCall(fc))
+    }
+}
+
 // MARK: - ButtonActionView
 
 /// Wrapper that reads `a2uiActionHandler` from environment and invokes it on tap.
@@ -59,35 +104,20 @@ struct ButtonActionView<Label: View>: View {
     @ViewBuilder let label: () -> Label
 
     @Environment(\.a2uiActionHandler) private var actionHandler
+    @Environment(\.a2uiTriggerActivationHandler) private var triggerActivationHandler
     @Environment(\.a2uiStyle) private var style
 
     private var variant: ButtonVariant_Enum { props.variant ?? .default }
 
     private func handleAction() {
-        let action = props.action
-        let dc = DataContext(surface: surface, path: dataContextPath)
-        switch action {
-        case .event(let name, let ctx):
-            var resolvedContext: [String: AnyCodable] = [:]
-            if let ctx = ctx {
-                for (key, dv) in ctx {
-                    resolvedContext[key] = dc.resolveDynamicValue(dv) ?? .null
-                }
-            }
-            // Dispatch to SurfaceModel → MessageProcessor → server.
-            // Context is resolved before dispatch, mirroring WebCore where the renderer
-            // calls DataContext.resolveAction() before surface.dispatchAction().
-            surface.dispatchAction(name: name, sourceComponentId: componentId, context: resolvedContext)
-            // Notify the host app's local SwiftUI action handler.
-            if let handler = actionHandler {
-                handler(ResolvedAction(name: name, sourceComponentId: componentId, context: resolvedContext))
-            }
-        case .functionCall(let fc):
-            // Pure client-side execution: resolve via DataContext (handles arg resolution,
-            // function invocation, and error dispatching). No server dispatch or actionHandler
-            // notification needed — there is no server event name.
-            _ = dc.resolveDynamicValue(.functionCall(fc))
-        }
+        a2uiHandleButtonAction(
+            props.action,
+            componentId: componentId,
+            dataContext: DataContext(surface: surface, path: dataContextPath),
+            surface: surface,
+            actionHandler: actionHandler,
+            onTriggerActivated: triggerActivationHandler
+        )
     }
 
     var body: some View {

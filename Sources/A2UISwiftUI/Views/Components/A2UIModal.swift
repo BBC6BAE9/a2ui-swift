@@ -23,7 +23,9 @@ import A2UISwiftCore
 /// - `content` (required): component ID displayed inside the sheet.
 ///
 /// Rendering strategy:
-/// - Trigger renders as-is; interaction is handled by the Button inside it (action handler intercept).
+/// - Trigger renders as-is; the Button inside it reports activation via the
+///   `a2uiTriggerActivationHandler` environment (any action kind), with an
+///   `a2uiActionHandler` intercept kept for custom-component triggers.
 /// - Content is presented via `.sheet` with `NavigationStack` + `ScrollView`.
 /// - Close button uses `.cancellationAction` placement (top-leading, standard iOS dismiss position).
 ///
@@ -68,6 +70,16 @@ struct ModalNodeView: View {
             node: triggerNode,
             surface: surface
         )
+        // Action-kind-independent path: fires for BOTH event and functionCall
+        // actions on the built-in Button (functionCall never reaches a2uiActionHandler).
+        .environment(\.a2uiTriggerActivationHandler) {
+            MainActor.assumeIsolated {
+                uiState.isPresented = true
+            }
+        }
+        // Kept alongside the trigger-activation handler: custom catalog components
+        // used as triggers report activation only through a2uiActionHandler, and
+        // event actions must still be forwarded to the host's handler.
         .environment(\.a2uiActionHandler) { action in
             MainActor.assumeIsolated {
                 uiState.isPresented = true
