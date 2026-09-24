@@ -72,7 +72,8 @@ let package = Package(
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "OrderedJSON", package: "swift-json-schema"),
             ],
-            path: "Sources/A2UISwiftCore"
+            path: "Sources/A2UISwiftCore",
+            resources: [.process("Resources")]
         ),
         .target(
             name: "A2UISwiftUI",

@@ -15,17 +15,19 @@
 @testable import A2UISwiftCore
 import Testing
 
-/// Golden values from Node: `new Intl.PluralRules(locale).select(n)` (V8 `Intl`).
-/// Regenerate when intentionally upgrading ICU/CLDR expectations.
+/// Shared cardinal examples; Foundation supplies the installed OS plural rules.
 
 @Suite("A2UIPluralRules")
 struct A2UIPluralRulesTests {
 
     @Test(
-        "cardinal keyword matches Intl.PluralRules(locale).select",
+        "selects localized cardinal categories",
         arguments: [
             // MARK: en-US (WebCore `pluralize` default)
 
+            ("eng", 1.0, "one"),
+            ("fra", 1.0, "one"),
+            ("deu", 1.0, "one"),
             ("en-US", 0.0, "other"),
             ("en-US", 1.0, "one"),
             ("en-US", 2.0, "other"),
@@ -281,7 +283,7 @@ struct A2UIPluralRulesTests {
             ("ja", 1.0, "other"),
         ]
     )
-    func intlParity(locale: String, number: Double, want: String) {
+    func cardinalCategories(locale: String, number: Double, want: String) {
         let got = A2UIPluralRules(localeIdentifier: locale).select(number)
         #expect(got == want)
     }

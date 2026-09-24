@@ -50,7 +50,7 @@ A2UI-Swift is built for the middle ground: **agent-generated UI as data, rendere
 - **17 built-in components**: Text, Image, Icon, Button, TextField, CheckBox, Slider, ChoicePicker, DateTimeInput, Row, Column, List, Card, Tabs, Modal, Divider, AudioPlayer, and Video.
 - **Two-way data binding**: inputs write back to the local data model, while streaming agent updates can rebuild or update the UI in place.
 - **Custom component catalogs**: expose your own trusted SwiftUI, UIKit, or AppKit components to the agent without allowing arbitrary code execution.
-- **Localization support**: ICU-backed number, currency, date formatting, and pluralization.
+- **Localization support**: Foundation number, currency, date formatting, and pluralization using the system ICU/CLDR rules. Pluralization requires the bundled `PluralCategories.stringsdict`; rule versions and numeric boundaries follow the OS and may differ from JavaScript `Intl.PluralRules`.
 - **Test coverage**: 300+ tests across protocol decoding, expression evaluation, data binding, validation, and renderer behavior.
 
 ## Quick Start

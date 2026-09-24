@@ -17,7 +17,7 @@ swift build                                               # build all targets
 ./build-docc.sh                                           # build DocC for all targets (macOS)
 ```
 
-No Makefile. Only external dependency is `swift-foundation-icu` (used by `A2UISwiftCore` for ICU pluralization). Min platforms: iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visionOS 1.
+No Makefile. The external dependency is `swift-json-schema`. Pluralization uses Foundation and the bundled, unlocalized `PluralCategories.stringsdict`; rules follow the OS. Min platforms: iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visionOS 1.
 
 ## Module layout
 
@@ -26,7 +26,7 @@ Six SPM library products, organized by concern. Cross-module dependencies are ex
 | Module | Depends on | What it owns |
 |---|---|---|
 | `Primitives` | — | Shared value types used across SDKs: `ChatMessage`, `Part`, `JSONValue`, `ToolDefinition` |
-| `A2UISwiftCore` | `_FoundationICU` | **v0.9 protocol layer** — schema, data model, catalogs, expression evaluator, message processor, transport. UI-framework-agnostic. |
+| `A2UISwiftCore` | `JSONSchema`, `OrderedJSON` | **v0.9 protocol layer** — schema, data model, catalogs, expression evaluator, message processor, transport. UI-framework-agnostic. |
 | `A2UISwiftUI` | `A2UISwiftCore` | v0.9 SwiftUI renderer (`A2UISurfaceView`, `SurfaceViewModel`) |
 | `A2UIUIKit` | `A2UISwiftCore` | v0.9 UIKit renderer (iOS/tvOS/visionOS) — community extension via `A2UIUIKitComponent` |
 | `A2UIAppKit` | `A2UISwiftCore` | v0.9 AppKit renderer (macOS) — community extension via `A2UIAppKitComponent` |
@@ -105,9 +105,9 @@ Many comments in `A2UISwiftCore` reference the WebCore (TypeScript) reference re
 - **Guard assignments** before writing to an `@Observable` property. `existing.instance = new.instance` notifies SwiftUI even when the value is identical — check equality first when reconciling trees.
 - **No hardcoded numerics** (spacing, radii, font sizes, colors) in component views — pull from `A2UIStyle`.
 - **No `AnyView`** — use generics or `@ViewBuilder`.
-- **No third-party dependencies** other than what's already in `Package.swift` (`swift-foundation-icu`).
+- **No third-party dependencies** other than what's already in `Package.swift` (`swift-json-schema`).
 - **Read-only component views.** All mutation goes through `SurfaceModel` / `SurfaceViewModel`. UI-only state lives on `ComponentNode.uiState`, which survives tree rebuilds (keyed by node id) so `LazyVStack` recycling is safe.
-- **Locale-sensitive code** in `BasicCatalog/Functions` must match WebCore's behavior — see PR refs in commits like `feat: align locale support with WebCore PR #1427`.
+- **Locale-sensitive code** in `BasicCatalog/Functions` follows WebCore's locale selection; plural rule versions and numeric boundaries follow Foundation — see PR refs in commits like `feat: align locale support with WebCore PR #1427`.
 - **Don't extend `v_08`.** New features land in the v0.9 modules.
 - **Platform fallbacks** — when a control is unavailable on watchOS/tvOS, provide a functional fallback (e.g., wheel picker instead of segmented, +/− buttons instead of slider). Never render nothing.
 
