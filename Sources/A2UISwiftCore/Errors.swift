@@ -103,3 +103,31 @@ public struct A2uiStateError: A2uiError {
         self.message = message
     }
 }
+
+// MARK: - A2uiIntegrityError
+
+/// Thrown during pre-flight payload validation when the component graph violates a
+/// structural rule (duplicate ids, missing root, dangling references, orphaned components).
+/// Mirrors the Python reference validator's `A2uiIntegrityError` (code: "INTEGRITY_ERROR").
+public struct A2uiIntegrityError: A2uiError {
+    public var code: String { "INTEGRITY_ERROR" }
+    public let message: String
+
+    public init(_ message: String) {
+        self.message = message
+    }
+}
+
+// MARK: - A2uiRecursionError
+
+/// Thrown during pre-flight payload validation when a recursion / depth limit is exceeded
+/// (self-references, reference cycles, `functionCall` nesting, or logical/data-model depth).
+/// Mirrors the Python reference validator's `A2uiRecursionError` (code: "RECURSION_ERROR").
+public struct A2uiRecursionError: A2uiError {
+    public var code: String { "RECURSION_ERROR" }
+    public let message: String
+
+    public init(_ message: String) {
+        self.message = message
+    }
+}
