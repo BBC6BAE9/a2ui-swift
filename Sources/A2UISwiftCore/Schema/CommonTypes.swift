@@ -172,11 +172,9 @@ public enum DynamicValue: Codable, Sendable {
                 case .functionCall(let fc): self = .functionCall(fc)
                 }
             } else {
-                assertionFailure("A2UI: DynamicValue received unresolvable object: \(dict)")
                 self = .string("")
             }
         case .null:
-            assertionFailure("A2UI: DynamicValue received null, falling back to empty string.")
             self = .string("")
         }
     }
