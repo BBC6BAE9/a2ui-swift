@@ -75,6 +75,16 @@ struct A2UIText: View {
             .font(override?.font ?? defaultFont(for: variant))
             .fontWeight(weight)
             .foregroundColor(color)
+            // Commit the height the wrapped text actually needs for the
+            // width it is given. Hosts that build their view model
+            // asynchronously (e.g. in `onAppear`) propose a placeholder's
+            // one-line height on the first layout pass; inside `List` /
+            // lazy containers that stale proposal sticks, so multi-line
+            // text intermittently renders truncated — and which row is
+            // truncated changes between renders of identical data.
+            // Vertical-only: horizontal stays flexible, wrapping is the
+            // desired behavior.
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(level != nil ? .isHeader : [])
             .accessibilityHeading(level ?? .unspecified)
     }
